@@ -33,6 +33,8 @@ export class GridDrawer extends Component {
     private blockCreator: BlockCreator = new BlockCreator();
     private currentScale: number = 1;
     private lastTouchDistance: number = 0;
+    private lastTouchPos: { x: number; y: number } | null = null;
+    private contentOffset: { x: number; y: number } = { x: 0, y: 0 };
 
     onLoad() {
         this.createGraphicsNodes();
@@ -73,32 +75,85 @@ export class GridDrawer extends Component {
 
     private onTouchMove(event: EventTouch) {
         const touches = event.getTouches();
-        if (touches.length < 2) return;
 
-        const touch1 = touches[0];
-        const touch2 = touches[1];
+        // 双指缩放
+        if (touches.length >= 2) {
+            const touch1 = touches[0];
+            const touch2 = touches[1];
 
-        const pos1 = touch1.getUILocation();
-        const pos2 = touch2.getUILocation();
+            const pos1 = touch1.getUILocation();
+            const pos2 = touch2.getUILocation();
 
-        const dx = pos1.x - pos2.x;
-        const dy = pos1.y - pos2.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
+            const dx = pos1.x - pos2.x;
+            const dy = pos1.y - pos2.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
 
-        if (this.lastTouchDistance > 0) {
-            const scaleFactor = distance / this.lastTouchDistance;
-            let newScale = this.currentScale * scaleFactor;
+            if (this.lastTouchDistance > 0) {
+                const scaleFactor = distance / this.lastTouchDistance;
+                let newScale = this.currentScale * scaleFactor;
 
-            newScale = Math.max(this.minScale, Math.min(this.maxScale, newScale));
+                newScale = Math.max(this.minScale, Math.min(this.maxScale, newScale));
 
-            this.setContentScale(newScale);
+                this.setContentScale(newScale);
+            }
+
+            this.lastTouchDistance = distance;
+            this.lastTouchPos = { x: (pos1.x + pos2.x) / 2, y: (pos1.y + pos2.y) / 2 };
         }
+        // 单指移动（仅在 scale > 1 时允许）
+        else if (touches.length === 1 && this.currentScale > 1) {
+            const touch = touches[0];
+            const pos = touch.getUILocation();
 
-        this.lastTouchDistance = distance;
+            if (this.lastTouchPos) {
+                const deltaX = pos.x - this.lastTouchPos.x;
+                const deltaY = pos.y - this.lastTouchPos.y;
+
+                this.moveContent(deltaX, deltaY);
+            }
+
+            this.lastTouchPos = { x: pos.x, y: pos.y };
+        }
     }
 
     private onTouchEnd(_event: EventTouch) {
         this.lastTouchDistance = 0;
+        this.lastTouchPos = null;
+    }
+
+    /**
+     * 移动内容，并处理边界
+     */
+    private moveContent(deltaX: number, deltaY: number) {
+        if (!this.contentNode) return;
+
+        const uiTransform = this.node.getComponent(UITransform);
+        if (!uiTransform) return;
+
+        const width = uiTransform.width;
+        const height = uiTransform.height;
+
+        // 计算缩放后的内容尺寸
+        const scaledWidth = width * this.currentScale;
+        const scaledHeight = height * this.currentScale;
+
+        // 计算可移动范围
+        const maxOffsetX = (scaledWidth - width) / 2;
+        const maxOffsetY = (scaledHeight - height) / 2;
+
+        // 更新偏移
+        let newOffsetX = this.contentOffset.x + deltaX;
+        let newOffsetY = this.contentOffset.y + deltaY;
+
+        // 限制边界
+        newOffsetX = Math.max(-maxOffsetX, Math.min(maxOffsetX, newOffsetX));
+        newOffsetY = Math.max(-maxOffsetY, Math.min(maxOffsetY, newOffsetY));
+
+        this.contentOffset.x = newOffsetX;
+        this.contentOffset.y = newOffsetY;
+
+        // 应用位置偏移
+        this.contentNode.setPosition(newOffsetX, newOffsetY, 0);
     }
 
     private setContentScale(scale: number) {
@@ -106,6 +161,9 @@ export class GridDrawer extends Component {
         this.currentScale = scale;
         if (this.contentNode) {
             this.contentNode.setScale(scale, scale, 1);
+            // 缩放时重置位置偏移，重新计算边界
+            this.contentOffset = { x: 0, y: 0 };
+            this.contentNode.setPosition(0, 0, 0);
         }
     }
 
