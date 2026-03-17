@@ -1439,7 +1439,6 @@
     "__prefab": null,
     "rows": 6,
     "columns": 6,
-    "lineWidth": 10,
     "lineColor": {
       "__type__": "cc.Color",
       "r": 0,

@@ -15,7 +15,7 @@ export class GridDrawer extends Component {
     @property({ type: Boolean })
     showBorder: boolean = true;
 
-    private lineWidth: number = 10;
+    private lineWidth: number = 7;
     private graphics: Graphics | null = null;
     private gridNode: Node | null = null;
 
