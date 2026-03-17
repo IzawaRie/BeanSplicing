@@ -2,11 +2,16 @@ import { Node, UITransform, instantiate, Prefab, resources } from 'cc';
 
 export class BlockCreator {
     private blocks: Node[][] = [];
+    private blocksContainer: Node | null = null;
 
     /**
      * 创建网格中的所有 block 节点
      */
     createBlocks(parent: Node, rows: number, columns: number, cellWidth: number, cellHeight: number, prefabPath: string = 'block'): void {
+        // 创建容器节点
+        this.blocksContainer = new Node('BlocksContainer');
+        parent.addChild(this.blocksContainer);
+
         resources.load(prefabPath, Prefab, (err, prefab) => {
             if (err) {
                 console.error('加载block预制体失败:', err);
@@ -32,7 +37,7 @@ export class BlockCreator {
             this.blocks[row] = [];
             for (let col = 0; col < columns; col++) {
                 const block = instantiate(prefab);
-                parent.addChild(block);
+                this.blocksContainer!.addChild(block);
 
                 const blockTransform = block.getComponent(UITransform);
                 if (blockTransform) {
@@ -52,14 +57,18 @@ export class BlockCreator {
      * 清除所有 block 节点
      */
     clearBlocks(): void {
-        for (let row = 0; row < this.blocks.length; row++) {
-            for (let col = 0; col < this.blocks[row].length; col++) {
-                if (this.blocks[row][col]) {
-                    this.blocks[row][col].destroy();
-                }
-            }
+        if (this.blocksContainer) {
+            this.blocksContainer.destroy();
+            this.blocksContainer = null;
         }
         this.blocks = [];
+    }
+
+    /**
+     * 获取 blocks 容器节点（用于缩放）
+     */
+    getBlocksContainer(): Node | null {
+        return this.blocksContainer;
     }
 
     /**
