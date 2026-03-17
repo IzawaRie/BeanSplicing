@@ -1,4 +1,5 @@
 import { _decorator, Component, Sprite, Graphics, Color, Node, UITransform, Layers } from 'cc';
+import { BlockCreator } from './BlockCreator';
 const { ccclass, property } = _decorator;
 
 @ccclass('GridDrawer')
@@ -18,14 +19,14 @@ export class GridDrawer extends Component {
     private lineWidth: number = 7;
     private graphics: Graphics | null = null;
     private gridNode: Node | null = null;
+    private blockCreator: BlockCreator = new BlockCreator();
 
     onLoad() {
         this.createGridNode();
     }
 
     start() {
-        this.updateGridNodeSize();
-        this.drawGrid();
+        this.loadBlockPrefab();
     }
 
     private createGridNode() {
@@ -54,6 +55,19 @@ export class GridDrawer extends Component {
             gridTransform = this.gridNode.addComponent(UITransform);
         }
         gridTransform.setContentSize(uiTransform.width, uiTransform.height);
+    }
+
+    private loadBlockPrefab() {
+        this.updateGridNodeSize();
+        this.drawGrid();
+
+        const uiTransform = this.node.getComponent(UITransform);
+        if (!uiTransform) return;
+
+        const cellWidth = uiTransform.width / this.columns;
+        const cellHeight = uiTransform.height / this.rows;
+
+        this.blockCreator.createBlocks(this.node, this.rows, this.columns, cellWidth, cellHeight);
     }
 
     private drawGrid() {
@@ -106,6 +120,12 @@ export class GridDrawer extends Component {
     updateGrid(rows: number, columns: number) {
         this.rows = rows;
         this.columns = columns;
-        this.drawGrid();
+
+        this.blockCreator.clearBlocks();
+        this.loadBlockPrefab();
+    }
+
+    getBlock(row: number, col: number): Node | null {
+        return this.blockCreator.getBlock(row, col);
     }
 }
