@@ -1,0 +1,100 @@
+{
+    "name": "cocos_inspector",
+    "version": "1.6.2",
+    "package_version": 2,
+    "description": "Cocos Runtime Inspector for cocos creator3.x",
+    "author": "chuan.zhang",
+    "main": "./main.js",
+    "contributions": {
+        "scene": {
+            "script": "./scene-script.js"
+        },
+        "builder": "./builder/builder.js",
+        "menu": [
+            {
+                "path": "Inspector(F6运行)",
+                "label": "运行",
+                "message": "previewMode"
+            },
+            {
+                "path": "Inspector(F6运行)",
+                "label": "连接车机",
+                "message": "connect2Device"
+            },
+            {
+                "path": "Inspector(F6运行)",
+                "label": "资源检查",
+                "message": "checkAssets"
+            },
+            {
+                "path": "i18n:menu.extension/Cocos Inspector",
+                "label": "build Mobile Mode",
+                "message": "buildMobileMode"
+            },
+            {
+                "path": "i18n:menu.extension/Cocos Inspector",
+                "label": "build Desktop Mode",
+                "message": "buildDesktopMode"
+            },
+            {
+                "path": "i18n:menu.extension/Cocos Inspector",
+                "label": "open Custom Page",
+                "message": "openCustomPage"
+            },
+            {
+                "path": "i18n:menu.extension/Cocos Inspector",
+                "label": "refresh",
+                "message": "refresh"
+            }
+        ],
+        "messages": {
+            "previewMode": {
+                "methods": [
+                    "previewMode"
+                ]
+            },
+            "connect2Device": {
+                "methods": [
+                    "connect2Device"
+                ]
+            },
+            "checkAssets": {
+                "methods": [
+                    "checkAssets"
+                ]
+            },
+            "buildMobileMode": {
+                "methods": [
+                    "buildMobileMode"
+                ]
+            },
+            "buildDesktopMode": {
+                "methods": [
+                    "buildDesktopMode"
+                ]
+            },
+            "openCustomPage": {
+                "methods": [
+                    "openCustomPage"
+                ]
+            },
+            "refresh": {
+                "methods": [
+                    "refresh"
+                ]
+            }
+        },
+        "shortcuts": [
+            {
+                "message": "previewMode",
+                "win": "f6",
+                "mac": "f6"
+            }
+        ]
+    },
+    "dependencies": {
+        "ant-design-vue": "^4.1.2",
+        "compressing": "^1.10.0",
+        "image-size": "^1.1.1"
+    }
+}
