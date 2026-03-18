@@ -1,4 +1,4 @@
-import { _decorator, Component, Sprite, Graphics, Color, Node, UITransform, Layers, EventTouch, input, Input, EventMouse } from 'cc';
+import { _decorator, Component, Sprite, Graphics, Color, Node, UITransform, Layers, EventTouch, input, Input, EventMouse, Label } from 'cc';
 import { BlockCreator } from './BlockCreator';
 const { ccclass, property } = _decorator;
 
@@ -24,6 +24,9 @@ export class GridDrawer extends Component {
 
     @property({ type: Boolean })
     enableZoom: boolean = true;
+
+    @property({ type: Boolean })
+    showNumber: boolean = true;  // 是否显示颜色序号
 
     private outerLineWidth: number = 10;
     private innerLineWidth: number = 5;
@@ -352,5 +355,80 @@ export class GridDrawer extends Component {
 
     getScale(): number {
         return this.currentScale;
+    }
+
+    /**
+     * 统计所有 block 的颜色，给相同颜色分配序号，并在 number 子节点显示
+     */
+    /**
+     * 重新统计颜色序号（供外部在应用图案后调用）
+     */
+    public refreshColorNumbers(): void {
+        this.assignColorNumbers();
+    }
+
+    private assignColorNumbers(): void {
+        const blocks = this.blockCreator.getAllBlocks();
+        if (!blocks || blocks.length === 0) return;
+
+        // 颜色到序号的映射
+        const colorMap = new Map<string, number>();
+        // 存储每个位置的序号
+        const numberMap: number[][] = [];
+
+        let colorIndex = 1;
+
+        // 遍历所有 blocks，统计颜色
+        for (let row = 0; row < blocks.length; row++) {
+            numberMap[row] = [];
+            for (let col = 0; col < blocks[row].length; col++) {
+                const block = blocks[row][col];
+                if (!block) continue;
+
+                // 获取 block 的颜色
+                const sprite = block.getComponent(Sprite);
+                if (!sprite) continue;
+
+                const color = sprite.color;
+                // 使用 rgba 作为颜色 key（忽略透明度为0的）
+                if (color.a === 0) {
+                    numberMap[row][col] = 0; // 透明块不显示序号
+                    continue;
+                }
+
+                const colorKey = `${color.r},${color.g},${color.b}`;
+
+                // 如果这个颜色还没有序号，分配一个新序号
+                if (!colorMap.has(colorKey)) {
+                    colorMap.set(colorKey, colorIndex++);
+                }
+
+                // 记录该位置的序号
+                numberMap[row][col] = colorMap.get(colorKey)!;
+            }
+        }
+
+        // 遍历所有 blocks，设置 number 子节点的 Label
+        for (let row = 0; row < blocks.length; row++) {
+            for (let col = 0; col < blocks[row].length; col++) {
+                const block = blocks[row][col];
+                if (!block) continue;
+
+                const numberNode = block.getChildByName('number');
+                if (!numberNode) continue;
+
+                const label = numberNode.getComponent(Label);
+                if (!label) continue;
+
+                const num = numberMap[row][col];
+                if (num > 0) {
+                    label.string = num.toString();
+                } else {
+                    label.string = '';
+                }
+            }
+        }
+
+        console.log(`颜色统计完成：共 ${colorMap.size} 种颜色`);
     }
 }

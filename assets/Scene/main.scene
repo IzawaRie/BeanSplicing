@@ -1944,6 +1944,7 @@
     "minScale": 0.5,
     "maxScale": 3,
     "enableZoom": true,
+    "showNumber": true,
     "_id": "efrlBWB11GVKTnayA+e2qq"
   },
   {
@@ -3276,7 +3277,7 @@
         "__id__": 105
       }
     ],
-    "_active": true,
+    "_active": false,
     "_components": [
       {
         "__id__": 113

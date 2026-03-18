@@ -204,7 +204,7 @@
   },
   {
     "__type__": "cc.Node",
-    "_name": "Label",
+    "_name": "number",
     "_objFlags": 0,
     "__editorExtras__": {},
     "_parent": {

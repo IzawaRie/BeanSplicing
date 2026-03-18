@@ -80,6 +80,9 @@ export class PixelPatternApplier extends Component {
         }
 
         console.log('图案应用完成');
+
+        // 刷新颜色序号显示
+        this.gridDrawer.refreshColorNumbers();
     }
 
     /**
@@ -95,7 +98,8 @@ export class PixelPatternApplier extends Component {
                 sprite.color = new Color(colorData.r, colorData.g, colorData.b, colorData.a);
                 sprite.enabled = true;
             } else {
-                // 透明，隐藏
+                // 透明，隐藏，并设置 alpha 为 0
+                sprite.color = new Color(0, 0, 0, 0);
                 sprite.enabled = false;
             }
         }
