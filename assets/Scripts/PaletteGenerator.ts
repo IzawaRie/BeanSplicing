@@ -1,4 +1,4 @@
-import { _decorator, Component, Sprite, SpriteFrame, resources, JsonAsset, Texture2D, UITransform, Rect } from 'cc';
+import { _decorator, Component, Sprite, JsonAsset, Texture2D, SpriteFrame, ImageAsset } from 'cc';
 const { ccclass } = _decorator;
 
 /**
@@ -38,7 +38,7 @@ export class PaletteGenerator extends Component {
      * @param jsonPath resources 目录下的 JSON 路径，如 'pixel_patterns/apple'
      */
     public loadFromJson(jsonPath: string): void {
-        resources.load(jsonPath, JsonAsset, (err, jsonAsset) => {
+        (window as any).cc?.resources?.load(jsonPath, JsonAsset, (err: any, jsonAsset: any) => {
             if (err) {
                 console.error('加载 JSON 失败:', err);
                 return;
@@ -51,50 +51,74 @@ export class PaletteGenerator extends Component {
 
     /**
      * 直接应用图案数据生成调色板
+     * 参考 adas_road_RGB_RT 的方式
      */
     public generatePalette(data: PixelPatternJson): void {
-        const uiTransform = this.node.getComponent(UITransform);
-        if (!uiTransform) {
-            console.error('未找到 UITransform 组件');
+        const sprite = this.getComponent(Sprite);
+        if (!sprite) {
+            console.error('未找到 Sprite 组件');
             return;
         }
 
-        const textureSize = Math.max(uiTransform.width, uiTransform.height);
+        const width = data.gridWidth;
+        const height = data.gridHeight;
+        const blocks = data.blocks;
 
-        // 创建 Float32Array 像素数据 (RGBA)
-        const floatArray = new Float32Array(textureSize * textureSize * 4);
+        // 1. 创建像素数据 (RGBA)
+        const byteCount = width * height * 4;
+        const buffer = new ArrayBuffer(byteCount);
+        const byteArray = new Uint8Array(buffer, 0, byteCount);
 
-        // 测试：填充白色 (1.0 = 255)
-        for (let i = 0; i < floatArray.length; i += 4) {
-            floatArray[i] = 1.0;     // R
-            floatArray[i + 1] = 1.0; // G
-            floatArray[i + 2] = 1.0; // B
-            floatArray[i + 3] = 1.0; // A
+        // 2. 填充像素数据
+        for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+                const index = y * width + x;
+                const pixelIndex = index * 4;
+                const block = blocks[index];
+
+                if (block) {
+                    byteArray[pixelIndex] = block.r;
+                    byteArray[pixelIndex + 1] = block.g;
+                    byteArray[pixelIndex + 2] = block.b;
+                    byteArray[pixelIndex + 3] = block.a;
+                } else {
+                    // 默认透明
+                    byteArray[pixelIndex] = 0;
+                    byteArray[pixelIndex + 1] = 0;
+                    byteArray[pixelIndex + 2] = 0;
+                    byteArray[pixelIndex + 3] = 0;
+                }
+            }
         }
 
-        // 创建纹理
-        const texture = new Texture2D();
-        texture.reset({
-            width: textureSize,
-            height: textureSize,
-            format: 44 // RGBA8
+        // 3. 创建 ImageAsset (参考 adas_road_RGB_RT)
+        const imgAsset = new ImageAsset();
+        imgAsset.reset({
+            _data: byteArray,
+            _compressed: true,
+            width: width,
+            height: height,
+            format: Texture2D.PixelFormat.RGBA8888
         });
 
-        // 延迟上传数据，确保纹理创建完成
-        this.scheduleOnce(() => {
-            texture.uploadData(floatArray, 0);
+        // 4. 创建 Texture2D 并绑定 ImageAsset
+        const texture = new Texture2D();
+        texture.image = imgAsset;
 
-            // 创建 SpriteFrame
-            const spriteFrame = new SpriteFrame();
-            spriteFrame.texture = texture;
-            spriteFrame.rect = new (Rect as any)(0, 0, textureSize, textureSize);
+        // 5. 上传数据
+        texture.uploadData(byteArray, 0);
 
-            // 应用到当前节点的 Sprite
-            const sprite = this.getComponent(Sprite);
-            if (sprite) {
-                sprite.spriteFrame = spriteFrame;
-                console.log('白色纹理已应用');
-            }
-        }, 0.1);
+        // 6. 创建 SpriteFrame 并应用
+        const spriteFrame = new SpriteFrame();
+        spriteFrame.texture = texture;
+
+        // 设置纹理过滤模式为 Nearest，确保像素清晰
+        texture.setFilters(Texture2D.Filter.NEAREST, Texture2D.Filter.NEAREST);
+
+        // 禁用动态图集
+        (spriteFrame as any)._packable = false;
+
+        sprite.spriteFrame = spriteFrame;
+        console.log('纹理已应用');
     }
 }
