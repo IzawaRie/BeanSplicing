@@ -30,6 +30,12 @@ export class BlockController extends Component {
         this._colorA = a;
     }
 
+    // 公开的颜色属性，供外部读取
+    get colorR(): number { return this._colorR; }
+    get colorG(): number { return this._colorG; }
+    get colorB(): number { return this._colorB; }
+    get colorA(): number { return this._colorA; }
+
     onLoad() {
         // 注册触摸结束事件
         this.node.on(Node.EventType.TOUCH_END, this.onTouchEnd, this);

@@ -1,5 +1,6 @@
 import { _decorator, Component, Sprite, Graphics, Color, Node, UITransform, Layers, EventTouch, input, Input, EventMouse, Label } from 'cc';
 import { BlockCreator } from './BlockCreator';
+import { BlockController } from './BlockController';
 const { ccclass, property } = _decorator;
 
 @ccclass('GridDrawer')
@@ -389,18 +390,22 @@ export class GridDrawer extends Component {
                 const block = blocks[row][col];
                 if (!block) continue;
 
-                // 获取 block 的颜色
-                const sprite = block.getComponent(Sprite);
-                if (!sprite) continue;
+                // 通过 BlockController 获取颜色
+                const blockController = block.getComponent(BlockController);
+                if (!blockController) continue;
 
-                const color = sprite.color;
+                const colorR = blockController.colorR;
+                const colorG = blockController.colorG;
+                const colorB = blockController.colorB;
+                const colorA = blockController.colorA;
+
                 // 使用 rgba 作为颜色 key（忽略透明度为0的）
-                if (color.a === 0) {
+                if (colorA === 0) {
                     numberMap[row][col] = 0; // 透明块不显示序号
                     continue;
                 }
 
-                const colorKey = `${color.r},${color.g},${color.b}`;
+                const colorKey = `${colorR},${colorG},${colorB}`;
 
                 // 如果这个颜色还没有序号，分配一个新序号
                 if (!colorMap.has(colorKey)) {

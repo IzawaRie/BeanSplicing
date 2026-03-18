@@ -93,14 +93,13 @@ export class PixelPatternApplier extends Component {
         const sprite = block.getComponent(Sprite);
         const blockController = block.getComponent(BlockController);
         if (sprite) {
+            sprite.enabled = false;
             if (colorData.a > 0) {
                 // 不透明，设置颜色
                 sprite.color = new Color(colorData.r, colorData.g, colorData.b, colorData.a);
-                sprite.enabled = true;
             } else {
                 // 透明，隐藏，并设置 alpha 为 0
                 sprite.color = new Color(0, 0, 0, 0);
-                sprite.enabled = false;
             }
         }
         // 设置颜色到 BlockController
