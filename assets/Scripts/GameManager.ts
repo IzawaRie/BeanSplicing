@@ -1,6 +1,7 @@
 import { _decorator, Component, Node } from 'cc';
 import { GridDrawer } from './GridDrawer';
 import { PixelPatternApplier } from './PixelPatternApplier';
+import { PaletteGenerator } from './PaletteGenerator';
 const { ccclass, property } = _decorator;
 
 /**
@@ -16,6 +17,9 @@ export class GameManager extends Component {
 
     @property({ type: PixelPatternApplier })
     patternApplier: PixelPatternApplier = null;
+
+    @property({ type: PaletteGenerator })
+    paletteGenerator: PaletteGenerator = null;
 
     @property({ type: String })
     patternPath: string = 'pixel_patterns/apple';
@@ -46,6 +50,7 @@ export class GameManager extends Component {
                     // 延迟一点执行，确保 blocks 完全就绪
                     this.scheduleOnce(() => {
                         this.applyPattern();
+                        this.applyRefer();
                     }, 0.2);
                 };
             }
@@ -73,6 +78,14 @@ export class GameManager extends Component {
             this.patternApplier.applyFromJson(this.patternPath);
         } else {
             console.error('未设置 PixelPatternApplier');
+        }
+    }
+
+    private applyRefer(){
+        if (this.paletteGenerator) {
+            this.paletteGenerator.loadFromJson(this.patternPath);
+        } else {
+            console.error('未设置 PaletteGenerator');
         }
     }
 

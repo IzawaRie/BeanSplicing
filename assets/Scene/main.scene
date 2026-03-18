@@ -3272,6 +3272,9 @@
     "patternApplier": {
       "__id__": 54
     },
+    "paletteGenerator": {
+      "__id__": 34
+    },
     "patternPath": "pixel_patterns/apple",
     "_id": "73bryqjVlGJbKd/KRzsWrt"
   },
