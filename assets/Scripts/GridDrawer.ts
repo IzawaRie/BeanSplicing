@@ -335,6 +335,10 @@ export class GridDrawer extends Component {
         return this.blockCreator.getBlock(row, col);
     }
 
+    getAllBlocks(): Node[][] {
+        return this.blockCreator.getAllBlocks();
+    }
+
     setScale(scale: number) {
         scale = Math.max(this.minScale, Math.min(this.maxScale, scale));
         this.setContentScale(scale);
