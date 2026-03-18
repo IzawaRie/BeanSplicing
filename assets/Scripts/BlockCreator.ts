@@ -1,4 +1,5 @@
 import { Node, UITransform, instantiate, Prefab, resources } from 'cc';
+import { BlockController } from './BlockController';
 
 export class BlockCreator {
     private blocks: Node[][] = [];
@@ -42,11 +43,26 @@ export class BlockCreator {
                 const blockTransform = block.getComponent(UITransform);
                 if (blockTransform) {
                     blockTransform.setContentSize(cellWidth, cellHeight);
+
+                    // 查找 circle 子节点并设置同样大小
+                    const circleNode = block.getChildByName('circle');
+                    if (circleNode) {
+                        const circleTransform = circleNode.getComponent(UITransform);
+                        if (circleTransform) {
+                            circleTransform.setContentSize(cellWidth * 0.8, cellHeight * 0.8);
+                        }
+                    }
                 }
 
                 const x = -halfW + col * cellWidth + cellWidth / 2;
                 const y = halfH - row * cellHeight - cellHeight / 2;
                 block.setPosition(x, y, 0);
+
+                // 设置行列信息到 BlockController
+                const blockController = block.getComponent(BlockController);
+                if (blockController) {
+                    blockController.setPosition(row, col);
+                }
 
                 this.blocks[row][col] = block;
             }

@@ -1,0 +1,176 @@
+{
+  "levels": [
+    {
+      "id": 1,
+      "name": "第一关",
+      "grid": {
+        "rows": 6,
+        "columns": 6
+      },
+      "blockTypes": ["red", "green", "blue", "yellow"],
+      "target": {
+        "type": "score",
+        "value": 1000
+      },
+      "moves": 20,
+      "timeLimit": 0,
+      "specialRules": []
+    },
+    {
+      "id": 2,
+      "name": "第二关",
+      "grid": {
+        "rows": 6,
+        "columns": 6
+      },
+      "blockTypes": ["red", "green", "blue", "yellow"],
+      "target": {
+        "type": "score",
+        "value": 1500
+      },
+      "moves": 20,
+      "timeLimit": 0,
+      "specialRules": []
+    },
+    {
+      "id": 3,
+      "name": "第三关",
+      "grid": {
+        "rows": 6,
+        "columns": 6
+      },
+      "blockTypes": ["red", "green", "blue", "yellow", "purple"],
+      "target": {
+        "type": "score",
+        "value": 2000
+      },
+      "moves": 22,
+      "timeLimit": 0,
+      "specialRules": []
+    },
+    {
+      "id": 4,
+      "name": "第四关",
+      "grid": {
+        "rows": 6,
+        "columns": 6
+      },
+      "blockTypes": ["red", "green", "blue", "yellow", "purple"],
+      "target": {
+        "type": "score",
+        "value": 2500
+      },
+      "moves": 22,
+      "timeLimit": 0,
+      "specialRules": []
+    },
+    {
+      "id": 5,
+      "name": "第五关",
+      "grid": {
+        "rows": 7,
+        "columns": 7
+      },
+      "blockTypes": ["red", "green", "blue", "yellow", "purple"],
+      "target": {
+        "type": "score",
+        "value": 3000
+      },
+      "moves": 25,
+      "timeLimit": 0,
+      "specialRules": []
+    },
+    {
+      "id": 6,
+      "name": "第六关",
+      "grid": {
+        "rows": 7,
+        "columns": 7
+      },
+      "blockTypes": ["red", "green", "blue", "yellow", "purple", "orange"],
+      "target": {
+        "type": "score",
+        "value": 3500
+      },
+      "moves": 25,
+      "timeLimit": 0,
+      "specialRules": []
+    },
+    {
+      "id": 7,
+      "name": "第七关",
+      "grid": {
+        "rows": 7,
+        "columns": 7
+      },
+      "blockTypes": ["red", "green", "blue", "yellow", "purple", "orange"],
+      "target": {
+        "type": "score",
+        "value": 4000
+      },
+      "moves": 28,
+      "timeLimit": 0,
+      "specialRules": []
+    },
+    {
+      "id": 8,
+      "name": "第八关",
+      "grid": {
+        "rows": 8,
+        "columns": 8
+      },
+      "blockTypes": ["red", "green", "blue", "yellow", "purple", "orange"],
+      "target": {
+        "type": "score",
+        "value": 4500
+      },
+      "moves": 28,
+      "timeLimit": 0,
+      "specialRules": []
+    },
+    {
+      "id": 9,
+      "name": "第九关",
+      "grid": {
+        "rows": 8,
+        "columns": 8
+      },
+      "blockTypes": ["red", "green", "blue", "yellow", "purple", "orange"],
+      "target": {
+        "type": "score",
+        "value": 5000
+      },
+      "moves": 30,
+      "timeLimit": 0,
+      "specialRules": []
+    },
+    {
+      "id": 10,
+      "name": "第十关",
+      "grid": {
+        "rows": 8,
+        "columns": 8
+      },
+      "blockTypes": ["red", "green", "blue", "yellow", "purple", "orange"],
+      "target": {
+        "type": "score",
+        "value": 6000
+      },
+      "moves": 30,
+      "timeLimit": 0,
+      "specialRules": ["crossBomb"]
+    }
+  ],
+  "global": {
+    "defaultBlockTypes": ["red", "green", "blue", "yellow"],
+    "defaultGrid": {
+      "rows": 6,
+      "columns": 6
+    },
+    "lineColor": "#000000",
+    "lineWidth": {
+      "outer": 10,
+      "inner": 5
+    }
+  }
+}

@@ -4,10 +4,10 @@ const { ccclass, property } = _decorator;
 
 @ccclass('GridDrawer')
 export class GridDrawer extends Component {
-    @property({ type: Number, min: 1, max: 20 })
+    @property({ type: Number})
     rows: number = 6;
 
-    @property({ type: Number, min: 1, max: 20 })
+    @property({ type: Number})
     columns: number = 6;
 
     @property({ type: Color })
@@ -35,6 +35,9 @@ export class GridDrawer extends Component {
     private lastTouchDistance: number = 0;
     private lastTouchPos: { x: number; y: number } | null = null;
     private contentOffset: { x: number; y: number } = { x: 0, y: 0 };
+
+    // blocks 创建完成后的回调
+    public onBlocksCreated: (() => void) | null = null;
 
     onLoad() {
         this.createGraphicsNodes();
@@ -241,8 +244,22 @@ export class GridDrawer extends Component {
 
         this.blockCreator.createBlocks(this.contentNode!, this.rows, this.columns, cellWidth, cellHeight);
 
+        // 设置 BlocksContainer 在内边框下面
+        this.scheduleOnce(() => {
+            const blocksContainer = this.blockCreator.getBlocksContainer();
+            const innerNode = this.contentNode?.getChildByName('InnerGrids');
+            if (blocksContainer && innerNode) {
+                // 设置 BlocksContainer 在 innerNode 下面（更低的 siblingIndex）
+                blocksContainer.setSiblingIndex(0);
+            }
+        }, 0.05);
+
         this.scheduleOnce(() => {
             this.enableZoomFeature();
+            // 调用 blocks 创建完成的回调
+            if (this.onBlocksCreated) {
+                this.onBlocksCreated();
+            }
         }, 0.1);
     }
 
