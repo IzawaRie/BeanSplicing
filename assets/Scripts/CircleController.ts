@@ -182,6 +182,13 @@ export class CircleController extends Component {
         if (newTargetBlock) {
             const newTargetIndex = this.getBlockNumber(newTargetBlock);
 
+            // 检查该 block 是否已经是当前颜色
+            if (newTargetIndex > 0 && this.isBlockColorMatched(newTargetBlock)) {
+                // 已经是相同颜色，不需要操作
+                this.resetHover();
+                return;
+            }
+
             // 检查是否是同一个 block（在误差范围内）
             if (this.targetBlock === newTargetBlock ||
                 (this.targetBlock && newTargetBlock &&
@@ -289,6 +296,24 @@ export class CircleController extends Component {
         if (!label || !label.string) return 0;
 
         return parseInt(label.string) || 0;
+    }
+
+    /**
+     * 检查 block 的 circle 是否已经是当前颜色
+     */
+    private isBlockColorMatched(block: Node): boolean {
+        const circleNode = block.getChildByName('circle');
+        if (!circleNode) return false;
+
+        const sprite = circleNode.getComponent(Sprite);
+        if (!sprite || !sprite.enabled) return false;
+
+        // 检查颜色是否匹配（允许一定误差）
+        const color = sprite.color;
+        const tolerance = 10;
+        return Math.abs(color.r - this._colorR) <= tolerance &&
+               Math.abs(color.g - this._colorG) <= tolerance &&
+               Math.abs(color.b - this._colorB) <= tolerance;
     }
 
     /**
