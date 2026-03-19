@@ -142,7 +142,6 @@ export class IronController extends Component {
         // 检查是否可以熨烫（只有 HAS_CIRCLE 状态可以熨烫）
         if (!blockController.canIron()) return;
 
-        console.log('processBlock:', blockController.canIron());
         // 检查 circle 子节点
         const circleNode = block.getChildByName('circle');
         if (!circleNode) return;
