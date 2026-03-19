@@ -341,6 +341,58 @@ export class GridDrawer extends Component {
         return this.blockCreator.getAllBlocks();
     }
 
+    /**
+     * 获取内容节点的边界（世界坐标）
+     */
+    getContentBounds(): { minX: number, maxX: number, minY: number, maxY: number } | null {
+        if (!this.contentNode) return null;
+
+        // 获取 Block_Board (this.node) 的世界坐标
+        const boardWorldPos = this.node.getWorldPosition();
+        const uiTransform = this.node.getComponent(UITransform);
+        if (!uiTransform) return null;
+
+        // Block_Board 的大小就是可视边界
+        const width = uiTransform.width;
+        const height = uiTransform.height;
+
+        return {
+            minX: boardWorldPos.x - width / 2,
+            maxX: boardWorldPos.x + width / 2,
+            minY: boardWorldPos.y - height / 2,
+            maxY: boardWorldPos.y + height / 2
+        };
+    }
+
+    /**
+     * 根据颜色序号获取所有对应的 blocks
+     */
+    getBlocksByColorIndex(colorIndex: number): Node[] {
+        const blocks = this.blockCreator.getAllBlocks();
+        const result: Node[] = [];
+
+        for (let row = 0; row < blocks.length; row++) {
+            for (let col = 0; col < blocks[row].length; col++) {
+                const block = blocks[row][col];
+                if (!block) continue;
+
+                const blockController = block.getComponent(BlockController);
+                if (!blockController) continue;
+
+                // 检查这个 block 的颜色序号
+                const numNode = block.getChildByName('number');
+                if (numNode) {
+                    const label = numNode.getComponent(Label);
+                    if (label && label.string === colorIndex.toString()) {
+                        result.push(block);
+                    }
+                }
+            }
+        }
+
+        return result;
+    }
+
     setScale(scale: number) {
         scale = Math.max(this.minScale, Math.min(this.maxScale, scale));
         this.setContentScale(scale);
