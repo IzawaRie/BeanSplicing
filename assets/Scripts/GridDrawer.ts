@@ -1,6 +1,6 @@
 import { _decorator, Component, Sprite, Graphics, Color, Node, UITransform, Layers, EventTouch, input, Input, EventMouse, Label } from 'cc';
 import { BlockCreator } from './BlockCreator';
-import { BlockController } from './BlockController';
+import { BlockController, BlockState } from './BlockController';
 import { GameManager } from './GameManager';
 const { ccclass, property } = _decorator;
 
@@ -378,6 +378,11 @@ export class GridDrawer extends Component {
 
                 const blockController = block.getComponent(BlockController);
                 if (!blockController) continue;
+
+                // 过滤掉已经熨烫的 block
+                if (blockController.state === BlockState.IRONED) {
+                    continue;
+                }
 
                 // 检查这个 block 的颜色序号
                 const numNode = block.getChildByName('number');
