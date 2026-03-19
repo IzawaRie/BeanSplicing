@@ -4,6 +4,7 @@ import { PixelPatternApplier } from './PixelPatternApplier';
 import { PaletteGenerator } from './PaletteGenerator';
 import { CircleListController } from './CircleListController';
 import { IronController } from './IronController';
+import { BlockController, BlockState } from './BlockController';
 const { ccclass, property } = _decorator;
 
 /**
@@ -29,6 +30,9 @@ export class GameManager extends Component {
     @property({ type: IronController })
     iron: IronController = null;
 
+    @property({ type: Node })
+    finish_btn: Node = null;
+
     @property({ type: String })
     patternPath: string = 'pixel_patterns/apple';
 
@@ -53,6 +57,11 @@ export class GameManager extends Component {
     }
 
     start() {
+        // 默认隐藏 finish_btn
+        if (this.finish_btn) {
+            this.finish_btn.active = false;
+        }
+
         // 设置回调，在 blocks 创建完成后应用图案
         if (this.gridDrawer) {
             const gridDrawer = this.gridDrawer;
@@ -67,6 +76,45 @@ export class GameManager extends Component {
                     }, 0.2);
                 };
             }
+        }
+    }
+
+    /**
+     * 检查是否所有可用 block 都已熨烫完成
+     */
+    public checkAllBlocksIroned(): void {
+        if (!this.gridDrawer) return;
+
+        const blocks = this.gridDrawer.getAllBlocks();
+        if (!blocks) return;
+
+        // 统计可用 block（目标颜色不透明）和已熨烫 block
+        let totalAvailable = 0;
+        let ironedCount = 0;
+
+        for (let row = 0; row < blocks.length; row++) {
+            for (let col = 0; col < blocks[row].length; col++) {
+                const block = blocks[row][col];
+                if (!block) continue;
+
+                const blockController = block.getComponent(BlockController);
+                if (!blockController) continue;
+
+                // 检查是否是可用 block（目标颜色不透明）
+                const targetA = blockController.targetColorA;
+                if (targetA > 0) {
+                    totalAvailable++;
+                    // 检查是否已熨烫
+                    if (blockController.state === BlockState.IRONED) {
+                        ironedCount++;
+                    }
+                }
+            }
+        }
+
+        // 如果所有可用 block 都已熨烫，显示 finish_btn
+        if (this.finish_btn && totalAvailable > 0 && ironedCount === totalAvailable) {
+            this.finish_btn.active = true;
         }
     }
 

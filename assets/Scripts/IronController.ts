@@ -173,6 +173,12 @@ export class IronController extends Component {
             // 设置 block 状态为已熨烫
             blockController.setIroned();
         }
+
+        // 检查是否所有 block 都已熨烫
+        const gameManager = GameManager.getInstance();
+        if (gameManager) {
+            gameManager.checkAllBlocksIroned();
+        }
     }
 
     /**
