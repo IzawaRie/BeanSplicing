@@ -348,12 +348,9 @@ export class CircleController extends Component {
                 // 获取父节点的缩放
                 let scaleX = 1;
                 let scaleY = 1;
-                let parent = block.parent;
-                while (parent) {
-                    scaleX *= parent.scale.x;
-                    scaleY *= parent.scale.y;
-                    parent = parent.parent;
-                }
+                let parent = block.parent.parent;
+                scaleX *= parent.scale.x;
+                scaleY *= parent.scale.y;
 
                 // 考虑缩放后的实际尺寸
                 const width = uiTransform.width * scaleX;
@@ -464,7 +461,7 @@ export class CircleController extends Component {
             if (highlight) {
                 // 显示 circle 并设置颜色和 spriteFrame
                 sprite.enabled = true;
-                const circleSprite = this.node.getComponent(Sprite);
+                const circleSprite = this.circleNode.getComponent(Sprite);
                 if (circleSprite && circleSprite.spriteFrame) {
                     sprite.spriteFrame = circleSprite.spriteFrame;
                 }
