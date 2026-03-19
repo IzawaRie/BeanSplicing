@@ -1,5 +1,14 @@
-import { _decorator, Component, Node } from 'cc';
+import { _decorator, Component, Node, Sprite } from 'cc';
 const { ccclass } = _decorator;
+
+/**
+ * Block 状态枚举
+ */
+export enum BlockState {
+    NO_CIRCLE = 0,    // 无 circle
+    HAS_CIRCLE = 1,  // 有 circle（未熨烫）
+    IRONED = 2       // 已熨烫
+}
 
 @ccclass('BlockController')
 export class BlockController extends Component {
@@ -10,6 +19,9 @@ export class BlockController extends Component {
     private _colorG: number = 0;
     private _colorB: number = 0;
     private _colorA: number = 0;
+
+    // Block 状态
+    private _state: BlockState = BlockState.NO_CIRCLE;
 
     /**
      * 设置 block 的行列信息
@@ -36,9 +48,28 @@ export class BlockController extends Component {
     get colorB(): number { return this._colorB; }
     get colorA(): number { return this._colorA; }
 
+    // Block 状态
+    get state(): BlockState { return this._state; }
+    set state(value: BlockState) { this._state = value; }
+
     onLoad() {
         // 注册触摸结束事件
         this.node.on(Node.EventType.TOUCH_END, this.onTouchEnd, this);
+    }
+
+    /**
+     * 设置 block 为已熨烫状态
+     */
+    public setIroned(): void {
+        this._state = BlockState.IRONED;
+    }
+
+    /**
+     * 检查是否可以熨烫（只有 HAS_CIRCLE 状态可以熨烫）
+     */
+    public canIron(): boolean {
+        //console.log('_row:', this._row, ' _col:', this._col, ' _state:', this._state);
+        return this._state === BlockState.HAS_CIRCLE;
     }
 
     private onTouchEnd(): void {

@@ -1,6 +1,6 @@
 import { _decorator, Component, Node, Sprite, Color, EventTouch, UITransform, Label } from 'cc';
 import { GameManager } from './GameManager';
-import { GridDrawer } from './GridDrawer';
+import { BlockController, BlockState } from './BlockController';
 const { ccclass, property } = _decorator;
 
 /**
@@ -184,6 +184,14 @@ export class CircleController extends Component {
 
         if (newTargetBlock) {
             const newTargetIndex = this.getBlockNumber(newTargetBlock);
+
+            // 检查该 block 是否已经是 IRONED 状态
+            const blockController = newTargetBlock.getComponent(BlockController);
+            if (blockController && blockController.state === BlockState.IRONED) {
+                // 已经是熨烫过的状态，不能再操作
+                this.resetHover();
+                return;
+            }
 
             // 检查该 block 是否已经是当前颜色
             if (newTargetIndex > 0 && this.isBlockColorMatched(newTargetBlock)) {
@@ -415,6 +423,7 @@ export class CircleController extends Component {
         const blocks = gridDrawer.getBlocksByColorIndex(blockIndex);
 
         for (const block of blocks) {
+            const blockController = block.getComponent(BlockController);
             const circleNode = block.getChildByName('circle');
             if (!circleNode) continue;
 
@@ -430,9 +439,19 @@ export class CircleController extends Component {
                 }
                 // 设置颜色
                 sprite.color = new Color(this._colorR, this._colorG, this._colorB, this._colorA);
+
+                // 设置 block 状态为 HAS_CIRCLE
+                if (blockController) {
+                    blockController.state = BlockState.HAS_CIRCLE;
+                }
             } else {
                 // 隐藏 circle
                 sprite.enabled = false;
+
+                // 设置 block 状态为 NO_CIRCLE
+                if (blockController) {
+                    blockController.state = BlockState.NO_CIRCLE;
+                }
             }
         }
     }
