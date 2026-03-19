@@ -105,9 +105,18 @@ export class CircleController extends Component {
         this._colorA = a;
         this._colorIndex = colorIndex;
 
+        // 设置主节点 sprite 颜色
         const sprite = this.node.getComponent(Sprite);
         if (sprite) {
             sprite.color = new Color(r, g, b, a);
+        }
+
+        // 设置 circle 节点的颜色
+        if (this.circleNode) {
+            const circleSprite = this.circleNode.getComponent(Sprite);
+            if (circleSprite) {
+                circleSprite.color = new Color(r, g, b, a);
+            }
         }
 
         // 设置 progress 节点的颜色
