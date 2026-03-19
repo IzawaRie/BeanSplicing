@@ -2,6 +2,7 @@ import { _decorator, Component, Node } from 'cc';
 import { GridDrawer } from './GridDrawer';
 import { PixelPatternApplier } from './PixelPatternApplier';
 import { PaletteGenerator } from './PaletteGenerator';
+import { CircleListController } from './CircleListController';
 const { ccclass, property } = _decorator;
 
 /**
@@ -21,6 +22,9 @@ export class GameManager extends Component {
     @property({ type: PaletteGenerator })
     paletteGenerator: PaletteGenerator = null;
 
+    @property({ type: CircleListController })
+    circleList: CircleListController = null;
+
     @property({ type: String })
     patternPath: string = 'pixel_patterns/apple';
 
@@ -29,6 +33,9 @@ export class GameManager extends Component {
 
     // 游戏状态
     private _isGameActive: boolean = false;
+
+    // 颜色列表 [{ r, g, b, a }]
+    private _colorList: { r: number; g: number; b: number; a: number }[] = [];
 
     onLoad() {
         // 单例模式
@@ -135,5 +142,25 @@ export class GameManager extends Component {
     public resetGame(): void {
         this._isGameActive = false;
         this._selectedColorIndex = 1;
+    }
+
+    // ==================== 颜色列表 ====================
+
+    /**
+     * 获取颜色列表
+     */
+    public getColorList(): { r: number; g: number; b: number; a: number }[] {
+        return this._colorList;
+    }
+
+    /**
+     * 设置颜色列表
+     */
+    public setColorList(colors: { r: number; g: number; b: number; a: number }[]): void {
+        this._colorList = colors;
+        // 通知 CircleListController 更新
+        if (this.circleList) {
+            this.circleList.updateColorList(colors);
+        }
     }
 }

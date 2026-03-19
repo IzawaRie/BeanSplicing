@@ -1,6 +1,7 @@
 import { _decorator, Component, Sprite, Graphics, Color, Node, UITransform, Layers, EventTouch, input, Input, EventMouse, Label } from 'cc';
 import { BlockCreator } from './BlockCreator';
 import { BlockController } from './BlockController';
+import { GameManager } from './GameManager';
 const { ccclass, property } = _decorator;
 
 @ccclass('GridDrawer')
@@ -439,5 +440,37 @@ export class GridDrawer extends Component {
         }
 
         console.log(`颜色统计完成：共 ${colorMap.size} 种颜色`);
+
+        // 保存颜色列表到 GameManager
+        const colorList: { r: number; g: number; b: number; a: number }[] = [];
+        for (let row = 0; row < blocks.length; row++) {
+            for (let col = 0; col < blocks[row].length; col++) {
+                const block = blocks[row][col];
+                if (!block) continue;
+
+                const blockController = block.getComponent(BlockController);
+                if (!blockController) continue;
+
+                const a = blockController.colorA;
+                if (a === 0) continue; // 跳过透明
+
+                const r = blockController.colorR;
+                const g = blockController.colorG;
+                const b = blockController.colorB;
+                const colorKey = `${r},${g},${b}`;
+
+                // 检查是否已添加到列表
+                const existingIndex = colorList.findIndex(c => `${c.r},${c.g},${c.b}` === colorKey);
+                if (existingIndex === -1) {
+                    colorList.push({ r, g, b, a });
+                }
+            }
+        }
+
+        // 保存到 GameManager
+        const gameManager = GameManager.getInstance();
+        if (gameManager) {
+            gameManager.setColorList(colorList);
+        }
     }
 }
