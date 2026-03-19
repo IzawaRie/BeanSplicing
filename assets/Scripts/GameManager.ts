@@ -3,6 +3,7 @@ import { GridDrawer } from './GridDrawer';
 import { PixelPatternApplier } from './PixelPatternApplier';
 import { PaletteGenerator } from './PaletteGenerator';
 import { CircleListController } from './CircleListController';
+import { IronController } from './IronController';
 const { ccclass, property } = _decorator;
 
 /**
@@ -24,6 +25,9 @@ export class GameManager extends Component {
 
     @property({ type: CircleListController })
     circleList: CircleListController = null;
+
+    @property({ type: IronController })
+    iron: IronController = null;
 
     @property({ type: String })
     patternPath: string = 'pixel_patterns/apple';
