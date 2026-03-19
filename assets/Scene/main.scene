@@ -2300,7 +2300,7 @@
         "__id__": 63
       }
     ],
-    "_active": true,
+    "_active": false,
     "_components": [
       {
         "__id__": 66
@@ -2488,7 +2488,7 @@
       "r": 255,
       "g": 255,
       "b": 255,
-      "a": 0
+      "a": 255
     },
     "_spriteFrame": {
       "__uuid__": "d9f34f36-491a-43c6-bad7-f25ce625fe13@f9941",

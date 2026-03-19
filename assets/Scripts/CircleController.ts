@@ -36,10 +36,18 @@ export class CircleController extends Component {
     private readonly POSITION_TOLERANCE: number = 20;  // 位置误差范围
     private readonly DRAG_OFFSET: number = 120;
 
+    // circle 子节点
+    private circleNode: Node | null = null;
+
     onLoad() {
-        // 保存原始位置
-        const pos = this.node.position;
-        this.originalPos = { x: pos.x, y: pos.y, z: pos.z };
+        // 获取 circle 子节点
+        this.circleNode = this.node.getChildByName('circle');
+
+        // 保存 circle 的原始位置
+        if (this.circleNode) {
+            const pos = this.circleNode.position;
+            this.originalPos = { x: pos.x, y: pos.y, z: pos.z };
+        }
 
         // 默认隐藏 progress 节点
         const progressNode = this.node.getChildByName('progress');
@@ -120,10 +128,12 @@ export class CircleController extends Component {
     }
 
     /**
-     * 重置位置
+     * 重置位置 - circle 节点回到原位置
      */
     public resetPosition(): void {
-        this.node.setPosition(this.originalPos.x, this.originalPos.y, this.originalPos.z);
+        if (this.circleNode) {
+            this.circleNode.setPosition(this.originalPos.x, this.originalPos.y, this.originalPos.z);
+        }
     }
 
     /**
@@ -160,14 +170,25 @@ export class CircleController extends Component {
      */
     private onTouchStart(event: EventTouch) {
         this.isDragging = true;
+
+        // 显示 circle 节点
+        if (this.circleNode) {
+            this.circleNode.active = true;
+        }
+
         const pos = event.getUILocation();
-        const nodePos = this.node.position;
+        const nodePos = this.circleNode.position;
         this.dragOffset = { x: pos.x - nodePos.x, y: pos.y - nodePos.y };
+        const offsetX = (this.DRAG_OFFSET * GameManager.getInstance().hand_setting * -1);
+        const offsetY = this.DRAG_OFFSET;
+        const newX = pos.x - this.dragOffset.x + offsetX;
+        const newY = pos.y - this.dragOffset.y + offsetY;
+        this.circleNode.setPosition(newX, newY, 0);
         this.resetHover();
     }
 
     /**
-     * 触摸移动
+     * 触摸移动 - 移动 circle 节点而不是主节点
      */
     private onTouchMove(event: EventTouch) {
         if (!this.isDragging) return;
@@ -177,7 +198,8 @@ export class CircleController extends Component {
         const offsetY = this.DRAG_OFFSET;
         const newX = pos.x - this.dragOffset.x + offsetX;
         const newY = pos.y - this.dragOffset.y + offsetY;
-        this.node.setPosition(newX, newY, 0);
+
+        this.circleNode.setPosition(newX, newY, 0);
 
         // 检测是否拖动到了某个 block 上（使用偏移后的位置）
         const newTargetBlock = this.getBlockAtPosition(pos.x + offsetX, pos.y + offsetY);
@@ -234,6 +256,12 @@ export class CircleController extends Component {
      */
     private onTouchEnd(_event: EventTouch) {
         this.isDragging = false;
+
+        // 隐藏 circle 节点
+        if (this.circleNode) {
+            this.circleNode.active = false;
+        }
+
         this.resetHover();
         this.resetPosition();
     }
