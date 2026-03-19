@@ -232,6 +232,7 @@ export class CircleController extends Component {
 
     /**
      * 获取指定位置（世界坐标）的 block
+     * 如果该位置没有序号，会查找周围8个方向的 block
      */
     private getBlockAtPosition(worldX: number, worldY: number): Node | null {
         const gameManager = GameManager.getInstance();
@@ -250,6 +251,51 @@ export class CircleController extends Component {
             return null;
         }
 
+        // 首先尝试直接查找指定位置的 block
+        const directBlock = this.findBlockAtPosition(blocks, worldX, worldY);
+        if (directBlock) {
+            const blockNum = this.getBlockNumber(directBlock);
+            if (blockNum > 0) {
+                return directBlock;
+            }
+        }
+
+        // 如果没找到有编号的 block，查找周围8个方向
+        const neighborOffsets = [
+            { row: -1, col: -1 }, { row: -1, col: 0 }, { row: -1, col: 1 },
+            { row: 0, col: -1 },                      { row: 0, col: 1 },
+            { row: 1, col: -1 },  { row: 1, col: 0 },  { row: 1, col: 1 }
+        ];
+
+        for (const offset of neighborOffsets) {
+            if (directBlock) {
+                // 根据找到的 block 计算行列
+                const row = this.getBlockRow(directBlock);
+                const col = this.getBlockCol(directBlock);
+                const neighborRow = row + offset.row;
+                const neighborCol = col + offset.col;
+
+                if (neighborRow >= 0 && neighborRow < blocks.length &&
+                    neighborCol >= 0 && neighborCol < blocks[0].length) {
+                    const neighborBlock = blocks[neighborRow][neighborCol];
+                    if (neighborBlock) {
+                        const neighborNum = this.getBlockNumber(neighborBlock);
+                        if (neighborNum > 0) {
+                            return neighborBlock;
+                        }
+                    }
+                }
+            }
+        }
+
+        // 如果周围8个方向都没有有编号的 block，返回直接找到的 block（即使没有编号）
+        return directBlock;
+    }
+
+    /**
+     * 在指定位置查找 block
+     */
+    private findBlockAtPosition(blocks: Node[][], worldX: number, worldY: number): Node | null {
         for (let row = 0; row < blocks.length; row++) {
             for (let col = 0; col < blocks[row].length; col++) {
                 const block = blocks[row][col];
@@ -284,8 +330,47 @@ export class CircleController extends Component {
                 }
             }
         }
-
         return null;
+    }
+
+    /**
+     * 获取 block 所在的行
+     */
+    private getBlockRow(block: Node): number {
+        const gameManager = GameManager.getInstance();
+        if (!gameManager || !gameManager.gridDrawer) return -1;
+
+        const gridDrawer = gameManager.gridDrawer;
+        const blocks = gridDrawer.getAllBlocks();
+
+        for (let row = 0; row < blocks.length; row++) {
+            for (let col = 0; col < blocks[row].length; col++) {
+                if (blocks[row][col] === block) {
+                    return row;
+                }
+            }
+        }
+        return -1;
+    }
+
+    /**
+     * 获取 block 所在的列
+     */
+    private getBlockCol(block: Node): number {
+        const gameManager = GameManager.getInstance();
+        if (!gameManager || !gameManager.gridDrawer) return -1;
+
+        const gridDrawer = gameManager.gridDrawer;
+        const blocks = gridDrawer.getAllBlocks();
+
+        for (let row = 0; row < blocks.length; row++) {
+            for (let col = 0; col < blocks[row].length; col++) {
+                if (blocks[row][col] === block) {
+                    return col;
+                }
+            }
+        }
+        return -1;
     }
 
     /**
