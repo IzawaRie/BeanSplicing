@@ -15,10 +15,18 @@ export class BlockController extends Component {
     private _row: number = 0;
     private _col: number = 0;
     private _gridWidth: number = 0;
-    private _colorR: number = 0;
-    private _colorG: number = 0;
-    private _colorB: number = 0;
-    private _colorA: number = 0;
+
+    // 目标颜色（JSON 图案颜色）
+    private _targetColorR: number = 0;
+    private _targetColorG: number = 0;
+    private _targetColorB: number = 0;
+    private _targetColorA: number = 0;
+
+    // 当前颜色（circle 放置后的颜色）
+    private _currentColorR: number = 0;
+    private _currentColorG: number = 0;
+    private _currentColorB: number = 0;
+    private _currentColorA: number = 0;
 
     // Block 状态
     private _state: BlockState = BlockState.NO_CIRCLE;
@@ -33,20 +41,36 @@ export class BlockController extends Component {
     }
 
     /**
-     * 设置 block 的颜色
+     * 设置 block 的目标颜色（JSON 图案颜色）
      */
-    setColor(r: number, g: number, b: number, a: number): void {
-        this._colorR = r;
-        this._colorG = g;
-        this._colorB = b;
-        this._colorA = a;
+    setTargetColor(r: number, g: number, b: number, a: number): void {
+        this._targetColorR = r;
+        this._targetColorG = g;
+        this._targetColorB = b;
+        this._targetColorA = a;
     }
 
-    // 公开的颜色属性，供外部读取
-    get colorR(): number { return this._colorR; }
-    get colorG(): number { return this._colorG; }
-    get colorB(): number { return this._colorB; }
-    get colorA(): number { return this._colorA; }
+    /**
+     * 设置 block 的当前颜色（circle 放置后的颜色）
+     */
+    setCurrentColor(r: number, g: number, b: number, a: number): void {
+        this._currentColorR = r;
+        this._currentColorG = g;
+        this._currentColorB = b;
+        this._currentColorA = a;
+    }
+
+    // 目标颜色属性
+    get targetColorR(): number { return this._targetColorR; }
+    get targetColorG(): number { return this._targetColorG; }
+    get targetColorB(): number { return this._targetColorB; }
+    get targetColorA(): number { return this._targetColorA; }
+
+    // 当前颜色属性
+    get currentColorR(): number { return this._currentColorR; }
+    get currentColorG(): number { return this._currentColorG; }
+    get currentColorB(): number { return this._currentColorB; }
+    get currentColorA(): number { return this._currentColorA; }
 
     // Block 状态
     get state(): BlockState { return this._state; }
@@ -75,7 +99,7 @@ export class BlockController extends Component {
     private onTouchEnd(): void {
         // 计算在 JSON 中的位置（索引）
         const jsonIndex = this._row * this._gridWidth + this._col;
-        console.log(`点击了 block: 行=${this._row}, 列=${this._col}, 颜色=(r:${this._colorR}, g:${this._colorG}, b:${this._colorB}, a:${this._colorA}), JSON索引=${jsonIndex + 6}`);
+        console.log(`点击了 block: 行=${this._row}, 列=${this._col}, 目标颜色=(r:${this._targetColorR}, g:${this._targetColorG}, b:${this._targetColorB}, a:${this._targetColorA}), 当前颜色=(r:${this._currentColorR}, g:${this._currentColorG}, b:${this._currentColorB}, a:${this._currentColorA}), JSON索引=${jsonIndex + 6}`);
     }
 
     onDestroy() {

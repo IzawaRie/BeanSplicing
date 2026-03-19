@@ -437,11 +437,12 @@ export class CircleController extends Component {
                 if (circleSprite && circleSprite.spriteFrame) {
                     sprite.spriteFrame = circleSprite.spriteFrame;
                 }
-                // 设置颜色
+                // 设置 circle 颜色
                 sprite.color = new Color(this._colorR, this._colorG, this._colorB, this._colorA);
 
-                // 设置 block 状态为 HAS_CIRCLE
+                // 设置 block 的当前颜色
                 if (blockController) {
+                    blockController.setCurrentColor(this._colorR, this._colorG, this._colorB, this._colorA);
                     blockController.state = BlockState.HAS_CIRCLE;
                 }
             } else {

@@ -448,14 +448,14 @@ export class GridDrawer extends Component {
                 const block = blocks[row][col];
                 if (!block) continue;
 
-                // 通过 BlockController 获取颜色
+                // 通过 BlockController 获取目标颜色
                 const blockController = block.getComponent(BlockController);
                 if (!blockController) continue;
 
-                const colorR = blockController.colorR;
-                const colorG = blockController.colorG;
-                const colorB = blockController.colorB;
-                const colorA = blockController.colorA;
+                const colorR = blockController.targetColorR;
+                const colorG = blockController.targetColorG;
+                const colorB = blockController.targetColorB;
+                const colorA = blockController.targetColorA;
 
                 // 使用 rgba 作为颜色 key（忽略透明度为0的）
                 if (colorA === 0) {
@@ -508,12 +508,12 @@ export class GridDrawer extends Component {
                 const blockController = block.getComponent(BlockController);
                 if (!blockController) continue;
 
-                const a = blockController.colorA;
+                const a = blockController.targetColorA;
                 if (a === 0) continue; // 跳过透明
 
-                const r = blockController.colorR;
-                const g = blockController.colorG;
-                const b = blockController.colorB;
+                const r = blockController.targetColorR;
+                const g = blockController.targetColorG;
+                const b = blockController.targetColorB;
                 const colorKey = `${r},${g},${b}`;
 
                 // 检查是否已添加到列表

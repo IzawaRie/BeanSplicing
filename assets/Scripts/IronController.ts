@@ -1,4 +1,4 @@
-import { _decorator, Component, Node, EventTouch, Sprite, UITransform } from 'cc';
+import { _decorator, Component, Node, EventTouch, Sprite, UITransform, Color } from 'cc';
 import { GameManager } from './GameManager';
 import { BlockController } from './BlockController';
 const { ccclass, property } = _decorator;
@@ -161,6 +161,13 @@ export class IronController extends Component {
         // 显示 block 下的 sprite 组件
         const blockSprite = block.getComponent(Sprite);
         if (blockSprite) {
+            // 使用当前颜色设置 block sprite
+            blockSprite.color = new Color(
+                blockController.currentColorR,
+                blockController.currentColorG,
+                blockController.currentColorB,
+                blockController.currentColorA
+            );
             blockSprite.enabled = true;
 
             // 设置 block 状态为已熨烫

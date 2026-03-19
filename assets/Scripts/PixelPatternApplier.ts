@@ -102,9 +102,9 @@ export class PixelPatternApplier extends Component {
                 sprite.color = new Color(0, 0, 0, 0);
             }
         }
-        // 设置颜色到 BlockController
+        // 设置目标颜色到 BlockController
         if (blockController) {
-            blockController.setColor(colorData.r, colorData.g, colorData.b, colorData.a);
+            blockController.setTargetColor(colorData.r, colorData.g, colorData.b, colorData.a);
         }
     }
 }
