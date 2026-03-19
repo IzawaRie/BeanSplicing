@@ -38,22 +38,18 @@ export class CircleController extends Component {
 
     // circle 子节点
     private circleNode: Node | null = null;
+    private progressNode: Node | null = null;
 
     onLoad() {
         // 获取 circle 子节点
         this.circleNode = this.node.getChildByName('circle');
 
-        // 保存 circle 的原始位置
-        if (this.circleNode) {
-            const pos = this.circleNode.position;
-            this.originalPos = { x: pos.x, y: pos.y, z: pos.z };
-        }
+        const pos = this.circleNode.position;
+        this.originalPos = { x: pos.x, y: pos.y, z: pos.z };
 
-        // 默认隐藏 progress 节点
-        const progressNode = this.node.getChildByName('progress');
-        if (progressNode) {
-            progressNode.active = false;
-        }
+        // 获取并保存 progress 节点
+        this.progressNode = this.circleNode.getChildByName('progress');
+        this.progressNode.active = false;
 
         // 注册触摸事件
         this.node.on(Node.EventType.TOUCH_START, this.onTouchStart, this);
@@ -120,9 +116,8 @@ export class CircleController extends Component {
         }
 
         // 设置 progress 节点的颜色
-        const progressNode = this.node.getChildByName('progress');
-        if (progressNode) {
-            const progressSprite = progressNode.getComponent(Sprite);
+        if (this.progressNode) {
+            const progressSprite = this.progressNode.getComponent(Sprite);
             if (progressSprite) {
                 progressSprite.color = new Color(r, g, b, a);
             }
@@ -160,13 +155,12 @@ export class CircleController extends Component {
      * 更新进度条
      */
     private updateProgress(progress: number): void {
-        const progressNode = this.node.getChildByName('progress');
-        if (!progressNode) return;
+        if (!this.progressNode) return;
 
         // 进度为0或>=1时隐藏
-        progressNode.active = progress > 0 && progress < 1;
-        if (progressNode.active) {
-            const sprite = progressNode.getComponent(Sprite);
+        this.progressNode.active = progress > 0 && progress < 1;
+        if (this.progressNode.active) {
+            const sprite = this.progressNode.getComponent(Sprite);
             if (sprite) {
                 // fillRange 从 0 到 -1
                 (sprite as any).fillRange = -progress;
