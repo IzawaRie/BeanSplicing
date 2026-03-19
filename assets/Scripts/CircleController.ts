@@ -34,6 +34,7 @@ export class CircleController extends Component {
     private readonly HOVER_DURATION: number = 2000;   // hover 时长（毫秒）
     private readonly HOVER_DELAY: number = 500;        // 延迟开始计时（毫秒）
     private readonly POSITION_TOLERANCE: number = 20;  // 位置误差范围
+    private readonly DRAG_OFFSET: number = 120;
 
     onLoad() {
         // 保存原始位置
@@ -172,12 +173,14 @@ export class CircleController extends Component {
         if (!this.isDragging) return;
 
         const pos = event.getUILocation();
-        const newX = pos.x - this.dragOffset.x;
-        const newY = pos.y - this.dragOffset.y;
+        const offsetX = (this.DRAG_OFFSET * GameManager.getInstance().hand_setting * -1);
+        const offsetY = this.DRAG_OFFSET;
+        const newX = pos.x - this.dragOffset.x + offsetX;
+        const newY = pos.y - this.dragOffset.y + offsetY;
         this.node.setPosition(newX, newY, 0);
 
-        // 检测是否拖动到了某个 block 上
-        const newTargetBlock = this.getBlockAtPosition(pos.x, pos.y);
+        // 检测是否拖动到了某个 block 上（使用偏移后的位置）
+        const newTargetBlock = this.getBlockAtPosition(pos.x + offsetX, pos.y + offsetY);
 
         if (newTargetBlock) {
             const newTargetIndex = this.getBlockNumber(newTargetBlock);

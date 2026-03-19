@@ -37,6 +37,8 @@ export class GameManager extends Component {
     // 颜色列表 [{ r, g, b, a }]
     private _colorList: { r: number; g: number; b: number; a: number }[] = [];
 
+    public hand_setting = 1; //-1:左手  1:右手
+
     onLoad() {
         // 单例模式
         if (GameManager._instance) {
