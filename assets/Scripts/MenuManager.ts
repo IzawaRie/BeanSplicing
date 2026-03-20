@@ -1,4 +1,4 @@
-import { _decorator, Component, Node } from 'cc';
+import { _decorator, Component, Node, Label } from 'cc';
 import { GameManager } from './GameManager';
 import { LevelConfig } from './LevelConfig';
 
@@ -10,6 +10,19 @@ export class MenuManager extends Component {
     start_btn: Node = null;
 
     private levelConfig: LevelConfig | null = null;
+
+    /**
+     * 更新关卡按钮文字
+     */
+    public updateLevelButtonText(level: number): void {
+        if (!this.start_btn) return;
+
+        // 查找 start_btn 下的 Label 组件
+        const label = this.start_btn.children[0].getComponent(Label);
+        if (label) {
+            label.string = `第${level}关`;
+        }
+    }
 
     onLoad() {
         const gameManager = GameManager.getInstance();
@@ -32,15 +45,26 @@ export class MenuManager extends Component {
         if (this.start_btn) {
             this.start_btn.on(Node.EventType.TOUCH_END, this.onStartClick, this);
         }
+
+        // 更新关卡按钮文字
+        const gameManager = GameManager.getInstance();
+        if (gameManager) {
+            this.updateLevelButtonText(gameManager.currentLevel);
+        }
     }
 
     /**
      * 开始按钮点击事件
      */
     private onStartClick(): void {
-        console.log('开始游戏');
+        const gameManager = GameManager.getInstance();
+        if (!gameManager) return;
+
+        // 获取当前关卡数
+        const currentLevel = gameManager.currentLevel;
+        console.log(`开始游戏 - 第${currentLevel}关`);
         this.showProgressPanel();
-        this.loadLevel(1);
+        this.loadLevel(currentLevel);
     }
 
     /**
@@ -65,12 +89,15 @@ export class MenuManager extends Component {
     /**
      * 加载关卡
      */
-    private loadLevel(levelId: number): void {
+    public loadLevel(levelId: number): void {
         const gameManager = GameManager.getInstance();
         if (!gameManager) {
             console.error('GameManager 未找到');
             return;
         }
+
+        // 设置当前关卡数
+        gameManager.currentLevel = levelId;
 
         const levelData = this.levelConfig?.getLevel(levelId);
         if (!levelData) {

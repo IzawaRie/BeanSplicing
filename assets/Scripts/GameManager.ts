@@ -60,6 +60,9 @@ export class GameManager extends Component {
     // 颜色列表 [{ r, g, b, a }]
     private _colorList: { r: number; g: number; b: number; a: number }[] = [];
 
+    // 当前关卡数
+    private _currentLevel: number = 1;
+
     public hand_setting = 1; //-1:左手  1:右手
 
     onLoad() {
@@ -75,10 +78,25 @@ export class GameManager extends Component {
         // 默认隐藏 finish_btn
         if (this.finish_btn) {
             this.finish_btn.active = false;
+            // 注册完成按钮点击事件
+            this.finish_btn.on(Node.EventType.TOUCH_END, this.onFinishBtnClick, this);
         }
 
         this.patternApplier.gridDrawer = this.gridDrawer;
         this.circleList.setAllNodes();
+    }
+
+    /**
+     * 完成按钮点击事件 - 进入下一关
+     */
+    private onFinishBtnClick(): void {
+        // 进入下一关
+        this.nextLevel();
+
+        // 重新加载关卡
+        if (this.menuManager) {
+            this.menuManager.loadLevel(this._currentLevel);
+        }
     }
 
     /**
@@ -179,6 +197,41 @@ export class GameManager extends Component {
     public resetGame(): void {
         this._isGameActive = false;
         this._selectedColorIndex = 1;
+    }
+
+    // ==================== 当前关卡 ====================
+
+    /**
+     * 获取当前关卡数
+     */
+    public get currentLevel(): number {
+        return this._currentLevel;
+    }
+
+    /**
+     * 设置当前关卡数
+     */
+    public set currentLevel(value: number) {
+        this._currentLevel = value;
+        // 通知 MenuManager 更新按钮文字
+        this.updateMenuLevelButton();
+    }
+
+    /**
+     * 进入下一关
+     */
+    public nextLevel(): void {
+        this._currentLevel++;
+        this.updateMenuLevelButton();
+    }
+
+    /**
+     * 更新 MenuManager 的关卡按钮文字
+     */
+    private updateMenuLevelButton(): void {
+        if (this.menuManager) {
+            this.menuManager.updateLevelButtonText(this._currentLevel);
+        }
     }
 
     // ==================== 颜色列表 ====================
