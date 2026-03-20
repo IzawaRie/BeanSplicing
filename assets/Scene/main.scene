@@ -6345,6 +6345,9 @@
     "patternApplier": {
       "__id__": 89
     },
+    "gridDrawer": {
+      "__id__": 87
+    },
     "_id": "89mNQxxz9BvYewWvj6tb6D"
   },
   {
@@ -7407,9 +7410,6 @@
     },
     "_enabled": true,
     "__prefab": null,
-    "gridDrawer": {
-      "__id__": 87
-    },
     "menuManager": {
       "__id__": 32
     },

@@ -19,9 +19,6 @@ const { ccclass, property } = _decorator;
 export class GameManager extends Component {
     private static _instance: GameManager | null = null;
 
-    @property({ type: GridDrawer })
-    gridDrawer: GridDrawer = null;
-
     @property({ type: MenuManager })
     menuManager: MenuManager = null;
 
@@ -67,7 +64,7 @@ export class GameManager extends Component {
             this.levelMode.finish_btn.on(Node.EventType.TOUCH_END, this.onFinishBtnClick, this);
         }
 
-        this.levelMode.patternApplier.gridDrawer = this.gridDrawer;
+        this.levelMode.patternApplier.gridDrawer = this.levelMode.gridDrawer;
         this.levelMode.circleList.setAllNodes();
     }
 
@@ -88,9 +85,9 @@ export class GameManager extends Component {
      * 检查是否所有可用 block 都已熨烫完成
      */
     public checkAllBlocksIroned(): void {
-        if (!this.gridDrawer) return;
+        if (!this.levelMode.gridDrawer) return;
 
-        const blocks = this.gridDrawer.getAllBlocks();
+        const blocks = this.levelMode.gridDrawer.getAllBlocks();
         if (!blocks) return;
 
         // 统计可用 block（目标颜色不透明）和已熨烫 block
@@ -282,9 +279,6 @@ export class GameManager extends Component {
         switch (modeType) {
             case GameModeType.LEVEL:
                 this.currentMode = this.levelMode;
-                if (this.currentMode) {
-                    this.currentMode.setGridDrawer(this.gridDrawer);
-                }
                 break;
         }
 

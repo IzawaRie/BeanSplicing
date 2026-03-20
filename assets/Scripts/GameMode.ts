@@ -35,18 +35,11 @@ export abstract class GameMode extends Component {
     protected _isPlaying: boolean = false;
     public get isPlaying(): boolean { return this._isPlaying; }
 
-    // 网格绘制器
-    protected gridDrawer: GridDrawer | null = null;
-
     // 回调函数
     public onGameStart?: () => void;
     public onGameUpdate?: (progress: number) => void;
     public onGameEnd?: (result: GameResult) => void;
     public onScoreChange?: (score: number) => void;
-
-    setGridDrawer(drawer: GridDrawer): void {
-        this.gridDrawer = drawer;
-    }
 
     /**
      * 开始游戏

@@ -280,9 +280,9 @@ export class CircleController extends Component {
      */
     private getBlockAtPosition(worldX: number, worldY: number): Node | null {
         const gameManager = GameManager.getInstance();
-        if (!gameManager || !gameManager.gridDrawer) return null;
+        if (!gameManager || !gameManager.levelMode.gridDrawer) return null;
 
-        const gridDrawer = gameManager.gridDrawer;
+        const gridDrawer = gameManager.levelMode.gridDrawer;
         const blocks = gridDrawer.getAllBlocks();
 
         // 获取边界
@@ -379,9 +379,9 @@ export class CircleController extends Component {
      */
     private getBlockRow(block: Node): number {
         const gameManager = GameManager.getInstance();
-        if (!gameManager || !gameManager.gridDrawer) return -1;
+        if (!gameManager || !gameManager.levelMode.gridDrawer) return -1;
 
-        const gridDrawer = gameManager.gridDrawer;
+        const gridDrawer = gameManager.levelMode.gridDrawer;
         const blocks = gridDrawer.getAllBlocks();
 
         for (let row = 0; row < blocks.length; row++) {
@@ -399,9 +399,9 @@ export class CircleController extends Component {
      */
     private getBlockCol(block: Node): number {
         const gameManager = GameManager.getInstance();
-        if (!gameManager || !gameManager.gridDrawer) return -1;
+        if (!gameManager || !gameManager.levelMode.gridDrawer) return -1;
 
-        const gridDrawer = gameManager.gridDrawer;
+        const gridDrawer = gameManager.levelMode.gridDrawer;
         const blocks = gridDrawer.getAllBlocks();
 
         for (let row = 0; row < blocks.length; row++) {
@@ -450,9 +450,9 @@ export class CircleController extends Component {
      */
     private highlightBlocksByIndex(blockIndex: number, highlight: boolean) {
         const gameManager = GameManager.getInstance();
-        if (!gameManager || !gameManager.gridDrawer) return;
+        if (!gameManager || !gameManager.levelMode.gridDrawer) return;
 
-        const gridDrawer = gameManager.gridDrawer;
+        const gridDrawer = gameManager.levelMode.gridDrawer;
         const blocks = gridDrawer.getBlocksByColorIndex(blockIndex);
 
         for (const block of blocks) {

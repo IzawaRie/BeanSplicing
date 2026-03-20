@@ -84,9 +84,9 @@ export class IronController extends Component {
      */
     private handleBlockAtPosition(worldX: number, worldY: number): void {
         const gameManager = GameManager.getInstance();
-        if (!gameManager || !gameManager.gridDrawer) return;
+        if (!gameManager || !gameManager.levelMode.gridDrawer) return;
 
-        const gridDrawer = gameManager.gridDrawer;
+        const gridDrawer = gameManager.levelMode.gridDrawer;
         const blocks = gridDrawer.getAllBlocks();
 
         // 获取边界
@@ -227,9 +227,9 @@ export class IronController extends Component {
      */
     private getBlockRow(block: Node): number {
         const gameManager = GameManager.getInstance();
-        if (!gameManager || !gameManager.gridDrawer) return -1;
+        if (!gameManager || !gameManager.levelMode.gridDrawer) return -1;
 
-        const gridDrawer = gameManager.gridDrawer;
+        const gridDrawer = gameManager.levelMode.gridDrawer;
         const blocks = gridDrawer.getAllBlocks();
 
         for (let row = 0; row < blocks.length; row++) {
@@ -247,9 +247,9 @@ export class IronController extends Component {
      */
     private getBlockCol(block: Node): number {
         const gameManager = GameManager.getInstance();
-        if (!gameManager || !gameManager.gridDrawer) return -1;
+        if (!gameManager || !gameManager.levelMode.gridDrawer) return -1;
 
-        const gridDrawer = gameManager.gridDrawer;
+        const gridDrawer = gameManager.levelMode.gridDrawer;
         const blocks = gridDrawer.getAllBlocks();
 
         for (let row = 0; row < blocks.length; row++) {

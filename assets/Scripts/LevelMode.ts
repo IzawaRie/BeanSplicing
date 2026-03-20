@@ -37,17 +37,14 @@ export class LevelMode extends GameMode {
     @property({ type: PixelPatternApplier })
     patternApplier: PixelPatternApplier = null;
 
+    @property({ type: GridDrawer })
+    gridDrawer: GridDrawer = null;
+
     private currentLevel: number = 1;
     private currentScore: number = 0;
     private _patternPath: string = '';
 
     get modeType(): GameModeType { return GameModeType.LEVEL; }
-
-    onLoad() {
-        if (this.node) {
-            this.setGridDrawer(this.node.parent?.getComponent(GridDrawer) || null);
-        }
-    }
 
     /**
      * 开始指定关卡

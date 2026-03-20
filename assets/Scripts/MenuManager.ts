@@ -106,7 +106,7 @@ export class MenuManager extends Component {
         }
 
         const levelMode = gameManager.levelMode;
-        const gridDrawer = gameManager.gridDrawer;
+        const gridDrawer = gameManager.levelMode.gridDrawer;
         if (!levelMode || !gridDrawer) {
             console.error('LevelMode 或 GridDrawer 未找到');
             return;
