@@ -8,13 +8,7 @@ const { ccclass, property } = _decorator;
  */
 @ccclass('CircleListController')
 export class CircleListController extends Component {
-    colorNodes: Node[] = [];
-
-    onLoad() {
-        this.colorNodes = this.node.children;
-        // 初始化时隐藏所有节点
-        this.hideAllNodes();
-    }
+    public colorNodes: Node[] = [];
 
     /**
      * 隐藏所有颜色节点
@@ -25,6 +19,13 @@ export class CircleListController extends Component {
                 node.active = false;
             }
         }
+    }
+
+    /**
+     * 加载所有颜色节点
+     */
+    public setAllNodes() {
+        this.colorNodes = this.node.children;
     }
 
     /**
@@ -41,7 +42,6 @@ export class CircleListController extends Component {
             const node = this.colorNodes[i];
             if (node) {
                 node.active = true;
-
                 // 通过 CircleController 设置颜色
                 const circleController = node.getComponent(CircleController);
                 if (circleController) {

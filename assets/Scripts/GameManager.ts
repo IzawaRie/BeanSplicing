@@ -77,21 +77,8 @@ export class GameManager extends Component {
             this.finish_btn.active = false;
         }
 
-        // 设置回调，在 blocks 创建完成后应用图案
-        if (this.gridDrawer) {
-            const gridDrawer = this.gridDrawer;
-            if (gridDrawer) {
-                gridDrawer.onBlocksCreated = () => {
-                    console.log('Blocks 创建完成，开始应用图案');
-
-                    // 延迟一点执行，确保 blocks 完全就绪
-                    this.scheduleOnce(() => {
-                        this.applyPattern();
-                        this.applyRefer();
-                    }, 0.2);
-                };
-            }
-        }
+        this.patternApplier.gridDrawer = this.gridDrawer;
+        this.circleList.setAllNodes();
     }
 
     /**
@@ -144,27 +131,6 @@ export class GameManager extends Component {
      */
     public static getInstance(): GameManager | null {
         return GameManager._instance;
-    }
-
-    /**
-     * 应用图案
-     */
-    private applyPattern() {
-        const path = this.levelMode?.patternPath || '';
-        if (this.patternApplier) {
-            this.patternApplier.applyFromJson(path);
-        } else {
-            console.error('未设置 PixelPatternApplier');
-        }
-    }
-
-    private applyRefer(){
-        const path = this.levelMode?.patternPath || '';
-        if (this.paletteGenerator) {
-            this.paletteGenerator.loadFromJson(path);
-        } else {
-            console.error('未设置 PaletteGenerator');
-        }
     }
 
     // ==================== 颜色选择 ====================
@@ -235,6 +201,31 @@ export class GameManager extends Component {
         }
     }
 
+    /**
+     * 加载图案和调色板
+     */
+    public loadPatternAndPalette(patternPath: string, callback?: () => void): void {
+        let completed = 0;
+        const total = 2;
+        const checkDone = () => {
+            completed++;
+            if (completed >= total && callback) {
+                callback();
+            }
+        };
+
+        if (this.patternApplier) {
+            this.patternApplier.applyFromJson(patternPath, checkDone);
+        } else {
+            checkDone();
+        }
+        if (this.paletteGenerator) {
+            this.paletteGenerator.loadFromJson(patternPath, checkDone);
+        } else {
+            checkDone();
+        }
+    }
+
     // ==================== 游戏模式 ====================
 
     /**
@@ -255,11 +246,6 @@ export class GameManager extends Component {
                 this.currentMode = this.levelMode;
                 if (this.currentMode) {
                     this.currentMode.setGridDrawer(this.gridDrawer);
-                    // 设置游戏开始回调，加载图案
-                    (this.currentMode as any).onGameStart = () => {
-                        this.applyPattern();
-                        this.applyRefer();
-                    };
                 }
                 break;
         }

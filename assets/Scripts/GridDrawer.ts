@@ -44,12 +44,7 @@ export class GridDrawer extends Component {
     // blocks 创建完成后的回调
     public onBlocksCreated: (() => void) | null = null;
 
-    onLoad() {
-        this.createGraphicsNodes();
-    }
-
     start() {
-        this.loadBlockPrefab();
         this.setupMouseWheel();
     }
 
@@ -196,7 +191,7 @@ export class GridDrawer extends Component {
         }
     }
 
-    private createGraphicsNodes() {
+    public createGraphicsNodes() {
         const parentTransform = this.node.getComponent(UITransform);
 
         const outerNode = new Node('OuterBorder');
@@ -258,8 +253,7 @@ export class GridDrawer extends Component {
         }
     }
 
-    private loadBlockPrefab() {
-        this.updateContentSize();
+    public loadBlockPrefab() {
         this.drawAllGrids();
 
         const uiTransform = this.node.getComponent(UITransform);

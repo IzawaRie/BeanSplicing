@@ -37,15 +37,17 @@ export class PaletteGenerator extends Component {
      * 从 JSON 文件加载并生成调色板
      * @param jsonPath resources 目录下的 JSON 路径，如 'pixel_patterns/apple'
      */
-    public loadFromJson(jsonPath: string): void {
+    public loadFromJson(jsonPath: string, callback?: () => void): void {
         (window as any).cc?.resources?.load(jsonPath, JsonAsset, (err: any, jsonAsset: any) => {
             if (err) {
                 console.error('加载 JSON 失败:', err);
+                callback?.();
                 return;
             }
 
             const patternData = (jsonAsset as JsonAsset).json as PixelPatternJson;
             this.generatePalette(patternData);
+            callback?.();
         });
     }
 

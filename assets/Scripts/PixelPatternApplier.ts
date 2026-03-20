@@ -26,24 +26,22 @@ export interface PixelPatternJson {
  */
 @ccclass('PixelPatternApplier')
 export class PixelPatternApplier extends Component {
-    private gridDrawer: GridDrawer | null = null;
-
-    onLoad() {
-        this.gridDrawer = this.node.getComponent(GridDrawer);
-    }
+    public gridDrawer: GridDrawer = null;
 
     /**
      * 从 JSON 文件加载并应用到 blocks
      */
-    public applyFromJson(jsonPath: string): void {
+    public applyFromJson(jsonPath: string, callback?: () => void): void {
         resources.load(jsonPath, JsonAsset, (err, jsonAsset) => {
             if (err) {
                 console.error('加载 JSON 失败:', err);
+                callback?.();
                 return;
             }
 
             const patternData = (jsonAsset as JsonAsset).json as PixelPatternJson;
             this.applyPattern(patternData);
+            callback?.();
         });
     }
 

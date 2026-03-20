@@ -12,7 +12,6 @@ export class MenuManager extends Component {
     private levelConfig: LevelConfig | null = null;
 
     onLoad() {
-        // 默认隐藏游戏界面
         const gameManager = GameManager.getInstance();
         if (gameManager?.levelMode?.node) {
             gameManager.levelMode.node.active = false;
@@ -30,7 +29,6 @@ export class MenuManager extends Component {
             }
         });
 
-        // 注册开始按钮点击事件
         if (this.start_btn) {
             this.start_btn.on(Node.EventType.TOUCH_END, this.onStartClick, this);
         }
@@ -41,54 +39,84 @@ export class MenuManager extends Component {
      */
     private onStartClick(): void {
         console.log('开始游戏');
-        this.switchToGame();
-        this.startLevel(1);
+        this.showProgressPanel();
+        this.loadLevel(1);
     }
 
     /**
-     * 切换到游戏界面
+     * 显示进度面板
      */
-    private switchToGame(): void {
+    private showProgressPanel(): void {
+        const gameManager = GameManager.getInstance();
+        if (!gameManager) return;
+
         // 关闭菜单界面
         if (this.node) {
             this.node.active = false;
         }
 
-        // 打开游戏界面
-        const gameManager = GameManager.getInstance();
-        if (gameManager?.levelMode?.node) {
-            gameManager.levelMode.node.active = true;
+        // 显示进度面板
+        if (gameManager.progress?.node) {
+            gameManager.progress.node.active = true;
+            gameManager.progress.setProgress(0);
         }
     }
 
     /**
-     * 开始指定关卡
+     * 加载关卡
      */
-    public startLevel(levelId: number): void {
+    private loadLevel(levelId: number): void {
         const gameManager = GameManager.getInstance();
         if (!gameManager) {
             console.error('GameManager 未找到');
             return;
         }
 
-        // 获取关卡数据
         const levelData = this.levelConfig?.getLevel(levelId);
         if (!levelData) {
             console.error(`关卡 ${levelId} 不存在`);
             return;
         }
 
-        // 获取 LevelMode 并启动
         const levelMode = gameManager.levelMode;
-        if (!levelMode) {
-            console.error('LevelMode 组件未找到');
+        const gridDrawer = gameManager.gridDrawer;
+        if (!levelMode || !gridDrawer) {
+            console.error('LevelMode 或 GridDrawer 未找到');
             return;
         }
 
-        // 启动闯关模式
-        levelMode.startLevel(levelId, levelData.patternPath);
+        // 设置进度 20%
+        gameManager.progress?.setProgress(0.2);
 
-        console.log(`开始关卡: ${levelData.name}, 图案: ${levelData.patternPath}`);
+        // 手动调用 GridDrawer 创建 graphics
+        gridDrawer.createGraphicsNodes();
+
+        // 设置进度 30%
+        gameManager.progress?.setProgress(0.3);
+
+        // 手动调用 loadBlockPrefab 创建 blocks
+        gridDrawer.loadBlockPrefab();
+
+        // 设置进度 50%
+        gameManager.progress?.setProgress(0.5);
+
+        // 加载图案和调色板，完成后设置进度90%
+        gameManager.loadPatternAndPalette(levelData.patternPath, () => {
+            console.log('loadPatternAndPalette');
+            gameManager.progress?.setProgress(0.9);
+
+            // 启动闯关模式
+            levelMode.startLevel(levelId, levelData.patternPath);
+
+            // 设置进度 100%
+            gameManager.progress?.setProgress(1);
+
+            // 隐藏进度面板打开游戏页面
+            gameManager.progress.node.active = false;
+            gameManager.levelMode.node.active = true;
+            
+            console.log(`开始关卡: ${levelData.name}, 图案: ${levelData.patternPath}`);
+        });
     }
 
     /**
