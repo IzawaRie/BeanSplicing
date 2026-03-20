@@ -85,37 +85,29 @@ export class MenuManager extends Component {
             return;
         }
 
-        // 设置进度 20%
-        gameManager.progress?.setProgress(0.2);
+        // 步骤1: createGraphicsNodes -> setProgress(0.1)
+        gridDrawer.createGraphicsNodes(() => {
+            gameManager.progress?.setProgress(0.3, () => {
+                // 步骤2: loadBlockPrefab -> setProgress(0.5)
+                gridDrawer.loadBlockPrefab(() => {
+                    gameManager.progress?.setProgress(0.5, () => {
+                        // 步骤3: loadPatternAndPalette -> setProgress(0.9)
+                        gameManager.loadPatternAndPalette(levelData.patternPath, () => {
+                            gameManager.progress?.setProgress(0.8, () => {
+                                // 步骤4: 启动闯关模式 -> setProgress(1)
+                                levelMode.startLevel(levelId, levelData.patternPath);
+                                gameManager.progress?.setProgress(1, () => {
+                                    // 步骤5: 隐藏进度面板，显示游戏页面
+                                    gameManager.progress.node.active = false;
+                                    gameManager.levelMode.node.active = true;
 
-        // 手动调用 GridDrawer 创建 graphics
-        gridDrawer.createGraphicsNodes();
-
-        // 设置进度 30%
-        gameManager.progress?.setProgress(0.3);
-
-        // 手动调用 loadBlockPrefab 创建 blocks
-        gridDrawer.loadBlockPrefab();
-
-        // 设置进度 50%
-        gameManager.progress?.setProgress(0.5);
-
-        // 加载图案和调色板，完成后设置进度90%
-        gameManager.loadPatternAndPalette(levelData.patternPath, () => {
-            console.log('loadPatternAndPalette');
-            gameManager.progress?.setProgress(0.9);
-
-            // 启动闯关模式
-            levelMode.startLevel(levelId, levelData.patternPath);
-
-            // 设置进度 100%
-            gameManager.progress?.setProgress(1);
-
-            // 隐藏进度面板打开游戏页面
-            gameManager.progress.node.active = false;
-            gameManager.levelMode.node.active = true;
-            
-            console.log(`开始关卡: ${levelData.name}, 图案: ${levelData.patternPath}`);
+                                    console.log(`开始关卡: ${levelData.name}, 图案: ${levelData.patternPath}`);
+                                });
+                            });
+                        });
+                    });
+                });
+            });
         });
     }
 

@@ -191,7 +191,7 @@ export class GridDrawer extends Component {
         }
     }
 
-    public createGraphicsNodes() {
+    public createGraphicsNodes(callback?: () => void) {
         const parentTransform = this.node.getComponent(UITransform);
 
         const outerNode = new Node('OuterBorder');
@@ -223,6 +223,13 @@ export class GridDrawer extends Component {
             innerTransform.setContentSize(parentTransform.width, parentTransform.height);
         }
         this.innerGraphics = innerNode.addComponent(Graphics);
+
+        // 延迟一帧后再调用回调
+        this.scheduleOnce(() => {
+            if (callback) {
+                callback();
+            }
+        }, 0);
     }
 
     private updateContentSize() {
@@ -253,11 +260,10 @@ export class GridDrawer extends Component {
         }
     }
 
-    public loadBlockPrefab() {
+    public loadBlockPrefab(callback?: () => void) {
         this.drawAllGrids();
 
         const uiTransform = this.node.getComponent(UITransform);
-        if (!uiTransform) return;
 
         const cellWidth = uiTransform.width / this.columns;
         const cellHeight = uiTransform.height / this.rows;
@@ -265,22 +271,25 @@ export class GridDrawer extends Component {
         this.blockCreator.createBlocks(this.contentNode!, this.rows, this.columns, cellWidth, cellHeight);
 
         // 设置 BlocksContainer 在内边框下面
-        this.scheduleOnce(() => {
-            const blocksContainer = this.blockCreator.getBlocksContainer();
-            const innerNode = this.contentNode?.getChildByName('InnerGrids');
-            if (blocksContainer && innerNode) {
-                // 设置 BlocksContainer 在 innerNode 下面（更低的 siblingIndex）
-                blocksContainer.setSiblingIndex(0);
-            }
-        }, 0.05);
+        const blocksContainer = this.blockCreator.getBlocksContainer();
+        const innerNode = this.contentNode?.getChildByName('InnerGrids');
+        if (blocksContainer && innerNode) {
+            // 设置 BlocksContainer 在 innerNode 下面（更低的 siblingIndex）
+            blocksContainer.setSiblingIndex(0);
+        }
 
+        this.enableZoomFeature();
+
+        // 延迟一帧后再调用回调，确保 UI 更新
         this.scheduleOnce(() => {
-            this.enableZoomFeature();
             // 调用 blocks 创建完成的回调
             if (this.onBlocksCreated) {
                 this.onBlocksCreated();
             }
-        }, 0.1);
+            if (callback) {
+                callback();
+            }
+        }, 0);
     }
 
     private drawAllGrids() {
