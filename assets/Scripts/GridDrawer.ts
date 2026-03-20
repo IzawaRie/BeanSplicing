@@ -2,16 +2,11 @@ import { _decorator, Component, Sprite, Graphics, Color, Node, UITransform, Laye
 import { BlockCreator } from './BlockCreator';
 import { BlockController, BlockState } from './BlockController';
 import { GameManager } from './GameManager';
+import { LevelConfig } from './LevelConfig';
 const { ccclass, property } = _decorator;
 
 @ccclass('GridDrawer')
 export class GridDrawer extends Component {
-    @property({ type: Number})
-    rows: number = 6;
-
-    @property({ type: Number})
-    columns: number = 6;
-
     @property({ type: Color })
     lineColor: Color = new Color(0, 0, 0, 255);
 
@@ -256,14 +251,20 @@ export class GridDrawer extends Component {
     }
 
     public loadBlockPrefab(callback?: () => void) {
-        this.drawAllGrids();
+        // 从 LevelConfig 获取当前关卡的网格配置
+        const levelConfig = LevelConfig.getInstance();
+        const gridConfig = levelConfig.getCurrentGridConfig();
+        const rows = gridConfig?.rows || 6;
+        const columns = gridConfig?.columns || 6;
+
+        this.drawAllGrids(rows, columns);
 
         const uiTransform = this.node.getComponent(UITransform);
 
-        const cellWidth = uiTransform.width / this.columns;
-        const cellHeight = uiTransform.height / this.rows;
+        const cellWidth = uiTransform.width / columns;
+        const cellHeight = uiTransform.height / rows;
 
-        this.blockCreator.createBlocks(this.contentNode!, this.rows, this.columns, cellWidth, cellHeight);
+        this.blockCreator.createBlocks(this.contentNode!, rows, columns, cellWidth, cellHeight);
 
         // 设置 BlocksContainer 在内边框下面
         const blocksContainer = this.blockCreator.getBlocksContainer();
@@ -282,7 +283,7 @@ export class GridDrawer extends Component {
         }, 0);
     }
 
-    private drawAllGrids() {
+    private drawAllGrids(rows: number, columns: number) {
         const sprite = this.getComponent(Sprite);
         const uiTransform = this.node.getComponent(UITransform);
 
@@ -294,11 +295,11 @@ export class GridDrawer extends Component {
         const height = uiTransform.height;
         if (width <= 0 || height <= 0) return;
 
-        const cellWidth = width / this.columns;
-        const cellHeight = height / this.rows;
+        const cellWidth = width / columns;
+        const cellHeight = height / rows;
 
         this.drawOuterBorder(width, height);
-        this.drawInnerGrids(width, height, cellWidth, cellHeight);
+        this.drawInnerGrids(width, height, cellWidth, cellHeight, rows, columns);
     }
 
     private drawOuterBorder(width: number, height: number) {
@@ -314,7 +315,7 @@ export class GridDrawer extends Component {
         this.outerGraphics.stroke();
     }
 
-    private drawInnerGrids(width: number, height: number, cellWidth: number, cellHeight: number) {
+    private drawInnerGrids(width: number, height: number, cellWidth: number, cellHeight: number, rows: number, columns: number) {
         if (!this.innerGraphics) return;
 
         const halfW = width / 2;
@@ -324,13 +325,13 @@ export class GridDrawer extends Component {
         this.innerGraphics.lineWidth = this.innerLineWidth;
         this.innerGraphics.strokeColor = this.lineColor;
 
-        for (let i = 1; i < this.columns; i++) {
+        for (let i = 1; i < columns; i++) {
             const x = -halfW + i * cellWidth;
             this.innerGraphics.moveTo(x, -halfH);
             this.innerGraphics.lineTo(x, halfH);
         }
 
-        for (let j = 1; j < this.rows; j++) {
+        for (let j = 1; j < rows; j++) {
             const y = -halfH + j * cellHeight;
             this.innerGraphics.moveTo(-halfW, y);
             this.innerGraphics.lineTo(halfW, y);
@@ -339,10 +340,7 @@ export class GridDrawer extends Component {
         this.innerGraphics.stroke();
     }
 
-    updateGrid(rows: number, columns: number) {
-        this.rows = rows;
-        this.columns = columns;
-
+    updateGrid() {
         this.blockCreator.clearBlocks();
         this.loadBlockPrefab();
     }

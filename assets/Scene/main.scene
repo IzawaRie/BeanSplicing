@@ -3243,8 +3243,6 @@
     },
     "_enabled": true,
     "__prefab": null,
-    "rows": 32,
-    "columns": 32,
     "lineColor": {
       "__type__": "cc.Color",
       "r": 0,
@@ -6940,7 +6938,7 @@
     },
     "_enabled": true,
     "__prefab": null,
-    "gridSize": 32,
+    "gridSize": 16,
     "_id": "c6QZvsANRPTqaoGtFv4Mco"
   },
   {

@@ -4,17 +4,17 @@
       "id": 1,
       "name": "第一关",
       "grid": {
-        "rows": 6,
-        "columns": 6
+        "rows": 16,
+        "columns": 16
       },
-      "patternPath": "pixel_patterns/apple"
+      "patternPath": "pixel_patterns/star"
     },
     {
       "id": 2,
       "name": "第二关",
       "grid": {
-        "rows": 6,
-        "columns": 6
+        "rows": 32,
+        "columns": 32
       },
       "patternPath": "pixel_patterns/apple"
     },
