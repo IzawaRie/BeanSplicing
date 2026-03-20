@@ -6333,6 +6333,9 @@
     "finish_btn": {
       "__id__": 101
     },
+    "iron": {
+      "__id__": 94
+    },
     "_id": "89mNQxxz9BvYewWvj6tb6D"
   },
   {
@@ -7406,9 +7409,6 @@
     },
     "circleList": {
       "__id__": 172
-    },
-    "iron": {
-      "__id__": 94
     },
     "menuManager": {
       "__id__": 32

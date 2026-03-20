@@ -31,9 +31,6 @@ export class GameManager extends Component {
     @property({ type: CircleListController })
     circleList: CircleListController = null;
 
-    @property({ type: IronController })
-    iron: IronController = null;
-
     @property({ type: MenuManager })
     menuManager: MenuManager = null;
 

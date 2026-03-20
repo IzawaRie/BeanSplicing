@@ -1,6 +1,7 @@
 import { _decorator, Component, Node } from 'cc';
 import { GameMode, GameModeType, GameResult } from './GameMode';
 import { GridDrawer } from './GridDrawer';
+import { IronController } from './IronController';
 
 const { ccclass, property } = _decorator;
 
@@ -20,6 +21,9 @@ export class LevelMode extends GameMode {
 
     @property({ type: Node })
     finish_btn: Node = null;
+    
+    @property({ type: IronController })
+    iron: IronController = null;
 
     private currentLevel: number = 1;
     private currentScore: number = 0;
