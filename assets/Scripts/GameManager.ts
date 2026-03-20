@@ -25,9 +25,6 @@ export class GameManager extends Component {
     @property({ type: PixelPatternApplier })
     patternApplier: PixelPatternApplier = null;
 
-    @property({ type: PaletteGenerator })
-    paletteGenerator: PaletteGenerator = null;
-
     @property({ type: MenuManager })
     menuManager: MenuManager = null;
 
@@ -263,8 +260,8 @@ export class GameManager extends Component {
         } else {
             checkDone();
         }
-        if (this.paletteGenerator) {
-            this.paletteGenerator.loadFromJson(patternPath, checkDone);
+        if (this.levelMode.paletteGenerator) {
+            this.levelMode.paletteGenerator.loadFromJson(patternPath, checkDone);
         } else {
             checkDone();
         }

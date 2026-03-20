@@ -3,6 +3,7 @@ import { GameMode, GameModeType, GameResult } from './GameMode';
 import { GridDrawer } from './GridDrawer';
 import { IronController } from './IronController';
 import { CircleListController } from './CircleListController';
+import { PaletteGenerator } from './PaletteGenerator';
 
 const { ccclass, property } = _decorator;
 
@@ -28,6 +29,9 @@ export class LevelMode extends GameMode {
 
     @property({ type: CircleListController })
     circleList: CircleListController = null;
+
+    @property({ type: PaletteGenerator })
+    paletteGenerator: PaletteGenerator = null;
 
     private currentLevel: number = 1;
     private currentScore: number = 0;
