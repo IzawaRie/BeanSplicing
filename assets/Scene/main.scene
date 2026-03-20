@@ -6330,6 +6330,9 @@
     "__prefab": null,
     "nextLevelBtn": null,
     "restartBtn": null,
+    "finish_btn": {
+      "__id__": 101
+    },
     "_id": "89mNQxxz9BvYewWvj6tb6D"
   },
   {
@@ -7406,9 +7409,6 @@
     },
     "iron": {
       "__id__": 94
-    },
-    "finish_btn": {
-      "__id__": 101
     },
     "menuManager": {
       "__id__": 32

@@ -18,6 +18,9 @@ export class LevelMode extends GameMode {
     @property(Node)
     restartBtn: Node | null = null;
 
+    @property({ type: Node })
+    finish_btn: Node = null;
+
     private currentLevel: number = 1;
     private currentScore: number = 0;
     private _patternPath: string = '';

@@ -34,9 +34,6 @@ export class GameManager extends Component {
     @property({ type: IronController })
     iron: IronController = null;
 
-    @property({ type: Node })
-    finish_btn: Node = null;
-
     @property({ type: MenuManager })
     menuManager: MenuManager = null;
 
@@ -76,10 +73,10 @@ export class GameManager extends Component {
 
     start() {
         // 默认隐藏 finish_btn
-        if (this.finish_btn) {
-            this.finish_btn.active = false;
+        if (this.levelMode.finish_btn) {
+            this.levelMode.finish_btn.active = false;
             // 注册完成按钮点击事件
-            this.finish_btn.on(Node.EventType.TOUCH_END, this.onFinishBtnClick, this);
+            this.levelMode.finish_btn.on(Node.EventType.TOUCH_END, this.onFinishBtnClick, this);
         }
 
         this.patternApplier.gridDrawer = this.gridDrawer;
@@ -133,8 +130,8 @@ export class GameManager extends Component {
         }
 
         // 如果所有可用 block 都已熨烫，显示 finish_btn
-        if (this.finish_btn && totalAvailable > 0 && ironedCount === totalAvailable) {
-            this.finish_btn.active = true;
+        if (this.levelMode.finish_btn && totalAvailable > 0 && ironedCount === totalAvailable) {
+            this.levelMode.finish_btn.active = true;
         }
     }
 
