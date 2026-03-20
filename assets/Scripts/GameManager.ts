@@ -22,9 +22,6 @@ export class GameManager extends Component {
     @property({ type: GridDrawer })
     gridDrawer: GridDrawer = null;
 
-    @property({ type: PixelPatternApplier })
-    patternApplier: PixelPatternApplier = null;
-
     @property({ type: MenuManager })
     menuManager: MenuManager = null;
 
@@ -70,7 +67,7 @@ export class GameManager extends Component {
             this.levelMode.finish_btn.on(Node.EventType.TOUCH_END, this.onFinishBtnClick, this);
         }
 
-        this.patternApplier.gridDrawer = this.gridDrawer;
+        this.levelMode.patternApplier.gridDrawer = this.gridDrawer;
         this.levelMode.circleList.setAllNodes();
     }
 
@@ -255,8 +252,8 @@ export class GameManager extends Component {
             }
         };
 
-        if (this.patternApplier) {
-            this.patternApplier.applyFromJson(patternPath, checkDone);
+        if (this.levelMode.patternApplier) {
+            this.levelMode.patternApplier.applyFromJson(patternPath, checkDone);
         } else {
             checkDone();
         }

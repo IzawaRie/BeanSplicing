@@ -6342,6 +6342,9 @@
     "paletteGenerator": {
       "__id__": 76
     },
+    "patternApplier": {
+      "__id__": 89
+    },
     "_id": "89mNQxxz9BvYewWvj6tb6D"
   },
   {
@@ -7406,9 +7409,6 @@
     "__prefab": null,
     "gridDrawer": {
       "__id__": 87
-    },
-    "patternApplier": {
-      "__id__": 89
     },
     "menuManager": {
       "__id__": 32

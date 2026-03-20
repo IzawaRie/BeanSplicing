@@ -4,6 +4,7 @@ import { GridDrawer } from './GridDrawer';
 import { IronController } from './IronController';
 import { CircleListController } from './CircleListController';
 import { PaletteGenerator } from './PaletteGenerator';
+import { PixelPatternApplier } from './PixelPatternApplier';
 
 const { ccclass, property } = _decorator;
 
@@ -32,6 +33,9 @@ export class LevelMode extends GameMode {
 
     @property({ type: PaletteGenerator })
     paletteGenerator: PaletteGenerator = null;
+
+    @property({ type: PixelPatternApplier })
+    patternApplier: PixelPatternApplier = null;
 
     private currentLevel: number = 1;
     private currentScore: number = 0;
