@@ -7,11 +7,6 @@ export class ProgressController extends Component {
     private progress: Sprite = null;
 
     private per01Duration: number = 0.1;
-
-    // 缓动类型
-    @property({ type: String })
-    easingType: string = 'smooth';
-
     private currentTween: Tween<Sprite> = null;
 
     /**
@@ -26,7 +21,7 @@ export class ProgressController extends Component {
 
         if (Math.abs(diff) < 0.001) {
             // 差异太小，直接完成
-            if (callback) callback();
+            callback?.();
             return;
         }
 
@@ -44,9 +39,7 @@ export class ProgressController extends Component {
             .to(duration, { fillRange: targetValue }, { easing: 'smooth' })
             .call(() => {
                 this.currentTween = null;
-                if (callback) {
-                    callback();
-                }
+                callback?.();
             })
             .start();
     }

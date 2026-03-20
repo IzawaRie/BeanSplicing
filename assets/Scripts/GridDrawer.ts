@@ -224,12 +224,7 @@ export class GridDrawer extends Component {
         }
         this.innerGraphics = innerNode.addComponent(Graphics);
 
-        // 延迟一帧后再调用回调
-        this.scheduleOnce(() => {
-            if (callback) {
-                callback();
-            }
-        }, 0);
+        callback?.();
     }
 
     private updateContentSize() {
@@ -282,13 +277,8 @@ export class GridDrawer extends Component {
 
         // 延迟一帧后再调用回调，确保 UI 更新
         this.scheduleOnce(() => {
-            // 调用 blocks 创建完成的回调
-            if (this.onBlocksCreated) {
-                this.onBlocksCreated();
-            }
-            if (callback) {
-                callback();
-            }
+            this.onBlocksCreated?.();
+            callback?.();
         }, 0);
     }
 
