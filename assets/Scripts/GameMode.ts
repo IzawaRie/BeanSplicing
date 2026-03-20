@@ -73,9 +73,4 @@ export abstract class GameMode extends Component {
      * 检查游戏是否完成（每个模式实现自己的完成条件）
      */
     public abstract checkComplete(): boolean;
-
-    /**
-     * 获取游戏进度 (0-1)
-     */
-    public abstract getProgress(): number;
 }

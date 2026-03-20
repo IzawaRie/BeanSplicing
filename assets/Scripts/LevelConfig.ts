@@ -1,50 +1,28 @@
-import { resources } from 'cc';
+import { resources, JsonAsset } from 'cc';
 
 /**
- * 关卡配置数据类型
+ * 网格配置
  */
 export interface GridConfig {
     rows: number;
     columns: number;
 }
 
-export interface BlockTypeConfig {
-    type: string;
-    color?: string;
-    sprite?: string;
-}
-
-export interface TargetConfig {
-    type: 'score' | 'collect' | 'clear';
-    value: number;
-    targetBlock?: string;
-}
-
+/**
+ * 关卡数据
+ */
 export interface LevelData {
     id: number;
     name: string;
     grid: GridConfig;
-    blockTypes: string[];
-    target: TargetConfig;
-    moves: number;
-    timeLimit: number;
-    specialRules: string[];
-    initialBlocks?: string[][];
+    patternPath: string;
 }
 
-export interface GlobalConfig {
-    defaultBlockTypes: string[];
-    defaultGrid: GridConfig;
-    lineColor: string;
-    lineWidth: {
-        outer: number;
-        inner: number;
-    };
-}
-
+/**
+ * 关卡配置数据
+ */
 export interface LevelConfigData {
     levels: LevelData[];
-    global: GlobalConfig;
 }
 
 /**
@@ -72,31 +50,17 @@ export class LevelConfig {
      * 加载关卡配置文件
      */
     public loadConfig(callback?: (success: boolean) => void): void {
-        resources.load('levels/level_config', (err, data) => {
+        resources.load('levels/level_config', JsonAsset, (err, data) => {
             if (err) {
                 console.error('加载关卡配置失败:', err);
                 callback?.(false);
                 return;
             }
 
-            this.configData = data as LevelConfigData;
+            this.configData = (data as JsonAsset).json as LevelConfigData;
             console.log('关卡配置加载成功, 共', this.getLevelCount(), '个关卡');
             callback?.(true);
         });
-    }
-
-    /**
-     * 同步加载关卡配置（需确保资源已预加载）
-     */
-    public getConfig(): LevelConfigData | null {
-        return this.configData;
-    }
-
-    /**
-     * 获取所有关卡数据
-     */
-    public getAllLevels(): LevelData[] {
-        return this.configData?.levels || [];
     }
 
     /**
@@ -108,7 +72,6 @@ export class LevelConfig {
 
     /**
      * 获取指定关卡数据
-     * @param levelId 关卡ID (从1开始)
      */
     public getLevel(levelId: number): LevelData | null {
         return this.configData?.levels.find(level => level.id === levelId) || null;
@@ -128,61 +91,6 @@ export class LevelConfig {
         if (index >= 0 && index < this.getLevelCount()) {
             this.currentLevelIndex = index;
         }
-    }
-
-    /**
-     * 获取全局配置
-     */
-    public getGlobalConfig(): GlobalConfig | null {
-        return this.configData?.global || null;
-    }
-
-    /**
-     * 获取指定关卡的网格配置
-     */
-    public getGridConfig(levelId: number): GridConfig | null {
-        const level = this.getLevel(levelId);
-        return level?.grid || this.configData?.global.defaultGrid || null;
-    }
-
-    /**
-     * 获取指定关卡的方块类型列表
-     */
-    public getBlockTypes(levelId: number): string[] {
-        const level = this.getLevel(levelId);
-        return level?.blockTypes || this.configData?.global.defaultBlockTypes || [];
-    }
-
-    /**
-     * 获取指定关卡的目标配置
-     */
-    public getTarget(levelId: number): TargetConfig | null {
-        const level = this.getLevel(levelId);
-        return level?.target || null;
-    }
-
-    /**
-     * 获取指定关卡的移动次数限制
-     */
-    public getMoves(levelId: number): number {
-        const level = this.getLevel(levelId);
-        return level?.moves || 0;
-    }
-
-    /**
-     * 获取指定关卡的时间限制（0表示不限时）
-     */
-    public getTimeLimit(levelId: number): number {
-        const level = this.getLevel(levelId);
-        return level?.timeLimit || 0;
-    }
-
-    /**
-     * 获取指定关卡的特殊规则
-     */
-    public getSpecialRules(levelId: number): string[] {
-        const level = this.getLevel(levelId);
-        return level?.specialRules || [];
     }
 
     /**

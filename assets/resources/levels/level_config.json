@@ -7,14 +7,7 @@
         "rows": 6,
         "columns": 6
       },
-      "blockTypes": ["red", "green", "blue", "yellow"],
-      "target": {
-        "type": "score",
-        "value": 1000
-      },
-      "moves": 20,
-      "timeLimit": 0,
-      "specialRules": []
+      "patternPath": "pixel_patterns/apple"
     },
     {
       "id": 2,
@@ -23,14 +16,7 @@
         "rows": 6,
         "columns": 6
       },
-      "blockTypes": ["red", "green", "blue", "yellow"],
-      "target": {
-        "type": "score",
-        "value": 1500
-      },
-      "moves": 20,
-      "timeLimit": 0,
-      "specialRules": []
+      "patternPath": "pixel_patterns/apple"
     },
     {
       "id": 3,
@@ -39,14 +25,7 @@
         "rows": 6,
         "columns": 6
       },
-      "blockTypes": ["red", "green", "blue", "yellow", "purple"],
-      "target": {
-        "type": "score",
-        "value": 2000
-      },
-      "moves": 22,
-      "timeLimit": 0,
-      "specialRules": []
+      "patternPath": "pixel_patterns/apple"
     },
     {
       "id": 4,
@@ -55,14 +34,7 @@
         "rows": 6,
         "columns": 6
       },
-      "blockTypes": ["red", "green", "blue", "yellow", "purple"],
-      "target": {
-        "type": "score",
-        "value": 2500
-      },
-      "moves": 22,
-      "timeLimit": 0,
-      "specialRules": []
+      "patternPath": "pixel_patterns/apple"
     },
     {
       "id": 5,
@@ -71,14 +43,7 @@
         "rows": 7,
         "columns": 7
       },
-      "blockTypes": ["red", "green", "blue", "yellow", "purple"],
-      "target": {
-        "type": "score",
-        "value": 3000
-      },
-      "moves": 25,
-      "timeLimit": 0,
-      "specialRules": []
+      "patternPath": "pixel_patterns/apple"
     },
     {
       "id": 6,
@@ -87,14 +52,7 @@
         "rows": 7,
         "columns": 7
       },
-      "blockTypes": ["red", "green", "blue", "yellow", "purple", "orange"],
-      "target": {
-        "type": "score",
-        "value": 3500
-      },
-      "moves": 25,
-      "timeLimit": 0,
-      "specialRules": []
+      "patternPath": "pixel_patterns/apple"
     },
     {
       "id": 7,
@@ -103,14 +61,7 @@
         "rows": 7,
         "columns": 7
       },
-      "blockTypes": ["red", "green", "blue", "yellow", "purple", "orange"],
-      "target": {
-        "type": "score",
-        "value": 4000
-      },
-      "moves": 28,
-      "timeLimit": 0,
-      "specialRules": []
+      "patternPath": "pixel_patterns/apple"
     },
     {
       "id": 8,
@@ -119,14 +70,7 @@
         "rows": 8,
         "columns": 8
       },
-      "blockTypes": ["red", "green", "blue", "yellow", "purple", "orange"],
-      "target": {
-        "type": "score",
-        "value": 4500
-      },
-      "moves": 28,
-      "timeLimit": 0,
-      "specialRules": []
+      "patternPath": "pixel_patterns/apple"
     },
     {
       "id": 9,
@@ -135,14 +79,7 @@
         "rows": 8,
         "columns": 8
       },
-      "blockTypes": ["red", "green", "blue", "yellow", "purple", "orange"],
-      "target": {
-        "type": "score",
-        "value": 5000
-      },
-      "moves": 30,
-      "timeLimit": 0,
-      "specialRules": []
+      "patternPath": "pixel_patterns/apple"
     },
     {
       "id": 10,
@@ -151,26 +88,7 @@
         "rows": 8,
         "columns": 8
       },
-      "blockTypes": ["red", "green", "blue", "yellow", "purple", "orange"],
-      "target": {
-        "type": "score",
-        "value": 6000
-      },
-      "moves": 30,
-      "timeLimit": 0,
-      "specialRules": ["crossBomb"]
+      "patternPath": "pixel_patterns/apple"
     }
-  ],
-  "global": {
-    "defaultBlockTypes": ["red", "green", "blue", "yellow"],
-    "defaultGrid": {
-      "rows": 6,
-      "columns": 6
-    },
-    "lineColor": "#000000",
-    "lineWidth": {
-      "outer": 10,
-      "inner": 5
-    }
-  }
+  ]
 }

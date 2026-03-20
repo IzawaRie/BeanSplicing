@@ -7,6 +7,8 @@ import { IronController } from './IronController';
 import { BlockController, BlockState } from './BlockController';
 import { GameMode, GameModeType} from './GameMode';
 import { LevelMode } from './LevelMode';
+import { MenuManager } from './MenuManager';
+import { ProgressController } from './ProgressController';
 const { ccclass, property } = _decorator;
 
 /**
@@ -35,8 +37,11 @@ export class GameManager extends Component {
     @property({ type: Node })
     finish_btn: Node = null;
 
-    @property({ type: String })
-    patternPath: string = 'pixel_patterns/apple';
+    @property({ type: MenuManager })
+    menuManager: MenuManager = null;
+
+    @property({ type: ProgressController })
+    progress: ProgressController = null;
 
     // 闯关模式组件
     @property({ type: LevelMode })
@@ -145,16 +150,18 @@ export class GameManager extends Component {
      * 应用图案
      */
     private applyPattern() {
+        const path = this.levelMode?.patternPath || '';
         if (this.patternApplier) {
-            this.patternApplier.applyFromJson(this.patternPath);
+            this.patternApplier.applyFromJson(path);
         } else {
             console.error('未设置 PixelPatternApplier');
         }
     }
 
     private applyRefer(){
+        const path = this.levelMode?.patternPath || '';
         if (this.paletteGenerator) {
-            this.paletteGenerator.loadFromJson(this.patternPath);
+            this.paletteGenerator.loadFromJson(path);
         } else {
             console.error('未设置 PaletteGenerator');
         }
@@ -248,6 +255,11 @@ export class GameManager extends Component {
                 this.currentMode = this.levelMode;
                 if (this.currentMode) {
                     this.currentMode.setGridDrawer(this.gridDrawer);
+                    // 设置游戏开始回调，加载图案
+                    (this.currentMode as any).onGameStart = () => {
+                        this.applyPattern();
+                        this.applyRefer();
+                    };
                 }
                 break;
         }
@@ -265,29 +277,11 @@ export class GameManager extends Component {
     /**
      * 开始闯关模式
      */
-    public startLevelMode(levelId: number, moves: number, target: number): void {
+    public startLevelMode(levelId: number): void {
         this.switchMode(GameModeType.LEVEL);
         if (this.levelMode) {
-            this.levelMode.startLevel(levelId, moves, target);
+            this.levelMode.startLevel(levelId);
             this.startGame();
         }
-    }
-
-    /**
-     * 熨烫成功回调（供 IronController 调用）
-     */
-    public onIronComplete(): void {
-        if (!this.currentMode) return;
-
-        switch (this._currentModeType) {
-            case GameModeType.LEVEL:
-                if (this.levelMode) {
-                    this.levelMode.useMove();
-                }
-                break;
-        }
-
-        // 检查是否全部完成（通用逻辑）
-        this.checkAllBlocksIroned();
     }
 }
