@@ -539,7 +539,7 @@ export class GridDrawer extends Component {
         // 保存到 GameManager
         const gameManager = GameManager.getInstance();
         if (gameManager) {
-            gameManager.setColorList(colorList);
+            gameManager.levelMode.setColorList(colorList);
         }
     }
 }

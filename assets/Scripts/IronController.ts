@@ -177,7 +177,7 @@ export class IronController extends Component {
         // 检查是否所有 block 都已熨烫
         const gameManager = GameManager.getInstance();
         if (gameManager) {
-            gameManager.checkAllBlocksIroned();
+            gameManager.levelMode.checkAllBlocksIroned();
         }
     }
 

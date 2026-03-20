@@ -119,7 +119,7 @@ export class MenuManager extends Component {
                 gridDrawer.loadBlockPrefab(() => {
                     gameManager.progress?.setProgress(0.5, () => {
                         // 步骤3: loadPatternAndPalette -> setProgress(0.9)
-                        gameManager.loadPatternAndPalette(levelData.patternPath, () => {
+                        gameManager.levelMode.loadPatternAndPalette(levelData.patternPath, () => {
                             gameManager.progress?.setProgress(0.8, () => {
                                 // 步骤4: 启动闯关模式 -> setProgress(1)
                                 levelMode.startLevel(levelId, levelData.patternPath);
