@@ -41,16 +41,6 @@ export class CircleController extends Component {
     private progressNode: Node | null = null;
 
     onLoad() {
-        // 获取 circle 子节点
-        this.circleNode = this.node.getChildByName('circle');
-
-        const pos = this.circleNode.position;
-        this.originalPos = { x: pos.x, y: pos.y, z: pos.z };
-
-        // 获取并保存 progress 节点
-        this.progressNode = this.circleNode.getChildByName('progress');
-        this.progressNode.active = false;
-
         // 注册触摸事件
         this.node.on(Node.EventType.TOUCH_START, this.onTouchStart, this);
         this.node.on(Node.EventType.TOUCH_MOVE, this.onTouchMove, this);
@@ -89,6 +79,21 @@ export class CircleController extends Component {
                 this.updateProgress(progress);
             }
         }
+    }
+
+    /**
+     * 设置颜色
+     */
+    public setCircleListNode(){
+        // 获取 circle 子节点
+        this.circleNode = this.node.getChildByName('circle');
+
+        const pos = this.circleNode.position;
+        this.originalPos = { x: pos.x, y: pos.y, z: pos.z };
+
+        // 获取并保存 progress 节点
+        this.progressNode = this.circleNode.getChildByName('progress');
+        this.progressNode.active = false;
     }
 
     /**

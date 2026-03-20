@@ -26,6 +26,11 @@ export class CircleListController extends Component {
      */
     public setAllNodes() {
         this.colorNodes = this.node.children;
+        for(let i = 0; i < this.colorNodes.length; i++){
+            const circle = this.colorNodes[i];
+            const circleController = circle.getComponent(CircleController);
+            circleController.setCircleListNode();
+        }
     }
 
     /**
