@@ -165,13 +165,34 @@ export class GridDrawer extends Component {
     }
 
     private setContentScale(scale: number) {
+        const oldScale = this.currentScale;
         scale = Math.max(1, scale);
         this.currentScale = scale;
         if (this.contentNode) {
             this.contentNode.setScale(scale, scale, 1);
-            // 缩放时重置位置偏移，重新计算边界
-            this.contentOffset = { x: 0, y: 0 };
-            this.contentNode.setPosition(0, 0, 0);
+
+            // 重新计算新 scale 下的边界
+            const uiTransform = this.node.getComponent(UITransform);
+            if (uiTransform) {
+                const width = uiTransform.width;
+                const height = uiTransform.height;
+                const scaledWidth = width * scale;
+                const scaledHeight = height * scale;
+                const maxOffsetX = (scaledWidth - width) / 2;
+                const maxOffsetY = (scaledHeight - height) / 2;
+
+                if (oldScale === 1 && scale > 1) {
+                    // 第一次放大，重置偏移
+                    this.contentOffset = { x: 0, y: 0 };
+                    this.contentNode.setPosition(0, 0, 0);
+                } else if (scale > 1) {
+                    // 已有偏移，按比例调整并限制边界
+                    const scaleFactor = scale / oldScale;
+                    this.contentOffset.x = Math.max(-maxOffsetX, Math.min(maxOffsetX, this.contentOffset.x * scaleFactor));
+                    this.contentOffset.y = Math.max(-maxOffsetY, Math.min(maxOffsetY, this.contentOffset.y * scaleFactor));
+                    this.contentNode.setPosition(this.contentOffset.x, this.contentOffset.y, 0);
+                }
+            }
         }
     }
 
