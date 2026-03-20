@@ -6336,6 +6336,9 @@
     "iron": {
       "__id__": 94
     },
+    "circleList": {
+      "__id__": 172
+    },
     "_id": "89mNQxxz9BvYewWvj6tb6D"
   },
   {
@@ -7406,9 +7409,6 @@
     },
     "paletteGenerator": {
       "__id__": 76
-    },
-    "circleList": {
-      "__id__": 172
     },
     "menuManager": {
       "__id__": 32

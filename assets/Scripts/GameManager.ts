@@ -28,9 +28,6 @@ export class GameManager extends Component {
     @property({ type: PaletteGenerator })
     paletteGenerator: PaletteGenerator = null;
 
-    @property({ type: CircleListController })
-    circleList: CircleListController = null;
-
     @property({ type: MenuManager })
     menuManager: MenuManager = null;
 
@@ -77,7 +74,7 @@ export class GameManager extends Component {
         }
 
         this.patternApplier.gridDrawer = this.gridDrawer;
-        this.circleList.setAllNodes();
+        this.levelMode.circleList.setAllNodes();
     }
 
     /**
@@ -243,8 +240,8 @@ export class GameManager extends Component {
     public setColorList(colors: { r: number; g: number; b: number; a: number }[]): void {
         this._colorList = colors;
         // 通知 CircleListController 更新
-        if (this.circleList) {
-            this.circleList.updateColorList(colors);
+        if (this.levelMode.circleList) {
+            this.levelMode.circleList.updateColorList(colors);
         }
     }
 
