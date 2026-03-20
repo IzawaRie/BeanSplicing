@@ -5,11 +5,13 @@ import { PaletteGenerator } from './PaletteGenerator';
 import { CircleListController } from './CircleListController';
 import { IronController } from './IronController';
 import { BlockController, BlockState } from './BlockController';
+import { GameMode, GameModeType} from './GameMode';
+import { LevelMode } from './LevelMode';
 const { ccclass, property } = _decorator;
 
 /**
  * 游戏管理器
- * 负责游戏全局状态管理
+ * 负责游戏全局状态管理和多模式支持
  */
 @ccclass('GameManager')
 export class GameManager extends Component {
@@ -35,6 +37,14 @@ export class GameManager extends Component {
 
     @property({ type: String })
     patternPath: string = 'pixel_patterns/apple';
+
+    // 闯关模式组件
+    @property({ type: LevelMode })
+    levelMode: LevelMode = null;
+
+    // 当前游戏模式
+    private currentMode: GameMode = null;
+    private _currentModeType: GameModeType = GameModeType.LEVEL;
 
     // 当前选中的颜色序号
     private _selectedColorIndex: number = 1;
@@ -216,5 +226,68 @@ export class GameManager extends Component {
         if (this.circleList) {
             this.circleList.updateColorList(colors);
         }
+    }
+
+    // ==================== 游戏模式 ====================
+
+    /**
+     * 获取当前模式类型
+     */
+    public get currentModeType(): GameModeType {
+        return this._currentModeType;
+    }
+
+    /**
+     * 切换游戏模式
+     */
+    public switchMode(modeType: GameModeType): void {
+        this._currentModeType = modeType;
+
+        switch (modeType) {
+            case GameModeType.LEVEL:
+                this.currentMode = this.levelMode;
+                if (this.currentMode) {
+                    this.currentMode.setGridDrawer(this.gridDrawer);
+                }
+                break;
+        }
+
+        console.log(`切换到游戏模式: ${modeType}`);
+    }
+
+    /**
+     * 获取当前模式
+     */
+    public getCurrentMode(): GameMode | null {
+        return this.currentMode;
+    }
+
+    /**
+     * 开始闯关模式
+     */
+    public startLevelMode(levelId: number, moves: number, target: number): void {
+        this.switchMode(GameModeType.LEVEL);
+        if (this.levelMode) {
+            this.levelMode.startLevel(levelId, moves, target);
+            this.startGame();
+        }
+    }
+
+    /**
+     * 熨烫成功回调（供 IronController 调用）
+     */
+    public onIronComplete(): void {
+        if (!this.currentMode) return;
+
+        switch (this._currentModeType) {
+            case GameModeType.LEVEL:
+                if (this.levelMode) {
+                    this.levelMode.useMove();
+                }
+                break;
+        }
+
+        // 检查是否全部完成（通用逻辑）
+        this.checkAllBlocksIroned();
     }
 }
