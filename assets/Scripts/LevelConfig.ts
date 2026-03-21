@@ -16,6 +16,7 @@ export interface LevelData {
     name: string;
     grid: GridConfig;
     patternPath: string;
+    time?: number;  // 关卡限时（秒），默认 60
 }
 
 /**
@@ -90,6 +91,14 @@ export class LevelConfig {
     public getCurrentGridConfig(): GridConfig | null {
         const level = this.configData?.levels[this.currentLevelIndex];
         return level?.grid || null;
+    }
+
+    /**
+     * 获取当前关卡的限时（秒）
+     */
+    public getCurrentLevelTime(): number {
+        const level = this.configData?.levels[this.currentLevelIndex];
+        return level?.time ?? 60;
     }
 
     /**

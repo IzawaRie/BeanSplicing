@@ -8,6 +8,7 @@ import { PixelPatternApplier } from './PixelPatternApplier';
 import { GameManager } from './GameManager';
 import { BlockController, BlockState } from './BlockController';
 import { ResultPanel } from './ResultPanel';
+import { LevelConfig } from './LevelConfig';
 
 const { ccclass, property } = _decorator;
 
@@ -46,6 +47,9 @@ export class LevelMode extends GameMode {
     @property({ type: Label })
     level_label: Label = null;
 
+    @property({ type: Label })
+    time_label: Label = null;
+
     // 游戏状态
     private _isGameActive: boolean = false;
     private currentScore: number = 0;
@@ -55,7 +59,32 @@ export class LevelMode extends GameMode {
     // 颜色列表 [{ r, g, b, a }]
     private _colorList: { r: number; g: number; b: number; a: number }[] = [];
 
+    // 倒计时相关
+    private _remainingTime: number = 0;  // 剩余秒数
+    private _isCountingDown: boolean = false;  // 是否正在倒计时
+
     get modeType(): GameModeType { return GameModeType.LEVEL; }
+
+    update(_deltaTime: number): void {
+        if (!this._isCountingDown) return;
+
+        this._remainingTime -= _deltaTime;
+
+        // 更新 time_label
+        if (this.time_label) {
+            const displaySec = Math.max(0, Math.ceil(this._remainingTime));
+            const mins = Math.floor(displaySec / 60);
+            const secs = displaySec % 60;
+            this.time_label.string = mins > 0 ? `${mins}:${secs < 10 ? '0' + secs : secs}` : `${secs}`;
+        }
+
+        // 倒计时结束
+        if (this._remainingTime <= 0) {
+            this._remainingTime = 0;
+            this._isCountingDown = false;
+            this.onTimeUp();
+        }
+    }
 
     start(){
         // 默认隐藏 finish_btn
@@ -73,7 +102,24 @@ export class LevelMode extends GameMode {
         this.currentScore = 0;
         this._patternPath = patternPath;
         this.startGame();
+        this.startCountdown();
         console.log(`闯关模式: 关卡 ${levelId}, 图案: ${patternPath}`);
+    }
+
+    /**
+     * 启动倒计时
+     */
+    private startCountdown(): void {
+        this._remainingTime = LevelConfig.getInstance().getCurrentLevelTime();
+        this._isCountingDown = true;
+
+        // 立即更新一次 label
+        if (this.time_label) {
+            const displaySec = Math.ceil(this._remainingTime);
+            const mins = Math.floor(displaySec / 60);
+            const secs = displaySec % 60;
+            this.time_label.string = mins > 0 ? `${mins}:${secs < 10 ? '0' + secs : secs}` : `${secs}`;
+        }
     }
 
     /**
@@ -110,6 +156,8 @@ export class LevelMode extends GameMode {
      * finish_btn 点击事件 - 显示结果面板
      */
     private onFinishBtnClick(): void {
+        this._isCountingDown = false;
+
         if (this.finish_btn) {
             this.finish_btn.active = false;
         }
@@ -121,6 +169,58 @@ export class LevelMode extends GameMode {
             this.resultPanel.setResult(isSuccess);
             this.resultPanel.node.active = true;
         }
+    }
+
+    /**
+     * 倒计时结束时的处理
+     */
+    private onTimeUp(): void {
+        // 停止游戏
+        this._isGameActive = false;
+
+        // 隐藏 finish_btn
+        if (this.finish_btn) {
+            this.finish_btn.active = false;
+        }
+
+        // 检查是否所有可用 block 都已熨烫且颜色正确
+        const allIroned = this.checkAllBlocksIroned2();
+        const colorMatch = this.checkAllBlocksColorMatch();
+        const isSuccess = allIroned && colorMatch;
+
+        if (this.resultPanel?.node) {
+            this.resultPanel.setResult(isSuccess);
+            this.resultPanel.node.active = true;
+        }
+    }
+
+    /**
+     * 检查是否所有可用 block 都已熨烫完成（返回 boolean）
+     */
+    private checkAllBlocksIroned2(): boolean {
+        if (!this.gridDrawer) return false;
+
+        const blocks = this.gridDrawer.getAllBlocks();
+        if (!blocks) return false;
+
+        for (let row = 0; row < blocks.length; row++) {
+            for (let col = 0; col < blocks[row].length; col++) {
+                const block = blocks[row][col];
+                if (!block) continue;
+
+                const controller = block.getComponent(BlockController);
+                if (!controller) continue;
+
+                // 只检查可用 block
+                if (controller.targetColorA <= 0) continue;
+
+                // 只要有一个未熨烫就返回 false
+                if (controller.state !== BlockState.IRONED) {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 
     /**

@@ -7,7 +7,8 @@
         "rows": 16,
         "columns": 16
       },
-      "patternPath": "pixel_patterns/star"
+      "patternPath": "pixel_patterns/star",
+      "time": 60
     },
     {
       "id": 2,
@@ -16,7 +17,8 @@
         "rows": 32,
         "columns": 32
       },
-      "patternPath": "pixel_patterns/apple"
+      "patternPath": "pixel_patterns/apple",
+      "time": 120
     },
     {
       "id": 3,
@@ -25,7 +27,8 @@
         "rows": 32,
         "columns": 32
       },
-      "patternPath": "pixel_patterns/apple"
+      "patternPath": "pixel_patterns/apple",
+      "time": 120
     },
     {
       "id": 4,
@@ -34,7 +37,8 @@
         "rows": 6,
         "columns": 6
       },
-      "patternPath": "pixel_patterns/apple"
+      "patternPath": "pixel_patterns/apple",
+      "time": 45
     },
     {
       "id": 5,
@@ -43,7 +47,8 @@
         "rows": 7,
         "columns": 7
       },
-      "patternPath": "pixel_patterns/apple"
+      "patternPath": "pixel_patterns/apple",
+      "time": 50
     },
     {
       "id": 6,
@@ -52,7 +57,8 @@
         "rows": 7,
         "columns": 7
       },
-      "patternPath": "pixel_patterns/apple"
+      "patternPath": "pixel_patterns/apple",
+      "time": 50
     },
     {
       "id": 7,
@@ -61,7 +67,8 @@
         "rows": 7,
         "columns": 7
       },
-      "patternPath": "pixel_patterns/apple"
+      "patternPath": "pixel_patterns/apple",
+      "time": 50
     },
     {
       "id": 8,
@@ -70,7 +77,8 @@
         "rows": 8,
         "columns": 8
       },
-      "patternPath": "pixel_patterns/apple"
+      "patternPath": "pixel_patterns/apple",
+      "time": 55
     },
     {
       "id": 9,
@@ -79,7 +87,8 @@
         "rows": 8,
         "columns": 8
       },
-      "patternPath": "pixel_patterns/apple"
+      "patternPath": "pixel_patterns/apple",
+      "time": 55
     },
     {
       "id": 10,
@@ -88,7 +97,8 @@
         "rows": 8,
         "columns": 8
       },
-      "patternPath": "pixel_patterns/apple"
+      "patternPath": "pixel_patterns/apple",
+      "time": 60
     }
   ]
 }
