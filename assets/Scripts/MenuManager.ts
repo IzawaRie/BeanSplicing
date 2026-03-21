@@ -132,7 +132,7 @@ export class MenuManager extends Component {
                                     // 步骤5: 隐藏进度面板，显示游戏页面
                                     gameManager.progress.node.active = false;
                                     gameManager.levelMode.node.active = true;
-
+                                    gameManager.levelMode.level_label.string = `第${gameManager.currentLevel}关`;
                                     console.log(`开始关卡: ${levelData.name}, 图案: ${levelData.patternPath}`);
                                 });
                             });

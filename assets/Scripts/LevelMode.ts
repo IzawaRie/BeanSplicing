@@ -1,4 +1,4 @@
-import { _decorator, Component, Node } from 'cc';
+import { _decorator, Component, Label, Node } from 'cc';
 import { GameMode, GameModeType, GameResult } from './GameMode';
 import { GridDrawer } from './GridDrawer';
 import { IronController } from './IronController';
@@ -19,7 +19,7 @@ const { ccclass, property } = _decorator;
 export class LevelMode extends GameMode {
     static readonly MODE_TYPE = GameModeType.LEVEL;
 
-    @property(Node)
+    @property({ type: Node })
     restartBtn: Node = null;
 
     @property({ type: Node })
@@ -42,6 +42,9 @@ export class LevelMode extends GameMode {
 
     @property({ type: GridDrawer })
     gridDrawer: GridDrawer = null;
+
+    @property({ type: Label })
+    level_label: Label = null;
 
     // 游戏状态
     private _isGameActive: boolean = false;
