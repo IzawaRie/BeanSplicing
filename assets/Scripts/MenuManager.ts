@@ -106,10 +106,15 @@ export class MenuManager extends Component {
         }
 
         const levelMode = gameManager.levelMode;
-        const gridDrawer = gameManager.levelMode.gridDrawer;
+        const gridDrawer = levelMode?.gridDrawer;
         if (!levelMode || !gridDrawer) {
             console.error('LevelMode 或 GridDrawer 未找到');
             return;
+        }
+
+        // 隐藏 finish_btn
+        if (levelMode.finish_btn) {
+            levelMode.finish_btn.active = false;
         }
 
         // 步骤1: createGraphicsNodes -> setProgress(0.1)

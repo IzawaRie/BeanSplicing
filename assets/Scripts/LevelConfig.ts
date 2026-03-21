@@ -88,7 +88,6 @@ export class LevelConfig {
      * 获取当前关卡的网格配置
      */
     public getCurrentGridConfig(): GridConfig | null {
-        console.log('currentLevelIndex:', this.currentLevelIndex, '  configData:', this.configData);
         const level = this.configData?.levels[this.currentLevelIndex];
         return level?.grid || null;
     }
