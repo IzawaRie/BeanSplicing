@@ -110,9 +110,46 @@ export class LevelMode extends GameMode {
         if (this.finish_btn) {
             this.finish_btn.active = false;
         }
+
+        // 检查所有可用 block 的目标颜色与当前颜色是否一致
+        const isSuccess = this.checkAllBlocksColorMatch();
+
         if (this.resultPanel?.node) {
+            this.resultPanel.setResult(isSuccess);
             this.resultPanel.node.active = true;
         }
+    }
+
+    /**
+     * 检查所有可用 block 的目标颜色与当前颜色是否完全一致
+     */
+    private checkAllBlocksColorMatch(): boolean {
+        if (!this.gridDrawer) return false;
+
+        const blocks = this.gridDrawer.getAllBlocks();
+        if (!blocks) return false;
+
+        for (let row = 0; row < blocks.length; row++) {
+            for (let col = 0; col < blocks[row].length; col++) {
+                const block = blocks[row][col];
+                if (!block) continue;
+
+                const controller = block.getComponent(BlockController);
+                if (!controller) continue;
+
+                // 只检查可用 block（目标颜色不透明）
+                if (controller.targetColorA <= 0) continue;
+
+                // 对比 RGBA
+                if (controller.targetColorR !== controller.currentColorR ||
+                    controller.targetColorG !== controller.currentColorG ||
+                    controller.targetColorB !== controller.currentColorB ||
+                    controller.targetColorA !== controller.currentColorA) {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 
     /**
