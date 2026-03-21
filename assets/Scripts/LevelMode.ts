@@ -125,9 +125,11 @@ export class LevelMode extends GameMode {
      * 更新 MenuManager 的关卡按钮文字
      */
     public updateMenuLevelButton(): void {
+        this.node.active = false;
         const gameManager = GameManager.getInstance();
 
         if (gameManager.menuManager) {
+            gameManager.menuManager.showProgressPanel();
             gameManager.menuManager.updateLevelButtonText(gameManager.currentLevel);
         }
     }

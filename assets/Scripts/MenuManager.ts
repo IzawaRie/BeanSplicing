@@ -70,7 +70,7 @@ export class MenuManager extends Component {
     /**
      * 显示进度面板
      */
-    private showProgressPanel(): void {
+    public showProgressPanel(): void {
         const gameManager = GameManager.getInstance();
         if (!gameManager) return;
 
@@ -82,7 +82,7 @@ export class MenuManager extends Component {
         // 显示进度面板
         if (gameManager.progress?.node) {
             gameManager.progress.node.active = true;
-            gameManager.progress.setProgress(0);
+            gameManager.progress.setProgressImmediate(0);
         }
     }
 
