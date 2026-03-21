@@ -7,6 +7,7 @@ import { PaletteGenerator } from './PaletteGenerator';
 import { PixelPatternApplier } from './PixelPatternApplier';
 import { GameManager } from './GameManager';
 import { BlockController, BlockState } from './BlockController';
+import { ResultPanel } from './ResultPanel';
 
 const { ccclass, property } = _decorator;
 
@@ -19,14 +20,14 @@ export class LevelMode extends GameMode {
     static readonly MODE_TYPE = GameModeType.LEVEL;
 
     @property(Node)
-    nextLevelBtn: Node | null = null;
-
-    @property(Node)
-    restartBtn: Node | null = null;
+    restartBtn: Node = null;
 
     @property({ type: Node })
     finish_btn: Node = null;
     
+    @property({ type: ResultPanel })
+    resultPanel: ResultPanel = null;
+
     @property({ type: IronController })
     iron: IronController = null;
 
@@ -103,33 +104,23 @@ export class LevelMode extends GameMode {
     getCurrentScore(): number { return this.currentScore; }
 
     /**
-     * 完成按钮点击事件 - 进入下一关
+     * finish_btn 点击事件 - 显示结果面板
      */
     private onFinishBtnClick(): void {
-        // 进入下一关
-        this.nextLevel();
-
-        const gameManager = GameManager.getInstance();
-        // 重新加载关卡
-        gameManager.menuManager.loadLevel(gameManager.currentLevel);
-    }
-
-    /**
-     * 进入下一关
-     */
-    public nextLevel(): void {
-        GameManager.getInstance().currentLevel++;
+        if (this.finish_btn) {
+            this.finish_btn.active = false;
+        }
+        if (this.resultPanel?.node) {
+            this.resultPanel.node.active = true;
+        }
     }
 
     /**
      * 更新 MenuManager 的关卡按钮文字
      */
     public updateMenuLevelButton(): void {
-        this.node.active = false;
         const gameManager = GameManager.getInstance();
-
         if (gameManager.menuManager) {
-            gameManager.menuManager.showProgressPanel();
             gameManager.menuManager.updateLevelButtonText(gameManager.currentLevel);
         }
     }

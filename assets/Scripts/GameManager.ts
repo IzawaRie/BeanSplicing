@@ -75,7 +75,7 @@ export class GameManager extends Component {
     public set currentLevel(value: number) {
         this._currentLevel = value;
         LevelConfig.getInstance().setCurrentLevelIndex(value - 1);
-        // 通知 MenuManager 更新按钮文字
+        // 通知 LevelMode 更新按钮文字
         this.levelMode.updateMenuLevelButton();
     }
 
