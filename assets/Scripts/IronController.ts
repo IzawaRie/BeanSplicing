@@ -44,9 +44,19 @@ export class IronController extends Component {
     }
 
     /**
+     * 判断游戏是否进行中
+     */
+    private isGameActive(): boolean {
+        const gameManager = GameManager.getInstance();
+        return gameManager?.levelMode?.isGameActive ?? false;
+    }
+
+    /**
      * 触摸开始
      */
     private onTouchStart(event: EventTouch) {
+        if (!this.isGameActive()) return;
+
         this.isDragging = true;
         const pos = event.getUILocation();
         const nodePos = this.node.position;

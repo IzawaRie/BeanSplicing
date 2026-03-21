@@ -40,6 +40,14 @@ export class CircleController extends Component {
     private circleNode: Node | null = null;
     private progressNode: Node | null = null;
 
+    /**
+     * 判断游戏是否进行中
+     */
+    private isGameActive(): boolean {
+        const gameManager = GameManager.getInstance();
+        return gameManager?.levelMode?.isGameActive ?? false;
+    }
+
     onLoad() {
         // 注册触摸事件
         this.node.on(Node.EventType.TOUCH_START, this.onTouchStart, this);
@@ -177,6 +185,8 @@ export class CircleController extends Component {
      * 触摸开始
      */
     private onTouchStart(event: EventTouch) {
+        if (!this.isGameActive()) return;
+
         this.isDragging = true;
 
         // 显示 circle 节点

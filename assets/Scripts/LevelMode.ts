@@ -157,6 +157,7 @@ export class LevelMode extends GameMode {
      */
     private onFinishBtnClick(): void {
         this._isCountingDown = false;
+        this._isGameActive = false;
 
         if (this.finish_btn) {
             this.finish_btn.active = false;
