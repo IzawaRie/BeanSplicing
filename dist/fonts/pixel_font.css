@@ -1,0 +1,13 @@
+@font-face {
+    font-family: "pixel_font";
+    src: url("./pixel_font.eot"); /* IE9 */
+    src: url("./pixel_font.eot?#iefix") format("embedded-opentype"), /* IE6-IE8 */
+    url("./pixel_font.woff2") format("woff2"), /* chrome 36+, firefox 39+,iOS 10+, Android 67+ */
+    url("./pixel_font.woff") format("woff"), /* chrome, firefox */
+    url("./pixel_font.ttf") format("truetype"), /* chrome, firefox, opera, Safari, Android, iOS 4.2+ */
+    url("./pixel_font.svg#pixel_font") format("svg"); /* iOS 4.1- */
+    font-style: normal;
+    font-weight: normal;
+}
+
+
