@@ -22,8 +22,8 @@
       "id": 3,
       "name": "第三关",
       "grid": {
-        "rows": 6,
-        "columns": 6
+        "rows": 32,
+        "columns": 32
       },
       "patternPath": "pixel_patterns/apple"
     },

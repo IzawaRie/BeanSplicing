@@ -1,14 +1,9 @@
 import { _decorator, Component, Node } from 'cc';
-import { GridDrawer } from './GridDrawer';
-import { PixelPatternApplier } from './PixelPatternApplier';
-import { PaletteGenerator } from './PaletteGenerator';
-import { CircleListController } from './CircleListController';
-import { IronController } from './IronController';
-import { BlockController, BlockState } from './BlockController';
 import { GameMode, GameModeType} from './GameMode';
 import { LevelMode } from './LevelMode';
 import { MenuManager } from './MenuManager';
 import { ProgressController } from './ProgressController';
+import { LevelConfig } from './LevelConfig';
 const { ccclass, property } = _decorator;
 
 /**
@@ -79,6 +74,7 @@ export class GameManager extends Component {
      */
     public set currentLevel(value: number) {
         this._currentLevel = value;
+        LevelConfig.getInstance().setCurrentLevelIndex(value - 1);
         // 通知 MenuManager 更新按钮文字
         this.levelMode.updateMenuLevelButton();
     }

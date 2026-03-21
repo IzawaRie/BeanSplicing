@@ -1,5 +1,4 @@
 import { _decorator, Component } from 'cc';
-import { GridDrawer } from './GridDrawer';
 
 const { ccclass } = _decorator;
 

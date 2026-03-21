@@ -186,7 +186,26 @@ export class GridDrawer extends Component {
         }
     }
 
+    /**
+     * 清除所有内容（格线、blocks）
+     */
+    public clearContent(): void {
+        // 清除所有子节点
+        for (const child of this.node.children) {
+            child.destroy();
+        }
+        this.outerGraphics = null;
+        this.innerGraphics = null;
+        this.contentNode = null;
+
+        // 清除 blocks
+        this.blockCreator.clearBlocks();
+    }
+
     public createGraphicsNodes(callback?: () => void) {
+        // 清除旧内容
+        this.clearContent();
+
         const parentTransform = this.node.getComponent(UITransform);
 
         const outerNode = new Node('OuterBorder');

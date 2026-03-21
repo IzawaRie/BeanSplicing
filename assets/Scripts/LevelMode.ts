@@ -119,7 +119,6 @@ export class LevelMode extends GameMode {
      */
     public nextLevel(): void {
         GameManager.getInstance().currentLevel++;
-        this.updateMenuLevelButton();
     }
 
     /**
