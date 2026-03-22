@@ -20,16 +20,6 @@ class PixelImageExporter {
     }
 
     /**
-     * 颜色量化：将 RGB 值分成 5 组，每组 51 个值
-     * 例如：0-50 -> 25, 51-101 -> 76, 102-152 -> 127, 153-203 -> 178, 204-255 -> 229
-     */
-    private quantizeColor(value: number): number {
-        const groupSize = 51;
-        const groupIndex = Math.floor(value / groupSize);
-        return Math.round(groupIndex * groupSize + groupSize / 2);
-    }
-
-    /**
      * 像素化并导出图片（马赛克效果）
      * 保持原图尺寸，按格子进行马赛克处理
      * 如果格子内同一个颜色超过50%，则填充该颜色，否则透明
@@ -79,10 +69,10 @@ class PixelImageExporter {
                     for (let y = startY; y < endY; y++) {
                         for (let x = startX; x < endX; x++) {
                             const idx = (y * width + x) * 4;
-                            // 量化颜色：RGB 分成 5 组
-                            const r = this.quantizeColor(originalData.data[idx]);
-                            const g = this.quantizeColor(originalData.data[idx + 1]);
-                            const b = this.quantizeColor(originalData.data[idx + 2]);
+                            // 直接使用原始颜色
+                            const r = originalData.data[idx];
+                            const g = originalData.data[idx + 1];
+                            const b = originalData.data[idx + 2];
                             const a = originalData.data[idx + 3];
 
                             // 只统计不透明像素
