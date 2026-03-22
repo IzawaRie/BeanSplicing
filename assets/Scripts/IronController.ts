@@ -161,7 +161,7 @@ export class IronController extends Component {
 
         // 检查 circle 是否有颜色（上色了）
         const color = circleSprite.color;
-        if (color.a === 0 || (color.r === 0 && color.g === 0 && color.b === 0)) {
+        if (color.a === 0) {
             return; // 没有颜色，不处理
         }
 
