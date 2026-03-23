@@ -451,7 +451,7 @@
     "_lpos": {
       "__type__": "cc.Vec3",
       "x": 0,
-      "y": -726.721,
+      "y": -447.448,
       "z": 0
     },
     "_lrot": {
@@ -765,7 +765,7 @@
     "__prefab": null,
     "_contentSize": {
       "__type__": "cc.Size",
-      "width": 462.511312283978,
+      "width": 600,
       "height": 272
     },
     "_anchorPoint": {
@@ -795,14 +795,14 @@
       "b": 223,
       "a": 255
     },
-    "_string": "拼豆",
+    "_string": "拼 豆",
     "_horizontalAlign": 1,
     "_verticalAlign": 1,
-    "_actualFontSize": 200,
+    "_actualFontSize": 201,
     "_fontSize": 200,
     "_fontFamily": "Arial",
     "_lineHeight": 200,
-    "_overflow": 0,
+    "_overflow": 2,
     "_enableWrapText": true,
     "_font": {
       "__uuid__": "3bd5f99b-fc3e-4070-9b8c-ed0ee4351229",
@@ -861,8 +861,8 @@
     "_prefab": null,
     "_lpos": {
       "__type__": "cc.Vec3",
-      "x": 0,
-      "y": -113.942,
+      "x": 43.342,
+      "y": -120.218,
       "z": 0
     },
     "_lrot": {
@@ -900,7 +900,7 @@
     "__prefab": null,
     "_contentSize": {
       "__type__": "cc.Size",
-      "width": 462.511312283978,
+      "width": 600,
       "height": 272
     },
     "_anchorPoint": {
@@ -930,14 +930,14 @@
       "b": 223,
       "a": 255
     },
-    "_string": "高手",
+    "_string": "高 手",
     "_horizontalAlign": 1,
     "_verticalAlign": 1,
-    "_actualFontSize": 200,
+    "_actualFontSize": 201,
     "_fontSize": 200,
     "_fontFamily": "Arial",
     "_lineHeight": 200,
-    "_overflow": 0,
+    "_overflow": 2,
     "_enableWrapText": true,
     "_font": {
       "__uuid__": "3bd5f99b-fc3e-4070-9b8c-ed0ee4351229",
@@ -984,7 +984,7 @@
     "__prefab": null,
     "_contentSize": {
       "__type__": "cc.Size",
-      "width": 442.511312283978,
+      "width": 600,
       "height": 652
     },
     "_anchorPoint": {
