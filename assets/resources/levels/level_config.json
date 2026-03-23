@@ -34,15 +34,35 @@
       "id": 4,
       "name": "第四关",
       "grid": {
-        "rows": 19,
-        "columns": 19
+        "rows": 16,
+        "columns": 16
       },
-      "patternPath": "pixel_patterns/kuluomi",
+      "patternPath": "pixel_patterns/dog",
       "time": 120
     },
     {
       "id": 5,
       "name": "第五关",
+      "grid": {
+        "rows": 17,
+        "columns": 17
+      },
+      "patternPath": "pixel_patterns/dog2",
+      "time": 300
+    },
+    {
+      "id": 6,
+      "name": "第六关",
+      "grid": {
+        "rows": 19,
+        "columns": 19
+      },
+      "patternPath": "pixel_patterns/kuluomi",
+      "time": 300
+    },
+    {
+      "id": 7,
+      "name": "第七关",
       "grid": {
         "rows": 16,
         "columns": 16
@@ -51,54 +71,34 @@
       "time": 300
     },
     {
-      "id": 6,
-      "name": "第六关",
+      "id": 8,
+      "name": "第八关",
+      "grid": {
+        "rows": 16,
+        "columns": 16
+      },
+      "patternPath": "pixel_patterns/handun",
+      "time": 300
+    },
+    {
+      "id": 9,
+      "name": "第九关",
+      "grid": {
+        "rows": 24,
+        "columns": 24
+      },
+      "patternPath": "pixel_patterns/poket",
+      "time": 300
+    },
+    {
+      "id": 10,
+      "name": "第十关",
       "grid": {
         "rows": 32,
         "columns": 32
       },
       "patternPath": "pixel_patterns/apple",
       "time": 300
-    },
-    {
-      "id": 7,
-      "name": "第七关",
-      "grid": {
-        "rows": 7,
-        "columns": 7
-      },
-      "patternPath": "pixel_patterns/apple",
-      "time": 50
-    },
-    {
-      "id": 8,
-      "name": "第八关",
-      "grid": {
-        "rows": 8,
-        "columns": 8
-      },
-      "patternPath": "pixel_patterns/apple",
-      "time": 55
-    },
-    {
-      "id": 9,
-      "name": "第九关",
-      "grid": {
-        "rows": 8,
-        "columns": 8
-      },
-      "patternPath": "pixel_patterns/apple",
-      "time": 55
-    },
-    {
-      "id": 10,
-      "name": "第十关",
-      "grid": {
-        "rows": 8,
-        "columns": 8
-      },
-      "patternPath": "pixel_patterns/apple",
-      "time": 60
     }
   ]
 }
