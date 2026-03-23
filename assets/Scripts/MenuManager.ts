@@ -17,7 +17,7 @@ export class MenuManager extends Component {
     private spawnedStars: Node[] = [];
     private spawnInterval: number = 12;  // 每秒刷新
     private maxStars: number = 10;  // 最多星星数量
-    private minStarSpacing: number = 80;  // 星星最小间隔
+    private minStarSpacing: number = 150;  // 星星最小间隔
 
     /**
      * 数字转中文
@@ -186,7 +186,7 @@ export class MenuManager extends Component {
                 this.setStarPosition(star);
                 this.scheduleOnce(()=>{
                 this.playTwinkle(star);
-                }, Math.random() * 2);  // 继续循环
+                }, Math.random() * 3);  // 继续循环
             })
             .start();
 
@@ -212,8 +212,8 @@ export class MenuManager extends Component {
 
         // 尝试找到不与已显示星星重叠的位置
         do {
-            posX = (Math.random() - 0.5) * bgTransform.width;
-            posY = (Math.random() - 0.5) * bgTransform.height;
+            posX = (Math.random() - 0.5) * bgTransform.width * 0.9;
+            posY = (Math.random() - 0.5) * bgTransform.height * 0.9;
             attempts++;
         } while (attempts < maxAttempts && this.isTooCloseToActiveStars(posX, posY, star));
 
