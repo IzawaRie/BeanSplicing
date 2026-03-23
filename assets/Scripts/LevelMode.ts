@@ -22,9 +22,6 @@ export class LevelMode extends GameMode {
 
     @property({ type: Node })
     restartBtn: Node = null;
-
-    @property({ type: Node })
-    finish_btn: Node = null;
     
     @property({ type: ResultPanel })
     resultPanel: ResultPanel = null;
@@ -87,12 +84,6 @@ export class LevelMode extends GameMode {
     }
 
     start(){
-        // 默认隐藏 finish_btn
-        if (this.finish_btn) {
-            this.finish_btn.active = false;
-            // 注册完成按钮点击事件
-            this.finish_btn.on(Node.EventType.TOUCH_END, this.onFinishBtnClick, this);
-        }
     }
 
     /**
@@ -159,10 +150,6 @@ export class LevelMode extends GameMode {
         this._isCountingDown = false;
         this._isGameActive = false;
 
-        if (this.finish_btn) {
-            this.finish_btn.active = false;
-        }
-
         // 检查所有可用 block 的目标颜色与当前颜色是否一致
         const isSuccess = this.checkAllBlocksColorMatch();
 
@@ -178,11 +165,6 @@ export class LevelMode extends GameMode {
     private onTimeUp(): void {
         // 停止游戏
         this._isGameActive = false;
-
-        // 隐藏 finish_btn
-        if (this.finish_btn) {
-            this.finish_btn.active = false;
-        }
 
         // 检查是否所有可用 block 都已熨烫且颜色正确
         const allIroned = this.checkAllBlocksIroned2();
@@ -430,8 +412,9 @@ export class LevelMode extends GameMode {
         }
 
         // 如果所有可用 block 都已熨烫，显示 finish_btn
-        if (this.finish_btn && totalAvailable > 0 && ironedCount === totalAvailable) {
-            this.finish_btn.active = true;
+        if (totalAvailable > 0 && ironedCount === totalAvailable) {
+            this.iron.onTouchEnd();
+            this.onFinishBtnClick();
         }
     }
 }

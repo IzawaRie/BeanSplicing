@@ -1,4 +1,4 @@
-import { _decorator, Component, Node, EventTouch, Sprite, UITransform, Color } from 'cc';
+import { _decorator, Component, Node, EventTouch, Sprite, UITransform, Color, tween, Vec3 } from 'cc';
 import { GameManager } from './GameManager';
 import { BlockController } from './BlockController';
 const { ccclass, property } = _decorator;
@@ -41,6 +41,10 @@ export class IronController extends Component {
      */
     public resetPosition(): void {
         this.node.setPosition(this.originalPos.x, this.originalPos.y, this.originalPos.z);
+        tween(this.node).
+            set({scale: Vec3.ZERO}).
+            to(0.3, {scale: Vec3.ONE}).
+            start();
     }
 
     /**
@@ -61,7 +65,10 @@ export class IronController extends Component {
         const pos = event.getUILocation();
         const nodePos = this.node.position;
         this.dragOffset = { x: pos.x - nodePos.x, y: pos.y - nodePos.y };
-        console.log('Iron dragOffset:', this.dragOffset);
+        tween(this.node).
+            set({scale: Vec3.ONE}).
+            to(0.1, {scale: new Vec3(1.5, 1.5, 1.5)}).
+            start();
     }
 
     /**
@@ -84,7 +91,9 @@ export class IronController extends Component {
     /**
      * 触摸结束
      */
-    private onTouchEnd(_event: EventTouch) {
+    public onTouchEnd() {
+        if (!this.isDragging) return;
+
         this.isDragging = false;
         this.resetPosition();
     }

@@ -7428,9 +7428,6 @@
     "_enabled": true,
     "__prefab": null,
     "restartBtn": null,
-    "finish_btn": {
-      "__id__": 105
-    },
     "resultPanel": {
       "__id__": 206
     },
