@@ -441,18 +441,12 @@ export class CircleController extends Component {
      * 检查 block 的 circle 是否已经是当前颜色
      */
     private isBlockColorMatched(block: Node): boolean {
-        const circleNode = block.getChildByName('circle');
-        if (!circleNode) return false;
+        const blockController = block.getComponent(BlockController);
 
-        const sprite = circleNode.getComponent(Sprite);
-        if (!sprite || !sprite.enabled) return false;
-
-        // 检查颜色是否匹配（允许一定误差）
-        const color = sprite.color;
-        const tolerance = 10;
-        return Math.abs(color.r - this._colorR) <= tolerance &&
-               Math.abs(color.g - this._colorG) <= tolerance &&
-               Math.abs(color.b - this._colorB) <= tolerance;
+        // 检查颜色是否完全匹配
+        return blockController.currentColorR === this._colorR &&
+               blockController.currentColorG === this._colorG &&
+               blockController.currentColorB === this._colorB;
     }
 
     /**

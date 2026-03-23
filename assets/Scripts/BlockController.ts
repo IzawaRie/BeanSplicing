@@ -23,10 +23,10 @@ export class BlockController extends Component {
     private _targetColorA: number = 0;
 
     // 当前颜色（circle 放置后的颜色）
-    private _currentColorR: number = 0;
-    private _currentColorG: number = 0;
-    private _currentColorB: number = 0;
-    private _currentColorA: number = 0;
+    private _currentColorR: number = -1;
+    private _currentColorG: number = -1;
+    private _currentColorB: number = -1;
+    private _currentColorA: number = -1;
 
     // Block 状态
     private _state: BlockState = BlockState.NO_CIRCLE;
