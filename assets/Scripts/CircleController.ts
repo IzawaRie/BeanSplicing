@@ -31,7 +31,7 @@ export class CircleController extends Component {
     private targetBlockIndex: number = 0;            // 当前目标 block 的序号
     private hoverStartTime: number = 0;               // 开始 hover 的时间
     private isHovering: boolean = false;              // 是否正在 hover
-    private readonly HOVER_DURATION: number = 2000;   // hover 时长（毫秒）
+    private readonly HOVER_DURATION: number = 1000;   // hover 时长（毫秒）
     private readonly HOVER_DELAY: number = 500;        // 延迟开始计时（毫秒）
     private readonly POSITION_TOLERANCE: number = 20;  // 位置误差范围
     private readonly DRAG_OFFSET: number = 120;
