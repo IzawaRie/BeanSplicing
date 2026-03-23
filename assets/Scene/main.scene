@@ -371,9 +371,9 @@
     "_dstBlendFactor": 4,
     "_color": {
       "__type__": "cc.Color",
-      "r": 142,
-      "g": 222,
-      "b": 245,
+      "r": 255,
+      "g": 249,
+      "b": 242,
       "a": 255
     },
     "_spriteFrame": {
@@ -499,7 +499,7 @@
     "_lpos": {
       "__type__": "cc.Vec3",
       "x": 0,
-      "y": 8.768,
+      "y": 1.512,
       "z": 0
     },
     "_lrot": {
@@ -601,8 +601,8 @@
     "__prefab": null,
     "_contentSize": {
       "__type__": "cc.Size",
-      "width": 307.2,
-      "height": 157.2
+      "width": 332.8,
+      "height": 187.2
     },
     "_anchorPoint": {
       "__type__": "cc.Vec2",
@@ -635,7 +635,7 @@
       "__uuid__": "da6154d6-18c0-476a-b425-a9f898e7ab3f@f9941",
       "__expectedType__": "cc.SpriteFrame"
     },
-    "_type": 1,
+    "_type": 0,
     "_fillType": 0,
     "_sizeMode": 0,
     "_fillCenter": {
@@ -790,9 +790,9 @@
     "_dstBlendFactor": 4,
     "_color": {
       "__type__": "cc.Color",
-      "r": 76,
-      "g": 190,
-      "b": 223,
+      "r": 232,
+      "g": 154,
+      "b": 61,
       "a": 255
     },
     "_string": "拼 豆",
@@ -829,12 +829,12 @@
     "__prefab": null,
     "_color": {
       "__type__": "cc.Color",
-      "r": 38,
-      "g": 155,
-      "b": 189,
+      "r": 176,
+      "g": 117,
+      "b": 42,
       "a": 255
     },
-    "_width": 10,
+    "_width": 5,
     "_id": "0e5E46bMpCIrzpz+lZPWFh"
   },
   {
@@ -925,9 +925,9 @@
     "_dstBlendFactor": 4,
     "_color": {
       "__type__": "cc.Color",
-      "r": 76,
-      "g": 190,
-      "b": 223,
+      "r": 232,
+      "g": 154,
+      "b": 61,
       "a": 255
     },
     "_string": "高 手",
@@ -964,12 +964,12 @@
     "__prefab": null,
     "_color": {
       "__type__": "cc.Color",
-      "r": 38,
-      "g": 155,
-      "b": 189,
+      "r": 176,
+      "g": 117,
+      "b": 42,
       "a": 255
     },
-    "_width": 10,
+    "_width": 5,
     "_id": "2cD43UcQdE4pSmHh1MU2gc"
   },
   {

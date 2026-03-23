@@ -1,4 +1,4 @@
-import { _decorator, Component, Node, Label, resources, Prefab, instantiate, UITransform, tween, Tween, Vec3, UIOpacity, random } from 'cc';
+import { _decorator, Component, Node, Label, resources, Prefab, instantiate, UITransform, tween, Tween, Vec3, UIOpacity, random, Sprite, Color } from 'cc';
 import { GameManager } from './GameManager';
 import { LevelConfig } from './LevelConfig';
 
@@ -18,7 +18,8 @@ export class MenuManager extends Component {
     private spawnInterval: number = 12;  // 每秒刷新
     private maxStars: number = 10;  // 最多星星数量
     private minStarSpacing: number = 150;  // 星星最小间隔
-
+    private btn_color1: Color = new Color(255, 230, 166);
+    private btn_color2: Color = new Color(255, 183, 197);
     /**
      * 数字转中文
      */
@@ -165,6 +166,9 @@ export class MenuManager extends Component {
      * 星星闪烁动画
      */
     private playTwinkle(star: Node): void {
+        const sprite = star.getComponent(Sprite);
+        const random = Math.random();
+        sprite.color = random < 0.5 ? this.btn_color1 : this.btn_color2;
         const opacityComp = star.getComponent(UIOpacity);
 
         // 随机缩放范围
@@ -183,9 +187,9 @@ export class MenuManager extends Component {
             .to(duration, { scale: new Vec3(maxScale, maxScale, 1) }, { easing: 'sineInOut' })
             .to(duration, { scale: new Vec3(minScale, minScale, 1) }, { easing: 'sineInOut' })
             .call(() => {
-                this.setStarPosition(star);
                 this.scheduleOnce(()=>{
-                this.playTwinkle(star);
+                    this.setStarPosition(star);
+                    this.playTwinkle(star);
                 }, Math.random() * 3);  // 继续循环
             })
             .start();
