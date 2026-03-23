@@ -8,37 +8,37 @@
         "columns": 16
       },
       "patternPath": "pixel_patterns/star",
-      "time": 60
+      "time": 120
     },
     {
       "id": 2,
       "name": "第二关",
       "grid": {
-        "rows": 32,
-        "columns": 32
+        "rows": 16,
+        "columns": 16
       },
-      "patternPath": "pixel_patterns/apple",
+      "patternPath": "pixel_patterns/duck",
       "time": 120
     },
     {
       "id": 3,
       "name": "第三关",
       "grid": {
-        "rows": 32,
-        "columns": 32
+        "rows": 16,
+        "columns": 16
       },
-      "patternPath": "pixel_patterns/apple",
+      "patternPath": "pixel_patterns/cry",
       "time": 120
     },
     {
       "id": 4,
       "name": "第四关",
       "grid": {
-        "rows": 6,
-        "columns": 6
+        "rows": 32,
+        "columns": 32
       },
       "patternPath": "pixel_patterns/apple",
-      "time": 45
+      "time": 120
     },
     {
       "id": 5,
@@ -48,7 +48,7 @@
         "columns": 7
       },
       "patternPath": "pixel_patterns/apple",
-      "time": 50
+      "time": 300
     },
     {
       "id": 6,
