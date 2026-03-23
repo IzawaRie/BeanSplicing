@@ -1251,6 +1251,9 @@
     },
     "_enabled": true,
     "__prefab": null,
+    "bg": {
+      "__id__": 6
+    },
     "start_btn": {
       "__id__": 10
     },

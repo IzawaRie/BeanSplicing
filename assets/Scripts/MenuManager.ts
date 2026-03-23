@@ -1,4 +1,4 @@
-import { _decorator, Component, Node, Label } from 'cc';
+import { _decorator, Component, Node, Label, resources, Prefab, instantiate, UITransform, tween, Tween, Vec3, UIOpacity, random } from 'cc';
 import { GameManager } from './GameManager';
 import { LevelConfig } from './LevelConfig';
 
@@ -7,9 +7,17 @@ const { ccclass, property } = _decorator;
 @ccclass('MenuManager')
 export class MenuManager extends Component {
     @property({ type: Node })
+    bg: Node = null;
+
+    @property({ type: Node })
     start_btn: Node = null;
 
     private levelConfig: LevelConfig | null = null;
+    private starPrefab: Prefab = null;
+    private spawnedStars: Node[] = [];
+    private spawnInterval: number = 12;  // 每秒刷新
+    private maxStars: number = 10;  // 最多星星数量
+    private minStarSpacing: number = 80;  // 星星最小间隔
 
     /**
      * 数字转中文
@@ -84,6 +92,19 @@ export class MenuManager extends Component {
         if (gameManager?.levelMode?.node) {
             gameManager.levelMode.node.active = false;
         }
+
+        // 加载星星预制体
+        resources.load('prefab/star_light', Prefab, (err, prefab) => {
+            if (err) {
+                console.error('加载 star_light 预制体失败:', err);
+                return;
+            }
+            this.starPrefab = prefab as Prefab;
+            // 初始化星星并显示
+            this.initStars();
+            this.showRandomStars();
+            console.log('star_light 预制体加载成功');
+        });
     }
 
     start() {
@@ -106,6 +127,113 @@ export class MenuManager extends Component {
         if (gameManager) {
             this.updateLevelButtonText(gameManager.currentLevel);
         }
+    }
+
+    /**
+     * 初始化星星
+     */
+    private initStars(): void {
+        if (!this.starPrefab || !this.bg) return;
+
+        // 如果星星不足，先创建
+        while (this.spawnedStars.length < this.maxStars) {
+            const star = instantiate(this.starPrefab);
+            this.bg.addChild(star);
+            this.spawnedStars.push(star);
+        }
+    }
+
+    /**
+     * 显示指定数量的星星并播放闪烁
+     */
+    private showRandomStars(): void {
+        if (!this.starPrefab || !this.bg) return;
+
+        // 显示指定数量的星星
+        for (let i = 0; i < this.maxStars; i++) {
+            const star = this.spawnedStars[i];
+            this.setStarPosition(star);
+
+            // 播放一次闪烁动画（完成后自动刷新位置）
+            this.scheduleOnce(()=>{
+                this.playTwinkle(star);
+            }, Math.random() * 5);
+        }
+    }
+
+    /**
+     * 星星闪烁动画
+     */
+    private playTwinkle(star: Node): void {
+        const opacityComp = star.getComponent(UIOpacity);
+
+        // 随机缩放范围
+        const minScale = 0;
+        const maxScale = 1.0 + Math.random() * 0.5;
+        // 随机透明度范围（配合缩放）
+        const minOpacity = 0;
+        const maxOpacity = 255;
+        const duration = (this.spawnInterval / 3) + (Math.random() * 2 - 1);
+
+        opacityComp.opacity = maxOpacity;
+
+        // 缩放和透明度循环闪烁，动画完成后刷新位置
+        tween(star)
+            .to(duration, { scale: new Vec3(minScale, minScale, 1) }, { easing: 'sineInOut' })
+            .to(duration, { scale: new Vec3(maxScale, maxScale, 1) }, { easing: 'sineInOut' })
+            .to(duration, { scale: new Vec3(minScale, minScale, 1) }, { easing: 'sineInOut' })
+            .call(() => {
+                this.setStarPosition(star);
+                this.scheduleOnce(()=>{
+                this.playTwinkle(star);
+                }, Math.random() * 2);  // 继续循环
+            })
+            .start();
+
+        tween(opacityComp)
+            .to(duration, { opacity: minOpacity }, { easing: 'sineInOut' })
+            .to(duration, { opacity: maxOpacity }, { easing: 'sineInOut' })
+            .to(duration, { opacity: minOpacity }, { easing: 'sineInOut' })
+            .start();
+    }
+
+    /**
+     * 为星星设置随机位置
+     */
+    private setStarPosition(star: Node): void {
+        if (!this.bg) return;
+
+        const bgTransform = this.bg.getComponent(UITransform);
+        if (!bgTransform) return;
+
+        let posX: number, posY: number;
+        let attempts = 0;
+        const maxAttempts = 20;
+
+        // 尝试找到不与已显示星星重叠的位置
+        do {
+            posX = (Math.random() - 0.5) * bgTransform.width;
+            posY = (Math.random() - 0.5) * bgTransform.height;
+            attempts++;
+        } while (attempts < maxAttempts && this.isTooCloseToActiveStars(posX, posY, star));
+
+        star.setPosition(posX, posY, 0);
+    }
+
+    /**
+     * 检查位置是否与活动的星星太近（排除指定星星）
+     */
+    private isTooCloseToActiveStars(x: number, y: number, exclude: Node): boolean {
+        for (const star of this.spawnedStars) {
+            if (!star.active || star === exclude) continue;
+            const dx = star.position.x - x;
+            const dy = star.position.y - y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            if (distance < this.minStarSpacing) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
