@@ -1557,7 +1557,7 @@
     "_string": "进 度",
     "_horizontalAlign": 1,
     "_verticalAlign": 1,
-    "_actualFontSize": 200,
+    "_actualFontSize": 131,
     "_fontSize": 130,
     "_fontFamily": "Arial",
     "_lineHeight": 130,
@@ -1692,7 +1692,7 @@
     "_string": "加 载 中 . . .",
     "_horizontalAlign": 1,
     "_verticalAlign": 1,
-    "_actualFontSize": 200,
+    "_actualFontSize": 131,
     "_fontSize": 130,
     "_fontFamily": "Arial",
     "_lineHeight": 130,
@@ -2772,7 +2772,7 @@
     "_lpos": {
       "__type__": "cc.Vec3",
       "x": -100,
-      "y": -100,
+      "y": -131.5,
       "z": 0
     },
     "_lrot": {
@@ -2816,7 +2816,7 @@
     "_anchorPoint": {
       "__type__": "cc.Vec2",
       "x": 0.5,
-      "y": 1
+      "y": 0.5
     },
     "_id": "51/6Z7qe9MNIq0/mzBGDno"
   },
@@ -2917,7 +2917,7 @@
     "_lpos": {
       "__type__": "cc.Vec3",
       "x": 100,
-      "y": -100,
+      "y": -135.5,
       "z": 0
     },
     "_lrot": {
@@ -2961,7 +2961,7 @@
     "_anchorPoint": {
       "__type__": "cc.Vec2",
       "x": 0.5,
-      "y": 1
+      "y": 0.5
     },
     "_id": "67OIWfvK1HvowgQixA3WIT"
   },
@@ -3021,7 +3021,7 @@
     "_target": null,
     "_left": 700,
     "_right": 0,
-    "_top": 100,
+    "_top": 104,
     "_bottom": 0,
     "_horizontalCenter": 100,
     "_verticalCenter": 0,
