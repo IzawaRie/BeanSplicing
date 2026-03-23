@@ -790,9 +790,9 @@
     "_dstBlendFactor": 4,
     "_color": {
       "__type__": "cc.Color",
-      "r": 232,
-      "g": 154,
-      "b": 61,
+      "r": 255,
+      "g": 255,
+      "b": 255,
       "a": 255
     },
     "_string": "拼 豆",
@@ -829,12 +829,12 @@
     "__prefab": null,
     "_color": {
       "__type__": "cc.Color",
-      "r": 176,
-      "g": 117,
-      "b": 42,
+      "r": 88,
+      "g": 60,
+      "b": 24,
       "a": 255
     },
-    "_width": 5,
+    "_width": 10,
     "_id": "0e5E46bMpCIrzpz+lZPWFh"
   },
   {
@@ -925,9 +925,9 @@
     "_dstBlendFactor": 4,
     "_color": {
       "__type__": "cc.Color",
-      "r": 232,
-      "g": 154,
-      "b": 61,
+      "r": 255,
+      "g": 255,
+      "b": 255,
       "a": 255
     },
     "_string": "高 手",
@@ -964,12 +964,12 @@
     "__prefab": null,
     "_color": {
       "__type__": "cc.Color",
-      "r": 176,
-      "g": 117,
-      "b": 42,
+      "r": 88,
+      "g": 60,
+      "b": 24,
       "a": 255
     },
-    "_width": 5,
+    "_width": 10,
     "_id": "2cD43UcQdE4pSmHh1MU2gc"
   },
   {
