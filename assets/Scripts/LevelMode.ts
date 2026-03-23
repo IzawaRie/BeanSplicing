@@ -1,4 +1,4 @@
-import { _decorator, Component, Label, Node } from 'cc';
+import { _decorator, Component, Label, Node, tween, UIOpacity } from 'cc';
 import { GameMode, GameModeType, GameResult } from './GameMode';
 import { GridDrawer } from './GridDrawer';
 import { IronController } from './IronController';
@@ -374,6 +374,9 @@ export class LevelMode extends GameMode {
         let totalAvailable = 0;
         let ironedCount = 0;
 
+        // 按序号分组统计
+        const indexGroups: Map<number, { total: number; ironed: number; nodes: Node[] }> = new Map();
+
         for (let row = 0; row < blocks.length; row++) {
             for (let col = 0; col < blocks[row].length; col++) {
                 const block = blocks[row][col];
@@ -386,9 +389,41 @@ export class LevelMode extends GameMode {
                 const targetA = blockController.targetColorA;
                 if (targetA > 0) {
                     totalAvailable++;
+
+                    // 获取序号
+                    const numberNode = block.getChildByName('number');
+                    const label = numberNode?.getComponent(Label);
+                    const indexStr = label?.string ?? '';
+                    const index = parseInt(indexStr) || 0;
+
+                    if (index <= 0) continue;
+
+                    if (!indexGroups.has(index)) {
+                        indexGroups.set(index, { total: 0, ironed: 0, nodes: [] });
+                    }
+                    const group = indexGroups.get(index)!;
+                    group.total++;
+                    group.nodes.push(block);
+
                     // 检查是否已熨烫
                     if (blockController.state === BlockState.IRONED) {
                         ironedCount++;
+                        group.ironed++;
+                    }
+                }
+            }
+        }
+
+        // 检查每个序号组，如果全部熨烫则隐藏序号文字
+        for (const group of indexGroups.values()) {
+            if (group.total > 0 && group.ironed === group.total) {
+                for (const block of group.nodes) {
+                    const numberNode = block.getChildByName('number');
+                    if (numberNode) {
+                        const opacity = numberNode.getComponent(UIOpacity);
+                        tween(opacity).
+                            to(0.3, {opacity: 0}, { easing: 'smooth' }).
+                            start();
                     }
                 }
             }
