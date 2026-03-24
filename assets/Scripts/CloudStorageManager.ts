@@ -10,61 +10,85 @@ declare const wx: any;
  */
 @ccclass('CloudStorageManager')
 export class CloudStorageManager extends Component {
+    //用户 openid
+    //public openid: string = '';
 
-    // KVData 列表
-    private _kvDataList: { key: string; value: string }[] = [];
+    onLoad(){
+        if(typeof (wx) !== 'undefined'){
+            wx.cloud.init({
+            env: "cloud1-2gltl8c72b1bc894"
+            });
+        }
+    }
 
     start(){
-        this.printSystemInfo();
+        //this.getOpenid();
     }
 
     /**
-     * 保存用户数据到云端
-     * @param key 数据键名
-     * @param value 数据值
+     * 获取用户 openid 并保存
      */
-    public setData(key: string, value: string): void {
-        // 查找是否已存在该键
-        const index = this._kvDataList.findIndex(item => item.key === key);
-        if (index >= 0) {
-            this._kvDataList[index].value = value;
-        } else {
-            this._kvDataList.push({ key, value });
-        }
-    }
+    // private async getOpenid(): Promise<void> {
+    //     if (typeof (wx) === 'undefined') return;
 
-    /**
-     * 提交数据到微信云存储
-     */
-    public async commit(): Promise<void> {
-        // 检查是否在微信环境
-        if (typeof (wx) === 'undefined') {
-            console.warn('不在微信小游戏环境中，跳过云存储提交');
-            return;
-        }
+    //     try {
+    //         // wx.login 获取 code
+    //         const loginRes: any = await wx.login();
+    //         if (!loginRes.code) {
+    //             console.warn('wx.login 未返回 code');
+    //             return;
+    //         }
 
-        return new Promise((resolve, reject) => {
-            wx.setUserCloudStorage({
-                KVDataList: this._kvDataList,
-                success: () => {
-                    console.log('云存储提交成功');
-                    resolve();
-                },
-                fail: (err) => {
-                    console.error('云存储提交失败:', err);
-                    reject(err);
-                }
-            });
-        });
-    }
+    //         console.log('code:', loginRes.code);
+    //         // 发送 code 到云函数换取 openid
+    //         const res: any = await wx.cloud.callFunction({
+    //             name: 'login',
+    //             data: { code: loginRes.code }
+    //         });
+
+    //         this.openid = res?.openid ?? '';
+    //         if (this.openid) {
+    //             console.log('获取到 openid:', this.openid);
+    //         } else {
+    //             console.warn('未获取到 openid');
+    //         }
+    //     } catch (e) {
+    //         console.warn('获取 openid 失败:', e);
+    //     }
+    // }
 
     /**
      * 提交关卡进度
      * @param level 当前关卡数
      */
     public async submitLevel(level: number): Promise<void> {
-        this.setData('level', level.toString());
-        await this.commit();
+        if (typeof (wx) === 'undefined') {
+            console.warn('不在微信小游戏环境中');
+            return null;
+        }
+
+        return new Promise((resolve) => {
+            const db = wx.cloud.database();
+
+            db.collection('BeanSplicing').get().then(res => {
+                const data = res.data;
+                if(data.length > 0){
+                    db.collection("BeanSplicing").doc(data[0]._id).update({
+                        data: {
+                            level: level
+                        }
+                    });
+                }else{
+                    db.collection("BeanSplicing").add({
+                        data: {
+                            level: level
+                        }
+                    });
+                }
+            });
+
+            resolve(null);
+        });
     }
 
     /**
@@ -78,69 +102,17 @@ export class CloudStorageManager extends Component {
             return null;
         }
 
-        // 检查 API 是否可用
-        if (typeof wx.getUserCloudStorage !== 'function') {
-            console.warn('wx.getUserCloudStorage 不可用，跳过云存储获取');
-            return null;
-        }
-
         return new Promise((resolve) => {
-            wx.getUserCloudStorage({
-                keyList: ['level'],
-                success: (res: any) => {
-                    if (res.KVDataList && res.KVDataList.length > 0) {
-                        const levelData = res.KVDataList.find((item: any) => item.key === 'level');
-                        if (levelData && levelData.value) {
-                            const level = parseInt(levelData.value, 10);
-                            if (!isNaN(level)) {
-                                console.log('从云端获取关卡数:', level);
-                                resolve(level);
-                                return;
-                            }
-                        }
-                    }
-                    console.log('云端无保存的关卡数');
+            const db = wx.cloud.database()
+            db.collection('BeanSplicing').
+            get().then(res => {
+                const data = res.data;
+                if(data.length <= 0){
                     resolve(null);
-                },
-                fail: (err: any) => {
-                    console.warn('获取云存储失败:', err);
-                    resolve(null);
+                }else{
+                    resolve(data[0].level);
                 }
             });
         });
-    }
-
-    /**
-     * 打印系统信息
-     */
-    public printSystemInfo(): void {
-        // 检查是否在微信环境
-        if (typeof (wx) === 'undefined') {
-            console.warn('不在微信小游戏环境中');
-            return;
-        }
-
-        // 检查 API 是否可用
-        if (typeof wx.getSystemInfoSync !== 'function') {
-            console.warn('wx.getSystemInfoSync 不可用');
-            return;
-        }
-
-        const info = wx.getSystemInfoSync();
-        console.log('=== 系统信息 ===');
-        console.log('brand:', info.brand);
-        console.log('model:', info.model);
-        console.log('pixelRatio:', info.pixelRatio);
-        console.log('screenWidth:', info.screenWidth);
-        console.log('screenHeight:', info.screenHeight);
-        console.log('windowWidth:', info.windowWidth);
-        console.log('windowHeight:', info.windowHeight);
-        console.log('language:', info.language);
-        console.log('version:', info.version);
-        console.log('system:', info.system);
-        console.log('platform:', info.platform);
-        console.log('SDKVersion:', info.SDKVersion);
-        console.log('benchmarkLevel:', info.benchmarkLevel);
-        console.log('================');
     }
 }
