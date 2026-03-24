@@ -4,6 +4,13 @@ const { ccclass } = _decorator;
 // 微信小游戏全局对象类型声明
 declare const wx: any;
 
+// ========== 静态初始化：模块加载时立即执行，比所有组件实例都早 ==========
+if (typeof wx !== 'undefined' && wx.cloud) {
+    wx.cloud.init({
+        env: 'cloud1-2gltl8c72b1bc894'
+    });
+}
+
 /**
  * 云存储管理器
  * 接入微信小游戏 wx.setUserCloudStorage 接口
@@ -13,15 +20,10 @@ export class CloudStorageManager extends Component {
     //用户 openid
     //public openid: string = '';
 
-    onLoad(){
-        if(typeof (wx) !== 'undefined'){
-            wx.cloud.init({
-            env: "cloud1-2gltl8c72b1bc894"
-            });
-        }
+    onLoad() {
     }
 
-    start(){
+    start() {
         //this.getOpenid();
     }
 
@@ -105,7 +107,10 @@ export class CloudStorageManager extends Component {
         return new Promise((resolve) => {
             const db = wx.cloud.database()
             db.collection('BeanSplicing').
-            get().then(res => {
+            field({
+                level: true,
+            })
+            .get().then(res => {
                 const data = res.data;
                 if(data.length <= 0){
                     resolve(null);

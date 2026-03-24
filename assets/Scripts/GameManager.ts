@@ -61,14 +61,13 @@ export class GameManager extends Component {
             return;
         }
         GameManager._instance = this;
+
+        this.loadSavedLevel();
     }
 
-    async start() {
+    start() {
         this.levelMode.patternApplier.gridDrawer = this.levelMode.gridDrawer;
         this.levelMode.circleList.setAllNodes();
-
-        // 从云端加载保存的关卡数
-        await this.loadSavedLevel();
     }
 
     /**
