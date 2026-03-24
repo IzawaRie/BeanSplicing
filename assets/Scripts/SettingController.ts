@@ -1,8 +1,11 @@
 import { _decorator, Component, input, Input, EventTouch, UITransform } from 'cc';
+import { GameManager, GameState } from './GameManager';
 const { ccclass, property } = _decorator;
 
 @ccclass('SettingController')
 export class SettingController extends Component {
+
+    public lastState: GameState = null;
     onEnable() {
         input.on(Input.EventType.TOUCH_END, this.onTouchEnd, this);
     }
@@ -26,6 +29,7 @@ export class SettingController extends Component {
             return; // 点击在内容面板内，不关闭
         }
 
+        GameManager.getInstance().gameState = this.lastState;
         // 点击边框外，关闭面板
         this.node.active = false;
     }

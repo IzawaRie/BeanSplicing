@@ -1,5 +1,5 @@
 import { _decorator, Component, Label, Node } from 'cc';
-import { GameManager } from './GameManager';
+import { GameManager, GameState } from './GameManager';
 const { ccclass, property } = _decorator;
 
 @ccclass('ResultPanel')
@@ -79,6 +79,7 @@ export class ResultPanel extends Component {
     private onShowHomePanel(){
         this.node.active = false;
         const gameManager = GameManager.getInstance();
+        gameManager.gameState = GameState.WAITING;
         gameManager.levelMode.node.active = false;
         gameManager.menuManager.node.active = true;
     }

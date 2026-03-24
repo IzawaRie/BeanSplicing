@@ -5,7 +5,7 @@ import { IronController } from './IronController';
 import { CircleListController } from './CircleListController';
 import { PaletteGenerator } from './PaletteGenerator';
 import { PixelPatternApplier } from './PixelPatternApplier';
-import { GameManager } from './GameManager';
+import { GameManager, GameState } from './GameManager';
 import { BlockController, BlockState } from './BlockController';
 import { ResultPanel } from './ResultPanel';
 import { LevelConfig } from './LevelConfig';
@@ -19,6 +19,9 @@ const { ccclass, property } = _decorator;
 @ccclass('LevelMode')
 export class LevelMode extends GameMode {
     static readonly MODE_TYPE = GameModeType.LEVEL;
+
+    @property({ type: Node })
+    settingBtn: Node = null;
 
     @property({ type: Node })
     restartBtn: Node = null;
@@ -47,8 +50,6 @@ export class LevelMode extends GameMode {
     @property({ type: Label })
     time_label: Label = null;
 
-    // 游戏状态
-    private _isGameActive: boolean = false;
     private currentScore: number = 0;
     private _patternPath: string = '';
     // 当前选中的颜色序号
@@ -58,12 +59,12 @@ export class LevelMode extends GameMode {
 
     // 倒计时相关
     private _remainingTime: number = 0;  // 剩余秒数
-    private _isCountingDown: boolean = false;  // 是否正在倒计时
 
     get modeType(): GameModeType { return GameModeType.LEVEL; }
 
     update(_deltaTime: number): void {
-        if (!this._isCountingDown) return;
+        const gameManager = GameManager.getInstance();
+        if (gameManager.gameState != GameState.PLAYING) return;
 
         this._remainingTime -= _deltaTime;
 
@@ -78,12 +79,15 @@ export class LevelMode extends GameMode {
         // 倒计时结束
         if (this._remainingTime <= 0) {
             this._remainingTime = 0;
-            this._isCountingDown = false;
+            gameManager.gameState = GameState.GAME_OVER;
             this.onTimeUp();
         }
     }
 
     start(){
+        if (this.settingBtn) {
+            this.settingBtn.on(Node.EventType.TOUCH_END, this.onSettingBtnClick, this);
+        }
     }
 
     /**
@@ -94,6 +98,7 @@ export class LevelMode extends GameMode {
         this._patternPath = patternPath;
         this.startGame();
         this.startCountdown();
+        GameManager.getInstance().gameState = GameState.PLAYING;
         console.log(`闯关模式: 关卡 ${levelId}, 图案: ${patternPath}`);
     }
 
@@ -102,7 +107,6 @@ export class LevelMode extends GameMode {
      */
     private startCountdown(): void {
         this._remainingTime = LevelConfig.getInstance().getCurrentLevelTime();
-        this._isCountingDown = true;
 
         // 立即更新一次 label
         if (this.time_label) {
@@ -147,8 +151,7 @@ export class LevelMode extends GameMode {
      * finish_btn 点击事件 - 显示结果面板
      */
     private onFinishBtnClick(): void {
-        this._isCountingDown = false;
-        this._isGameActive = false;
+        this.endGame();
 
         // 检查所有可用 block 的目标颜色与当前颜色是否一致
         const isSuccess = this.checkAllBlocksColorMatch();
@@ -163,8 +166,7 @@ export class LevelMode extends GameMode {
      * 倒计时结束时的处理
      */
     private onTimeUp(): void {
-        // 停止游戏
-        this._isGameActive = false;
+        this.endGame();
 
         // 检查是否所有可用 block 都已熨烫且颜色正确
         const allIroned = this.checkAllBlocksIroned2();
@@ -268,7 +270,7 @@ export class LevelMode extends GameMode {
      * 开始游戏
      */
     public startGame(): void {
-        this._isGameActive = true;
+        GameManager.getInstance().gameState = GameState.PLAYING;
         this.selectedColorIndex = 1;
     }
 
@@ -276,24 +278,15 @@ export class LevelMode extends GameMode {
      * 结束游戏
      */
     public endGame(): void {
-        this._isGameActive = false;
+        GameManager.getInstance().gameState = GameState.GAME_OVER;
     }
 
     /**
      * 重置游戏
      */
     public resetGame(): void {
-        this._isGameActive = false;
+        GameManager.getInstance().gameState = GameState.PLAYING;
         this.selectedColorIndex = 1;
-    }
-
-    // ==================== 游戏状态 ====================
-
-    /**
-     * 游戏是否进行中
-     */
-    public get isGameActive(): boolean {
-        return this._isGameActive;
     }
 
     // ==================== 颜色列表 ====================
@@ -416,5 +409,17 @@ export class LevelMode extends GameMode {
             this.iron.onTouchEnd();
             this.onFinishBtnClick();
         }
+    }
+
+    /**
+     * 设置按钮点击事件
+     */
+    private onSettingBtnClick(): void {
+        const gameManager = GameManager.getInstance();
+        if (!gameManager?.setting || (gameManager.gameState != GameState.PLAYING)) return;
+
+        gameManager.gameState = GameState.PAUSED;
+        gameManager.setting.lastState = GameState.PLAYING;
+        gameManager.setting.node.active = true;
     }
 }

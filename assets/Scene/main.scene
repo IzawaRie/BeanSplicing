@@ -9323,6 +9323,9 @@
     },
     "_enabled": true,
     "__prefab": null,
+    "settingBtn": {
+      "__id__": 60
+    },
     "restartBtn": null,
     "resultPanel": {
       "__id__": 260

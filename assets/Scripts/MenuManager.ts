@@ -1,5 +1,5 @@
 import { _decorator, Component, Node, Label, resources, Prefab, instantiate, UITransform, tween, Tween, Vec3, UIOpacity, random, Sprite, Color } from 'cc';
-import { GameManager } from './GameManager';
+import { GameManager, GameState } from './GameManager';
 import { LevelConfig } from './LevelConfig';
 
 const { ccclass, property } = _decorator;
@@ -252,7 +252,7 @@ export class MenuManager extends Component {
      */
     private onStartClick(): void {
         const gameManager = GameManager.getInstance();
-        if (!gameManager) return;
+        if (!gameManager || (gameManager.gameState != GameState.WAITING)) return;
 
         // 获取当前关卡数
         const currentLevel = gameManager.currentLevel;
@@ -266,8 +266,10 @@ export class MenuManager extends Component {
      */
     private onSettingBtnClick(): void {
         const gameManager = GameManager.getInstance();
-        if (!gameManager?.setting) return;
+        if (!gameManager?.setting || (gameManager.gameState != GameState.WAITING)) return;
 
+        gameManager.gameState = GameState.PAUSED;
+        gameManager.setting.lastState = GameState.WAITING;
         gameManager.setting.node.active = true;
     }
 

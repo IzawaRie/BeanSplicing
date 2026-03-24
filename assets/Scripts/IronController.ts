@@ -1,5 +1,5 @@
 import { _decorator, Component, Node, EventTouch, Sprite, UITransform, Color, tween, Vec3 } from 'cc';
-import { GameManager } from './GameManager';
+import { GameManager, GameState } from './GameManager';
 import { BlockController } from './BlockController';
 const { ccclass, property } = _decorator;
 
@@ -52,7 +52,7 @@ export class IronController extends Component {
      */
     private isGameActive(): boolean {
         const gameManager = GameManager.getInstance();
-        return gameManager?.levelMode?.isGameActive ?? false;
+        return gameManager?.gameState == GameState.PLAYING;
     }
 
     /**

@@ -1,5 +1,5 @@
 import { _decorator, Component, Node, Sprite, Color, EventTouch, UITransform, Label } from 'cc';
-import { GameManager } from './GameManager';
+import { GameManager, GameState } from './GameManager';
 import { BlockController, BlockState } from './BlockController';
 const { ccclass, property } = _decorator;
 
@@ -45,7 +45,7 @@ export class CircleController extends Component {
      */
     private isGameActive(): boolean {
         const gameManager = GameManager.getInstance();
-        return gameManager?.levelMode?.isGameActive ?? false;
+        return gameManager?.gameState == GameState.PLAYING;
     }
 
     onLoad() {

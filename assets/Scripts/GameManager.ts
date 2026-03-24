@@ -8,6 +8,16 @@ import { SettingController } from './SettingController';
 const { ccclass, property } = _decorator;
 
 /**
+ * 游戏状态枚举
+ */
+export enum GameState {
+    WAITING = 0,    // 主页面等待中
+    PLAYING = 1,    // 游戏进行中
+    PAUSED = 2,     // 暂停中
+    GAME_OVER = 3   // 游戏结束
+}
+
+/**
  * 游戏管理器
  * 负责游戏全局状态管理和多模式支持
  */
@@ -28,6 +38,9 @@ export class GameManager extends Component {
     @property({ type: LevelMode })
     levelMode: LevelMode = null;
 
+    // 游戏状态
+    private _gameState: GameState = GameState.WAITING;
+    
     // 当前游戏模式
     private currentMode: GameMode = null;
     private _currentModeType: GameModeType = GameModeType.LEVEL;
@@ -123,5 +136,21 @@ export class GameManager extends Component {
             this.levelMode.startLevel(levelId);
             this.levelMode.startGame();
         }
+    }
+
+    // ==================== 游戏状态 ====================
+
+    /**
+     * 获取游戏状态
+     */
+    public get gameState(): GameState {
+        return this._gameState;
+    }
+
+    /**
+     * 设置游戏状态
+     */
+    public set gameState(value: GameState) {
+        this._gameState = value;
     }
 }
