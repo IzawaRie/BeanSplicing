@@ -4,6 +4,7 @@ import { LevelMode } from './LevelMode';
 import { MenuManager } from './MenuManager';
 import { ProgressController } from './ProgressController';
 import { LevelConfig } from './LevelConfig';
+import { SettingController } from './SettingController';
 const { ccclass, property } = _decorator;
 
 /**
@@ -19,6 +20,9 @@ export class GameManager extends Component {
 
     @property({ type: ProgressController })
     progress: ProgressController = null;
+
+    @property({ type: SettingController})
+    setting: SettingController = null;
 
     // 闯关模式组件
     @property({ type: LevelMode })
