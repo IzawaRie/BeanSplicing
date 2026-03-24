@@ -38,6 +38,9 @@ export class ResultPanel extends Component {
 
         this.successNode.active = isSuccess ? true : false;
         this.failNode.active = (!isSuccess) ? true : false;
+        if(isSuccess){
+            GameManager.getInstance().currentLevel++;
+        }
     }
 
     start() {
@@ -57,7 +60,6 @@ export class ResultPanel extends Component {
      * nextLevelBtn 点击事件 - 进入下一关
      */
     private onNextLevelBtnClick(): void {
-        GameManager.getInstance().currentLevel++;;
         this.loadLevel();
     }
 
