@@ -129,12 +129,6 @@ export class MenuManager extends Component {
         if (this.setting_btn) {
             this.setting_btn.on(Node.EventType.TOUCH_END, this.onSettingBtnClick, this);
         }
-
-        // 更新关卡按钮文字
-        const gameManager = GameManager.getInstance();
-        if (gameManager) {
-            this.updateLevelButtonText(gameManager.currentLevel);
-        }
     }
 
     /**

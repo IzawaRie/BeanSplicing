@@ -87,6 +87,7 @@ export class CloudStorageManager extends Component {
                         }
                     });
                 }
+                wx.setStorageSync('level', level);
             });
 
             resolve(null);
@@ -119,5 +120,29 @@ export class CloudStorageManager extends Component {
                 }
             });
         });
+    }
+
+    public async getStorageLevel(): Promise<number | null> {
+        if (typeof (wx) === 'undefined') {
+            console.warn('不在微信小游戏环境中');
+            return null;
+        }
+        
+        return new Promise((resolve) => {
+            wx.getStorage({
+                key: 'level',
+                success (res) {
+                    resolve(res.data);
+                },
+                fail () {
+                    console.log('getStorageLevel fail');
+                    resolve(null);
+                }
+            });
+        });
+    }
+
+    public setStorageLevel(level){
+        wx.setStorageSync('level', level);
     }
 }

@@ -54,7 +54,7 @@ export class GameManager extends Component {
 
     public hand_setting = 1; //-1:左手  1:右手
 
-    onLoad() {
+    async onLoad() {
         // 单例模式
         if (GameManager._instance) {
             this.node.destroy();
@@ -62,6 +62,8 @@ export class GameManager extends Component {
         }
         GameManager._instance = this;
 
+        this._currentLevel = await this.cloudStorage.getStorageLevel() ?? 1;
+        this.menuManager.updateLevelButtonText(this._currentLevel);
         this.loadSavedLevel();
     }
 
@@ -77,7 +79,8 @@ export class GameManager extends Component {
         if (!this.cloudStorage) return;
 
         const savedLevel = await this.cloudStorage.getLevel();
-        if (savedLevel !== null && savedLevel > 0) {
+        if (savedLevel !== null && savedLevel > 0 && this._currentLevel != savedLevel) {
+            this.cloudStorage.setStorageLevel(savedLevel);
             this._currentLevel = savedLevel;
             LevelConfig.getInstance().setCurrentLevelIndex(savedLevel - 1);
             this.levelMode.updateMenuLevelButton();
