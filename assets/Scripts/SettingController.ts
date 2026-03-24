@@ -1,17 +1,57 @@
-import { _decorator, Component, input, Input, EventTouch, UITransform } from 'cc';
+import { _decorator, Component, input, Input, EventTouch, UITransform, Toggle } from 'cc';
 import { GameManager, GameState } from './GameManager';
 const { ccclass, property } = _decorator;
 
 @ccclass('SettingController')
 export class SettingController extends Component {
 
+    @property({ type: Toggle })
+    hand_toggle_left: Toggle = null;
+    @property({ type: Toggle })
+    hand_toggle_right: Toggle = null;
+
     public lastState: GameState = null;
+
+    start() {
+        this.hand_toggle_left?.node.on(Toggle.EventType.TOGGLE, this.onLeftToggleChanged, this);
+        this.hand_toggle_right?.node.on(Toggle.EventType.TOGGLE, this.onRightToggleChanged, this);
+    }
+
     onEnable() {
         input.on(Input.EventType.TOUCH_END, this.onTouchEnd, this);
     }
 
     onDisable() {
         input.off(Input.EventType.TOUCH_END, this.onTouchEnd, this);
+    }
+
+    onDestroy() {
+        this.hand_toggle_left?.node.off(Toggle.EventType.TOGGLE, this.onLeftToggleChanged, this);
+        this.hand_toggle_right?.node.off(Toggle.EventType.TOGGLE, this.onRightToggleChanged, this);
+    }
+
+    /**
+     * 左侧切换事件
+     */
+    private onLeftToggleChanged(toggle: Toggle): void {
+        if (toggle.isChecked) {
+            const gameManager = GameManager.getInstance();
+            if (gameManager) {
+                gameManager.hand_setting = -1;
+            }
+        }
+    }
+
+    /**
+     * 右侧切换事件
+     */
+    private onRightToggleChanged(toggle: Toggle): void {
+        if (toggle.isChecked) {
+            const gameManager = GameManager.getInstance();
+            if (gameManager) {
+                gameManager.hand_setting = 1;
+            }
+        }
     }
 
     /**
@@ -50,5 +90,4 @@ export class SettingController extends Component {
                touchPos.y >= contentWorldPos.y - halfH && touchPos.y <= contentWorldPos.y + halfH;
     }
 }
-
 
