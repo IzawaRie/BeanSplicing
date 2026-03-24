@@ -5,6 +5,7 @@ import { MenuManager } from './MenuManager';
 import { ProgressController } from './ProgressController';
 import { LevelConfig } from './LevelConfig';
 import { SettingController } from './SettingController';
+import { CloudStorageManager } from './CloudStorageManager';
 const { ccclass, property } = _decorator;
 
 /**
@@ -34,6 +35,9 @@ export class GameManager extends Component {
     @property({ type: SettingController})
     setting: SettingController = null;
 
+    @property({ type: CloudStorageManager })
+    cloudStorage: CloudStorageManager = null;
+
     // 闯关模式组件
     @property({ type: LevelMode })
     levelMode: LevelMode = null;
@@ -59,9 +63,26 @@ export class GameManager extends Component {
         GameManager._instance = this;
     }
 
-    start() {
+    async start() {
         this.levelMode.patternApplier.gridDrawer = this.levelMode.gridDrawer;
         this.levelMode.circleList.setAllNodes();
+
+        // 从云端加载保存的关卡数
+        await this.loadSavedLevel();
+    }
+
+    /**
+     * 从云端加载保存的关卡数
+     */
+    private async loadSavedLevel(): Promise<void> {
+        if (!this.cloudStorage) return;
+
+        const savedLevel = await this.cloudStorage.getLevel();
+        if (savedLevel !== null && savedLevel > 0) {
+            this._currentLevel = savedLevel;
+            LevelConfig.getInstance().setCurrentLevelIndex(savedLevel - 1);
+            this.levelMode.updateMenuLevelButton();
+        }
     }
 
     onDestroy() {
@@ -94,6 +115,7 @@ export class GameManager extends Component {
         LevelConfig.getInstance().setCurrentLevelIndex(value - 1);
         // 通知 LevelMode 更新按钮文字
         this.levelMode.updateMenuLevelButton();
+        this.cloudStorage.submitLevel(value);
     }
 
     // ==================== 游戏模式 ====================
