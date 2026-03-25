@@ -8970,8 +8970,8 @@
     "__prefab": null,
     "_contentSize": {
       "__type__": "cc.Size",
-      "width": 640,
-      "height": 640
+      "width": 560,
+      "height": 560
     },
     "_anchorPoint": {
       "__type__": "cc.Vec2",
@@ -10190,7 +10190,9 @@
     "homelBtn": {
       "__id__": 274
     },
-    "result_img": null,
+    "result_img": {
+      "__id__": 253
+    },
     "_id": "5af5PB2UxCpbTZMVpm+ab3"
   },
   {
