@@ -1,10 +1,13 @@
-import { _decorator, Component, Label, Node, Sprite, SpriteFrame, Texture2D, ImageAsset, UITransform } from 'cc';
+import { _decorator, Component, Label, Node, Sprite, SpriteFrame, Texture2D, ImageAsset, UITransform, tween, Vec3 } from 'cc';
 import { GameManager, GameState } from './GameManager';
 import { BlockController } from './BlockController';
 const { ccclass, property } = _decorator;
 
 @ccclass('ResultPanel')
 export class ResultPanel extends Component {
+
+    @property(Node)
+    content: Node = null;
 
     @property(Node)
     successNode:Node = null;
@@ -38,8 +41,27 @@ export class ResultPanel extends Component {
         if(isSuccess){
             GameManager.getInstance().currentLevel++;
         }
-        // 生成结果图片
-        this.generateResultImage();
+
+        // 播放缩放入场动画，动画完成后生成结果图片
+        this.playContentEnterAnimation();
+    }
+
+    /**
+     * content 缩放入场动画：从 0 到 1
+     */
+    private playContentEnterAnimation(): void {
+        if (!this.content) return;
+
+        // 先设置为 0
+        this.content.setScale(0, 0, 1);
+
+        // 动画到 1，动画完成后生成结果图片
+        tween(this.content)
+            .to(0.3, { scale: Vec3.ONE }, { easing: 'backOut' })
+            .call(() => {
+                this.generateResultImage();
+            })
+            .start();
     }
 
     /**
@@ -50,6 +72,10 @@ export class ResultPanel extends Component {
 
         const gameManager = GameManager.getInstance();
         if (!gameManager?.levelMode?.gridDrawer) return;
+
+        // 隐藏原始画布
+        const drawerOpacity = gameManager.levelMode.drawer_opacity;
+        drawerOpacity.opacity = 0;
 
         const gridDrawer = gameManager.levelMode.gridDrawer;
         const blocks = gridDrawer.getAllBlocks();
@@ -157,7 +183,15 @@ export class ResultPanel extends Component {
         // 禁用动态图集
         (spriteFrame as any)._packable = false;
 
+        // 先设置为 0
         this.result_img.spriteFrame = spriteFrame;
+        this.result_img.fillRange = 0;
+
+        // 动画填充范围从 0 到 1
+        tween(this.result_img)
+            .to(0.5, { fillRange: 1 }, { easing: 'sineInOut' })
+            .start();
+
         console.log(`结果图片已生成: ${textureWidth}x${textureHeight}`);
     }
 
@@ -189,6 +223,7 @@ export class ResultPanel extends Component {
     }
 
     private loadLevel(){
+        this.result_img.spriteFrame = null;
         this.node.active = false;
         const gameManager = GameManager.getInstance();
         gameManager.levelMode.node.active = false;
@@ -197,6 +232,7 @@ export class ResultPanel extends Component {
     }
 
     private onShowHomePanel(){
+        this.result_img.spriteFrame = null;
         this.node.active = false;
         const gameManager = GameManager.getInstance();
         gameManager.gameState = GameState.WAITING;

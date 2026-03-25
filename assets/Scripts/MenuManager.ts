@@ -312,6 +312,10 @@ export class MenuManager extends Component {
             return;
         }
 
+        // 开启原始画布
+        const drawerOpacity = gameManager.levelMode.drawer_opacity;
+        drawerOpacity.opacity = 255;
+
         // 步骤1: createGraphicsNodes -> setProgress(0.1)
         gridDrawer.createGraphicsNodes(() => {
             gameManager.progress?.setProgress(0.3, () => {

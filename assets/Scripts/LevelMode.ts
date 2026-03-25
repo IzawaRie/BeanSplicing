@@ -50,6 +50,9 @@ export class LevelMode extends GameMode {
     @property({ type: Label })
     time_label: Label = null;
 
+    @property({ type: UIOpacity })
+    drawer_opacity: UIOpacity  = null;
+
     private currentScore: number = 0;
     private _patternPath: string = '';
     // 当前选中的颜色序号
