@@ -1,5 +1,5 @@
 import { _decorator, Component } from 'cc';
-const { ccclass, property } = _decorator;
+const { ccclass } = _decorator;
 
 /**
  * 像素化图片导出器
@@ -205,9 +205,6 @@ class PixelImageExporter {
  */
 @ccclass('PixelController')
 export class PixelController extends Component {
-    @property({ type: Number, min: 8, max: 64 })
-    gridSize: number = 16;
-
     private exporter: PixelImageExporter | null = null;
     private fileInput: HTMLInputElement | null = null;
     public currentBlocks: { r: number; g: number; b: number; a: number }[] = [];
@@ -264,7 +261,13 @@ export class PixelController extends Component {
         const reader = new FileReader();
         reader.onload = (e) => {
             const dataUrl = e.target?.result as string;
-            this.processAndExport(dataUrl, fileName);
+            // 先加载图片获取实际像素尺寸
+            const img = new Image();
+            img.onload = () => {
+                const pixelSize = Math.max(img.width, img.height);
+                this.processAndExport(dataUrl, fileName, pixelSize);
+            };
+            img.src = dataUrl;
         };
         reader.readAsDataURL(file);
 
@@ -274,10 +277,10 @@ export class PixelController extends Component {
     /**
      * 处理并导出
      */
-    private processAndExport(imageUrl: string, fileName: string): void {
+    private processAndExport(imageUrl: string, fileName: string, pixelSize: number): void {
         this.exporter?.pixelateAndExport(
             imageUrl,
-            this.gridSize,
+            pixelSize,
             fileName,
             (success, message) => {
                 // 保存 blocks 数据
@@ -316,7 +319,13 @@ export class PixelController extends Component {
             const reader = new FileReader();
             reader.onload = function(e) {
                 const dataUrl = e.target?.result as string;
-                self.processAndExportJson(dataUrl, fileName);
+                // 先加载图片获取实际像素尺寸
+                const img = new Image();
+                img.onload = () => {
+                    const pixelSize = Math.max(img.width, img.height);
+                    self.processAndExportJson(dataUrl, fileName, pixelSize);
+                };
+                img.src = dataUrl;
             };
             reader.readAsDataURL(file);
         };
@@ -328,12 +337,12 @@ export class PixelController extends Component {
     /**
      * 处理并导出 JSON
      */
-    private processAndExportJson(imageUrl: string, fileName: string): void {
+    private processAndExportJson(imageUrl: string, fileName: string, pixelSize: number): void {
         const baseName = fileName.replace(/\.[^/.]+$/, '');
         console.log('开始处理图片:', imageUrl);
         this.exporter?.pixelateAndExport(
             imageUrl,
-            this.gridSize,
+            pixelSize,
             fileName,
             (success, message) => {
                 console.log('处理完成:', success, message);
