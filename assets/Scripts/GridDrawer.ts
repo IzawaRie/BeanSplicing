@@ -88,9 +88,7 @@ export class GridDrawer extends Component {
 
             if (this.lastTouchDistance > 0) {
                 const scaleFactor = distance / this.lastTouchDistance;
-                let newScale = this.currentScale * scaleFactor;
-
-                newScale = Math.max(this.minScale, Math.min(this.maxScale, newScale));
+                const newScale = this.currentScale * scaleFactor;
 
                 this.setContentScale(newScale);
             }
@@ -120,9 +118,9 @@ export class GridDrawer extends Component {
     }
 
     /**
-     * 移动内容，并处理边界
+     * 限制内容偏移在边界内
      */
-    private moveContent(deltaX: number, deltaY: number) {
+    private clampOffset(): void {
         if (!this.contentNode) return;
 
         const uiTransform = this.node.getComponent(UITransform);
@@ -130,60 +128,70 @@ export class GridDrawer extends Component {
 
         const width = uiTransform.width;
         const height = uiTransform.height;
-
-        // 计算缩放后的内容尺寸
         const scaledWidth = width * this.currentScale;
         const scaledHeight = height * this.currentScale;
 
-        // 计算可移动范围
-        const maxOffsetX = (scaledWidth - width) / 2;
-        const maxOffsetY = (scaledHeight - height) / 2;
-
-        // 更新偏移
-        let newOffsetX = this.contentOffset.x + deltaX;
-        let newOffsetY = this.contentOffset.y + deltaY;
+        // 计算可移动范围（只考虑超出部分）
+        const maxOffsetX = Math.max(0, (scaledWidth - width) / 2);
+        const maxOffsetY = Math.max(0, (scaledHeight - height) / 2);
 
         // 限制边界
-        newOffsetX = Math.max(-maxOffsetX, Math.min(maxOffsetX, newOffsetX));
-        newOffsetY = Math.max(-maxOffsetY, Math.min(maxOffsetY, newOffsetY));
+        this.contentOffset.x = Math.max(-maxOffsetX, Math.min(maxOffsetX, this.contentOffset.x));
+        this.contentOffset.y = Math.max(-maxOffsetY, Math.min(maxOffsetY, this.contentOffset.y));
 
-        this.contentOffset.x = newOffsetX;
-        this.contentOffset.y = newOffsetY;
+        this.contentNode.setPosition(this.contentOffset.x, this.contentOffset.y, 0);
+    }
 
-        // 应用位置偏移
-        this.contentNode.setPosition(newOffsetX, newOffsetY, 0);
+    /**
+     * 移动内容，并处理边界
+     */
+    private moveContent(deltaX: number, deltaY: number) {
+        if (!this.contentNode) return;
+
+        // 更新偏移
+        this.contentOffset.x += deltaX;
+        this.contentOffset.y += deltaY;
+
+        // 限制边界
+        this.clampOffset();
     }
 
     private setContentScale(scale: number) {
         const oldScale = this.currentScale;
-        scale = Math.max(1, scale);
-        this.currentScale = scale;
+
+        // 限制缩放范围（最小1，最大this.maxScale）
+        scale = Math.max(1, Math.min(this.maxScale, scale));
+
+        // 如果 scale 没有变化，不做任何处理
+        if (Math.abs(scale - oldScale) < 0.001) return;
+
         if (this.contentNode) {
             this.contentNode.setScale(scale, scale, 1);
 
-            // 重新计算新 scale 下的边界
             const uiTransform = this.node.getComponent(UITransform);
             if (uiTransform) {
                 const width = uiTransform.width;
                 const height = uiTransform.height;
-                const scaledWidth = width * scale;
-                const scaledHeight = height * scale;
-                const maxOffsetX = (scaledWidth - width) / 2;
-                const maxOffsetY = (scaledHeight - height) / 2;
 
-                if (oldScale === 1 && scale > 1) {
-                    // 第一次放大，重置偏移
-                    this.contentOffset = { x: 0, y: 0 };
-                    this.contentNode.setPosition(0, 0, 0);
-                } else if (scale > 1) {
-                    // 已有偏移，按比例调整并限制边界
+                // 计算新缩放下的最大偏移
+                const maxOffsetX = Math.max(0, (width * scale - width) / 2);
+                const maxOffsetY = Math.max(0, (height * scale - height) / 2);
+
+                // 缩小（scale < oldScale）时，按比例调整偏移
+                if (scale < oldScale) {
                     const scaleFactor = scale / oldScale;
-                    this.contentOffset.x = Math.max(-maxOffsetX, Math.min(maxOffsetX, this.contentOffset.x * scaleFactor));
-                    this.contentOffset.y = Math.max(-maxOffsetY, Math.min(maxOffsetY, this.contentOffset.y * scaleFactor));
-                    this.contentNode.setPosition(this.contentOffset.x, this.contentOffset.y, 0);
+                    this.contentOffset.x *= scaleFactor;
+                    this.contentOffset.y *= scaleFactor;
                 }
+
+                // 限制边界
+                this.contentOffset.x = Math.max(-maxOffsetX, Math.min(maxOffsetX, this.contentOffset.x));
+                this.contentOffset.y = Math.max(-maxOffsetY, Math.min(maxOffsetY, this.contentOffset.y));
+                this.contentNode.setPosition(this.contentOffset.x, this.contentOffset.y, 0);
             }
         }
+
+        this.currentScale = scale;
     }
 
     /**
@@ -430,7 +438,8 @@ export class GridDrawer extends Component {
     }
 
     setScale(scale: number) {
-        scale = Math.max(this.minScale, Math.min(this.maxScale, scale));
+        // 限制缩放范围（最小1，最大this.maxScale）
+        scale = Math.max(1, Math.min(this.maxScale, scale));
         this.setContentScale(scale);
     }
 
