@@ -5,11 +5,11 @@ const { ccclass } = _decorator;
 declare const wx: any;
 
 // ========== 静态初始化：模块加载时立即执行，比所有组件实例都早 ==========
-if (typeof wx !== 'undefined' && wx.cloud) {
-    wx.cloud.init({
-        env: 'cloud1-2gltl8c72b1bc894'
-    });
-}
+// if (typeof wx !== 'undefined' && wx.cloud) {
+//     wx.cloud.init({
+//         env: 'cloud1-2gltl8c72b1bc894'
+//     });
+// }
 
 /**
  * 云存储管理器
@@ -63,64 +63,64 @@ export class CloudStorageManager extends Component {
      * 提交关卡进度
      * @param level 当前关卡数
      */
-    public async submitLevel(level: number): Promise<void> {
-        if (typeof (wx) === 'undefined') {
-            console.warn('不在微信小游戏环境中');
-            return null;
-        }
+    // public async submitLevel(level: number): Promise<void> {
+    //     if (typeof (wx) === 'undefined') {
+    //         console.warn('不在微信小游戏环境中');
+    //         return null;
+    //     }
 
-        return new Promise((resolve) => {
-            const db = wx.cloud.database();
+    //     return new Promise((resolve) => {
+    //         const db = wx.cloud.database();
 
-            db.collection('BeanSplicing').get().then(res => {
-                const data = res.data;
-                if(data.length > 0){
-                    db.collection("BeanSplicing").doc(data[0]._id).update({
-                        data: {
-                            level: level
-                        }
-                    });
-                }else{
-                    db.collection("BeanSplicing").add({
-                        data: {
-                            level: level
-                        }
-                    });
-                }
-                wx.setStorageSync('level', level);
-            });
+    //         db.collection('BeanSplicing').get().then(res => {
+    //             const data = res.data;
+    //             if(data.length > 0){
+    //                 db.collection("BeanSplicing").doc(data[0]._id).update({
+    //                     data: {
+    //                         level: level
+    //                     }
+    //                 });
+    //             }else{
+    //                 db.collection("BeanSplicing").add({
+    //                     data: {
+    //                         level: level
+    //                     }
+    //                 });
+    //             }
+    //             wx.setStorageSync('level', level);
+    //         });
 
-            resolve(null);
-        });
-    }
+    //         resolve(null);
+    //     });
+    // }
 
     /**
      * 从云端获取关卡数
      * @returns 返回保存的关卡数，不存在则返回 null
      */
-    public async getLevel(): Promise<number | null> {
-        // 检查是否在微信环境
-        if (typeof (wx) === 'undefined') {
-            console.warn('不在微信小游戏环境中，返回默认关卡数');
-            return null;
-        }
+    // public async getLevel(): Promise<number | null> {
+    //     // 检查是否在微信环境
+    //     if (typeof (wx) === 'undefined') {
+    //         console.warn('不在微信小游戏环境中，返回默认关卡数');
+    //         return null;
+    //     }
 
-        return new Promise((resolve) => {
-            const db = wx.cloud.database()
-            db.collection('BeanSplicing').
-            field({
-                level: true,
-            })
-            .get().then(res => {
-                const data = res.data;
-                if(data.length <= 0){
-                    resolve(null);
-                }else{
-                    resolve(data[0].level);
-                }
-            });
-        });
-    }
+    //     return new Promise((resolve) => {
+    //         const db = wx.cloud.database()
+    //         db.collection('BeanSplicing').
+    //         field({
+    //             level: true,
+    //         })
+    //         .get().then(res => {
+    //             const data = res.data;
+    //             if(data.length <= 0){
+    //                 resolve(null);
+    //             }else{
+    //                 resolve(data[0].level);
+    //             }
+    //         });
+    //     });
+    // }
 
     public async getStorageLevel(): Promise<number | null> {
         if (typeof (wx) === 'undefined') {

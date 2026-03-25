@@ -64,7 +64,7 @@ export class GameManager extends Component {
 
         this._currentLevel = await this.cloudStorage.getStorageLevel() ?? 1;
         this.menuManager.updateLevelButtonText(this._currentLevel);
-        this.loadSavedLevel();
+        //this.loadSavedLevel();
     }
 
     start() {
@@ -75,17 +75,17 @@ export class GameManager extends Component {
     /**
      * 从云端加载保存的关卡数
      */
-    private async loadSavedLevel(): Promise<void> {
-        if (!this.cloudStorage) return;
+    // private async loadSavedLevel(): Promise<void> {
+    //     if (!this.cloudStorage) return;
 
-        const savedLevel = await this.cloudStorage.getLevel();
-        if (savedLevel !== null && savedLevel > 0 && this._currentLevel != savedLevel) {
-            this.cloudStorage.setStorageLevel(savedLevel);
-            this._currentLevel = savedLevel;
-            LevelConfig.getInstance().setCurrentLevelIndex(savedLevel - 1);
-            this.levelMode.updateMenuLevelButton();
-        }
-    }
+    //     const savedLevel = await this.cloudStorage.getLevel();
+    //     if (savedLevel !== null && savedLevel > 0 && this._currentLevel != savedLevel) {
+    //         this.cloudStorage.setStorageLevel(savedLevel);
+    //         this._currentLevel = savedLevel;
+    //         LevelConfig.getInstance().setCurrentLevelIndex(savedLevel - 1);
+    //         this.levelMode.updateMenuLevelButton();
+    //     }
+    // }
 
     onDestroy() {
         if (GameManager._instance === this) {
@@ -117,7 +117,8 @@ export class GameManager extends Component {
         LevelConfig.getInstance().setCurrentLevelIndex(value - 1);
         // 通知 LevelMode 更新按钮文字
         this.levelMode.updateMenuLevelButton();
-        this.cloudStorage.submitLevel(value);
+        //this.cloudStorage.submitLevel(value);
+        this.cloudStorage.setStorageLevel(value);
     }
 
     // ==================== 游戏模式 ====================
