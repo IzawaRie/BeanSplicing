@@ -143,6 +143,11 @@ export class CloudStorageManager extends Component {
     }
 
     public setStorageLevel(level){
+        if (typeof (wx) === 'undefined') {
+            console.warn('不在微信小游戏环境中');
+            return null;
+        }
+        
         wx.setStorageSync('level', level);
     }
 }
