@@ -2828,8 +2828,8 @@
     "_prefab": null,
     "_lpos": {
       "__type__": "cc.Vec3",
-      "x": -204,
-      "y": 4.000000000000007,
+      "x": -160,
+      "y": -259.6,
       "z": 0
     },
     "_lrot": {
@@ -2872,8 +2872,8 @@
     },
     "_anchorPoint": {
       "__type__": "cc.Vec2",
-      "x": 1,
-      "y": 0
+      "x": 0.5,
+      "y": 1
     },
     "_id": "0eqrWwfgBJVoAflFCXCM8N"
   },
@@ -2912,7 +2912,7 @@
     },
     "_isSystemFontUsed": false,
     "_spacingX": 0,
-    "_isItalic": false,
+    "_isItalic": true,
     "_isBold": true,
     "_isUnderline": false,
     "_underlineHeight": 2,
@@ -2929,12 +2929,12 @@
     },
     "_enabled": true,
     "__prefab": null,
-    "_alignFlags": 9,
+    "_alignFlags": 20,
     "_target": null,
     "_left": -14,
     "_right": 0,
     "_top": -64.4,
-    "_bottom": 0,
+    "_bottom": -70,
     "_horizontalCenter": 0,
     "_verticalCenter": 0,
     "_isAbsLeft": true,
