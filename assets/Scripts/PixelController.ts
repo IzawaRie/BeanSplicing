@@ -11,6 +11,7 @@ class PixelImageExporter {
     public blocks: { r: number; g: number; b: number; a: number }[] = [];
     public patternWidth: number = 0;
     public patternHeight: number = 0;
+    public fileName: string = 'pixel_pattern';
 
     constructor() {
         if (typeof document !== 'undefined') {
@@ -28,8 +29,11 @@ class PixelImageExporter {
     public pixelateAndExport(
         imageUrl: string,
         gridSize: number,
+        fileName: string,
         onComplete?: (success: boolean, message: string) => void
     ): void {
+        // 去掉文件扩展名，作为基础文件名
+        this.fileName = fileName.replace(/\.[^/.]+$/, '');
         const img = new Image();
         img.crossOrigin = 'Anonymous';
         img.onload = () => {
@@ -177,7 +181,7 @@ class PixelImageExporter {
         exportCtx.putImageData(imageData, 0, 0);
 
         const dataUrl = exportCanvas.toDataURL('image/png');
-        this.downloadDataUrl(dataUrl, 'pixel_pattern.png');
+        this.downloadDataUrl(dataUrl, `${this.fileName}.png`);
 
         onComplete?.();
     }
@@ -256,10 +260,11 @@ export class PixelController extends Component {
         }
 
         const file = this.fileInput.files[0];
+        const fileName = file.name;
         const reader = new FileReader();
         reader.onload = (e) => {
             const dataUrl = e.target?.result as string;
-            this.processAndExport(dataUrl);
+            this.processAndExport(dataUrl, fileName);
         };
         reader.readAsDataURL(file);
 
@@ -269,10 +274,11 @@ export class PixelController extends Component {
     /**
      * 处理并导出
      */
-    private processAndExport(imageUrl: string): void {
+    private processAndExport(imageUrl: string, fileName: string): void {
         this.exporter?.pixelateAndExport(
             imageUrl,
             this.gridSize,
+            fileName,
             (success, message) => {
                 // 保存 blocks 数据
                 if (this.exporter) {
@@ -306,10 +312,11 @@ export class PixelController extends Component {
             }
 
             const file = self.fileInput!.files[0];
+            const fileName = file.name;
             const reader = new FileReader();
             reader.onload = function(e) {
                 const dataUrl = e.target?.result as string;
-                self.processAndExportJson(dataUrl);
+                self.processAndExportJson(dataUrl, fileName);
             };
             reader.readAsDataURL(file);
         };
@@ -321,11 +328,13 @@ export class PixelController extends Component {
     /**
      * 处理并导出 JSON
      */
-    private processAndExportJson(imageUrl: string): void {
+    private processAndExportJson(imageUrl: string, fileName: string): void {
+        const baseName = fileName.replace(/\.[^/.]+$/, '');
         console.log('开始处理图片:', imageUrl);
         this.exporter?.pixelateAndExport(
             imageUrl,
             this.gridSize,
+            fileName,
             (success, message) => {
                 console.log('处理完成:', success, message);
                 console.log('exporter:', this.exporter);
@@ -346,12 +355,12 @@ export class PixelController extends Component {
                         `{ "r": ${b.r}, "g": ${b.g}, "b": ${b.b}, "a": ${b.a} }`
                     ).join(',\n    ');
 
-                    const jsonStr = `{\n  "name": "pixel_pattern",\n  "gridWidth": ${width},\n  "gridHeight": ${height},\n  "blocks": [\n    ${blocksStr}\n  ]\n}`;
+                    const jsonStr = `{\n  "name": "${baseName}",\n  "gridWidth": ${width},\n  "gridHeight": ${height},\n  "blocks": [\n    ${blocksStr}\n  ]\n}`;
                     const blob = new Blob([jsonStr], { type: 'application/json' });
                     const url = URL.createObjectURL(blob);
 
                     const link = document.createElement('a');
-                    link.download = 'pixel_pattern.json';
+                    link.download = `${baseName}.json`;
                     link.href = url;
                     link.click();
 
