@@ -1,5 +1,5 @@
-import { _decorator, Component } from 'cc';
-const { ccclass } = _decorator;
+import { _decorator, Component, Node } from 'cc';
+const { ccclass, property } = _decorator;
 
 // 微信小游戏全局对象类型声明
 declare const wx: any;
@@ -17,6 +17,10 @@ declare const wx: any;
  */
 @ccclass('CloudStorageManager')
 export class CloudStorageManager extends Component {
+
+    @property({ type: Node })
+    testBtn: Node = null;
+
     //用户 openid
     //public openid: string = '';
 
@@ -24,7 +28,13 @@ export class CloudStorageManager extends Component {
     }
 
     start() {
-        //this.getOpenid();
+        if (this.testBtn) {
+            this.testBtn.on(Node.EventType.TOUCH_END, this.onTestBtnClick, this);
+        }
+    }
+
+    private onTestBtnClick(): void {
+        this.clearStorageLevel();
     }
 
     /**
@@ -147,7 +157,20 @@ export class CloudStorageManager extends Component {
             console.warn('不在微信小游戏环境中');
             return null;
         }
-        
+
         wx.setStorageSync('level', level);
+    }
+
+    /**
+     * 清除关卡缓存
+     */
+    public clearStorageLevel(): void {
+        if (typeof (wx) === 'undefined') {
+            console.warn('不在微信小游戏环境中');
+            return;
+        }
+
+        wx.removeStorageSync('level');
+        console.log('已清除关卡缓存');
     }
 }
