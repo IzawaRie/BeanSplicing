@@ -11,9 +11,6 @@ export class ResultPanel extends Component {
     @property(Node)
     failNode:Node = null;
 
-    @property(Label)
-    resultLabel: Label = null;
-
     @property(Node)
     nextLevelBtn: Node = null;
 
@@ -31,10 +28,6 @@ export class ResultPanel extends Component {
      */
     public setResult(isSuccess: boolean): void {
         this._isSuccess = isSuccess;
-
-        if (this.resultLabel) {
-            this.resultLabel.string = isSuccess ? '制作成功！' : '制作失败！';
-        }
 
         this.successNode.active = isSuccess ? true : false;
         this.failNode.active = (!isSuccess) ? true : false;
