@@ -252,6 +252,8 @@ export class MenuManager extends Component {
         if (!gameManager || (gameManager.gameState != GameState.WAITING)) return;
 
         gameManager.vibrateShort();
+        gameManager.audioManager.stopBgm();
+
         // 获取当前关卡数
         const currentLevel = gameManager.currentLevel;
         console.log(`开始游戏 - 第${this.toChineseNum(currentLevel)}关`);

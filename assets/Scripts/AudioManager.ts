@@ -1,4 +1,4 @@
-import { _decorator, AudioSource, AudioClip, Component } from 'cc';
+import { _decorator, AudioSource, AudioClip, Component, tween, Tween } from 'cc';
 import { assetManager } from 'cc';
 const { ccclass, property } = _decorator;
 
@@ -9,6 +9,8 @@ export class AudioManager extends Component {
     @property(AudioSource)
     private audio: AudioSource = null;
 
+    private bgmClip: AudioClip = null;
+    private musicTween: Tween<AudioSource> | null = null;
     private static _instance: AudioManager | null = null;
 
     onLoad() {
@@ -37,6 +39,7 @@ export class AudioManager extends Component {
                     return;
                 }
 
+                this.bgmClip = clip;
                 if (this.music) {
                     this.music.clip = clip;
                     this.music.loop = true;
@@ -44,6 +47,41 @@ export class AudioManager extends Component {
                 }
             });
         });
+    }
+
+    /**
+     * 播放背景音乐
+     */
+    public playBgm(): void {
+        if (this.music && this.bgmClip) {
+            this.music.volume = 1;
+            this.music.clip = this.bgmClip;
+            this.music.loop = true;
+            this.music.play();
+        }
+    }
+
+    /**
+     * 停止背景音乐（逐渐减小音量后停止）
+     */
+    public stopBgm(): void {
+        if (!this.music) return;
+
+        // 停止之前的 tween
+        if (this.musicTween) {
+            this.musicTween.stop();
+            this.musicTween = null;
+        }
+
+        // 逐渐减小音量后停止
+        this.musicTween = tween(this.music)
+            .to(0.5, { volume: 0 }, { easing: 'sineIn' })
+            .call(() => {
+                this.music.stop();
+                this.music.volume = 1;
+                this.musicTween = null;
+            })
+            .start();
     }
 
     onDestroy() {

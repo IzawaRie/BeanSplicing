@@ -6,6 +6,7 @@ import { ProgressController } from './ProgressController';
 import { LevelConfig } from './LevelConfig';
 import { SettingController } from './SettingController';
 import { WXManager } from './WXManager';
+import { AudioManager } from './AudioManager';
 const { ccclass, property } = _decorator;
 
 /**
@@ -37,6 +38,9 @@ export class GameManager extends Component {
 
     @property({ type: WXManager })
     wxManager: WXManager = null;
+
+    @property({ type: AudioManager })
+    audioManager: AudioManager = null;
 
     // 闯关模式组件
     @property({ type: LevelMode })

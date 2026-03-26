@@ -233,6 +233,7 @@ export class ResultPanel extends Component {
         gameManager.vibrateShort();
         gameManager.gameState = GameState.WAITING;
         gameManager.levelMode.node.active = false;
+        gameManager.audioManager.playBgm();
         gameManager.menuManager.node.active = true;
     }
 }
