@@ -38,6 +38,9 @@ export class MenuManager extends Component {
 
         // 处理 10-19
         if (num < 20) {
+            if (num === 10) {
+                return '十';
+            }
             return `十${digits[num - 10]}`;
         }
 
