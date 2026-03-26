@@ -13602,7 +13602,9 @@
     "hand_toggle_right": {
       "__id__": 369
     },
-    "shake_toggle": null,
+    "shake_toggle": {
+      "__id__": 345
+    },
     "_id": "66qrqz4oZHZL04p2IIuzDT"
   },
   {
