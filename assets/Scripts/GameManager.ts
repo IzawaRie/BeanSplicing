@@ -193,7 +193,16 @@ export class GameManager extends Component {
         }else{
             this.isShake = shake == 1 ? true : false;
         }
-         
         this.setting.shake_toggle.isChecked = this.isShake;
+
+        const handSetting = await this.wxManager.getHandSetting();
+        if(handSetting != null){
+            this.hand_setting = handSetting;
+            if (handSetting === -1) {
+                this.setting.hand_toggle_left.isChecked = true;
+            } else {
+                this.setting.hand_toggle_right.isChecked = true;
+            }
+        }
     }
 }

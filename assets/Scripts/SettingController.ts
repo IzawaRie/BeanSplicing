@@ -42,6 +42,7 @@ export class SettingController extends Component {
             const gameManager = GameManager.getInstance();
             if (gameManager) {
                 gameManager.hand_setting = -1;
+                gameManager.wxManager.setHandSetting(-1);
             }
         }
     }
@@ -54,6 +55,7 @@ export class SettingController extends Component {
             const gameManager = GameManager.getInstance();
             if (gameManager) {
                 gameManager.hand_setting = 1;
+                gameManager.wxManager.setHandSetting(1);
             }
         }
     }

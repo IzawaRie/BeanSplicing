@@ -216,7 +216,7 @@ export class WXManager extends Component {
             console.warn('不在微信小游戏环境中');
             return null;
         }
-        
+
         return new Promise((resolve) => {
             wx.getStorage({
                 key: 'shake',
@@ -230,4 +230,43 @@ export class WXManager extends Component {
             });
         });
     }
+
+    /**
+     * 设置左右手设置
+     * @param handSetting -1:左手  1:右手
+     */
+    public setHandSetting(handSetting: number): void {
+        if (typeof (wx) === 'undefined') {
+            console.warn('不在微信小游戏环境中');
+            return;
+        }
+
+        wx.setStorageSync('hand_setting', handSetting);
+    }
+
+    /**
+     * 获取左右手设置
+     * @returns -1:左手  1:右手  null:未设置
+     */
+    public getHandSetting(): Promise<number | null> {
+        if (typeof (wx) === 'undefined') {
+            console.warn('不在微信小游戏环境中');
+            return Promise.resolve(null);
+        }
+
+        return new Promise((resolve) => {
+            wx.getStorage({
+                key: 'hand_setting',
+                success (res) {
+                    resolve(res.data);
+                },
+                fail () {
+                    console.log('getHandSetting fail');
+                    resolve(null);
+                }
+            });
+        });
+    }
+
+
 }
