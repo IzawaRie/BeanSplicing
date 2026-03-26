@@ -89,7 +89,7 @@
         "_value": false
       },
       "webview": {
-        "_value": true
+        "_value": false
       },
       "tween": {
         "_value": true
@@ -135,8 +135,7 @@
       "intersection-2d",
       "profiler",
       "tween",
-      "ui",
-      "webview"
+      "ui"
     ],
     "noDeprecatedFeatures": {
       "value": false,
