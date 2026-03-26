@@ -178,4 +178,8 @@ export class GameManager extends Component {
     public set gameState(value: GameState) {
         this._gameState = value;
     }
+
+    public vibrateShort(type: 'heavy' | 'medium' | 'light' = 'medium'){
+        this.wxManager.vibrateShort(type);
+    }
 }

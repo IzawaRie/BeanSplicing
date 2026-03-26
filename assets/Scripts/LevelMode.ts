@@ -421,6 +421,7 @@ export class LevelMode extends GameMode {
         const gameManager = GameManager.getInstance();
         if (!gameManager?.setting || (gameManager.gameState != GameState.PLAYING)) return;
 
+        gameManager.vibrateShort();
         gameManager.gameState = GameState.PAUSED;
         gameManager.setting.lastState = GameState.PLAYING;
         gameManager.setting.node.active = true;

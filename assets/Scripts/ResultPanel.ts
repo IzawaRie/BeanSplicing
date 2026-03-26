@@ -227,6 +227,7 @@ export class ResultPanel extends Component {
         this.node.active = false;
         const gameManager = GameManager.getInstance();
         gameManager.levelMode.node.active = false;
+        gameManager.vibrateShort();
         gameManager.menuManager.showProgressPanel();
         gameManager.menuManager.loadLevel(gameManager.currentLevel);
     }
@@ -235,6 +236,7 @@ export class ResultPanel extends Component {
         this.result_img.spriteFrame = null;
         this.node.active = false;
         const gameManager = GameManager.getInstance();
+        gameManager.vibrateShort();
         gameManager.gameState = GameState.WAITING;
         gameManager.levelMode.node.active = false;
         gameManager.menuManager.node.active = true;

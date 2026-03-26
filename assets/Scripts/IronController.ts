@@ -148,6 +148,8 @@ export class IronController extends Component {
                 }
             }
         }
+
+        gameManager.vibrateShort('light');
     }
 
     /**

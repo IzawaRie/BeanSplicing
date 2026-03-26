@@ -492,5 +492,7 @@ export class CircleController extends Component {
                 }
             }
         }
+
+        gameManager.vibrateShort();
     }
 }

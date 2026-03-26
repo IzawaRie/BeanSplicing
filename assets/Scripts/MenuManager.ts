@@ -248,6 +248,7 @@ export class MenuManager extends Component {
         const gameManager = GameManager.getInstance();
         if (!gameManager || (gameManager.gameState != GameState.WAITING)) return;
 
+        gameManager.vibrateShort();
         // 获取当前关卡数
         const currentLevel = gameManager.currentLevel;
         console.log(`开始游戏 - 第${this.toChineseNum(currentLevel)}关`);
@@ -262,6 +263,7 @@ export class MenuManager extends Component {
         const gameManager = GameManager.getInstance();
         if (!gameManager?.setting || (gameManager.gameState != GameState.WAITING)) return;
 
+        gameManager.vibrateShort();
         gameManager.gameState = GameState.PAUSED;
         gameManager.setting.lastState = GameState.WAITING;
         gameManager.setting.node.active = true;
