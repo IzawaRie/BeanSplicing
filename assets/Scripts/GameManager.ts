@@ -5,7 +5,7 @@ import { MenuManager } from './MenuManager';
 import { ProgressController } from './ProgressController';
 import { LevelConfig } from './LevelConfig';
 import { SettingController } from './SettingController';
-import { CloudStorageManager } from './CloudStorageManager';
+import { WXManager } from './WXManager';
 const { ccclass, property } = _decorator;
 
 /**
@@ -35,8 +35,8 @@ export class GameManager extends Component {
     @property({ type: SettingController})
     setting: SettingController = null;
 
-    @property({ type: CloudStorageManager })
-    cloudStorage: CloudStorageManager = null;
+    @property({ type: WXManager })
+    wxManager: WXManager = null;
 
     // 闯关模式组件
     @property({ type: LevelMode })
@@ -62,7 +62,7 @@ export class GameManager extends Component {
         }
         GameManager._instance = this;
 
-        this._currentLevel = await this.cloudStorage.getStorageLevel() ?? 1;
+        this._currentLevel = await this.wxManager.getStorageLevel() ?? 1;
         this.menuManager.updateLevelButtonText(this._currentLevel);
         //this.loadSavedLevel();
     }
@@ -118,7 +118,7 @@ export class GameManager extends Component {
         // 通知 LevelMode 更新按钮文字
         this.levelMode.updateMenuLevelButton();
         //this.cloudStorage.submitLevel(value);
-        this.cloudStorage.setStorageLevel(value);
+        this.wxManager.setStorageLevel(value);
     }
 
     // ==================== 游戏模式 ====================

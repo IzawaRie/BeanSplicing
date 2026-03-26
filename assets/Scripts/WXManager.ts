@@ -15,8 +15,8 @@ declare const wx: any;
  * 云存储管理器
  * 接入微信小游戏 wx.setUserCloudStorage 接口
  */
-@ccclass('CloudStorageManager')
-export class CloudStorageManager extends Component {
+@ccclass('WXManager')
+export class WXManager extends Component {
 
     @property({ type: Node })
     testBtn: Node = null;
@@ -172,5 +172,33 @@ export class CloudStorageManager extends Component {
 
         wx.removeStorageSync('level');
         console.log('已清除关卡缓存');
+    }
+
+    /**
+     * 短振动
+     * @param type 振动强度类型：'heavy'（重）、'medium'（中）、'light'（轻），默认 'medium'
+     */
+    public vibrateShort(
+        type: 'heavy' | 'medium' | 'light' = 'medium'
+    ): void {
+        if (typeof (wx) === 'undefined') {
+            console.warn('不在微信小游戏环境中');
+            return;
+        }
+
+        if (typeof wx.vibrateShort !== 'function') {
+            console.warn('wx.vibrateShort 不可用');
+            return;
+        }
+
+        wx.vibrateShort({
+            type,
+            success: () => {
+                console.log('短振动成功');
+            },
+            fail: (err: any) => {
+                console.warn('短振动失败:', err);
+            }
+        });
     }
 }
