@@ -1,10 +1,12 @@
-import { _decorator, Component, input, Input, EventTouch, UITransform, Toggle } from 'cc';
+import { _decorator, Component, Node, input, Input, EventTouch, UITransform, Toggle } from 'cc';
 import { GameManager, GameState } from './GameManager';
 const { ccclass, property } = _decorator;
 
 @ccclass('SettingController')
 export class SettingController extends Component {
 
+    @property({ type: Node })
+    border_bg: Node = null;
     @property({ type: Toggle })
     hand_toggle_left: Toggle = null;
     @property({ type: Toggle })
@@ -85,8 +87,8 @@ export class SettingController extends Component {
      */
     private isTouchInContentPanel(touchPos: { x: number, y: number }): boolean {
 
-        const contentWorldPos = this.node.getWorldPosition();
-        const contentTransform = this.node.getComponent(UITransform);
+        const contentWorldPos = this.border_bg.getWorldPosition();
+        const contentTransform = this.border_bg.getComponent(UITransform);
         if (!contentTransform) return false;
 
         const halfW = contentTransform.width / 2;
