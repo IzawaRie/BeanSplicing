@@ -1,6 +1,6 @@
 import { _decorator, Component, Label, Node, Sprite, SpriteFrame, Texture2D, ImageAsset, UITransform, tween, Vec3 } from 'cc';
 import { GameManager, GameState } from './GameManager';
-import { BlockController } from './BlockController';
+import { BlockController, BlockState } from './BlockController';
 const { ccclass, property } = _decorator;
 
 @ccclass('ResultPanel')
@@ -114,20 +114,14 @@ export class ResultPanel extends Component {
                 if (!blockController) continue;
 
                 // 获取当前颜色
-                let r: number, g: number, b: number, a: number;
+                let r: number, g: number, b: number, a: number = 0;
 
                 // 优先使用 BlockController 的当前颜色
-                if (blockController.currentColorA >= 0) {
+                if (blockController.currentColorA >= 0 && blockController.state == BlockState.IRONED) {
                     r = blockController.currentColorR;
                     g = blockController.currentColorG;
                     b = blockController.currentColorB;
                     a = blockController.currentColorA;
-                } else {
-                    // 如果没有当前颜色，使用目标颜色
-                    r = blockController.targetColorR;
-                    g = blockController.targetColorG;
-                    b = blockController.targetColorB;
-                    a = blockController.targetColorA;
                 }
 
                 // 计算这个 block 在纹理上的起始和结束位置
