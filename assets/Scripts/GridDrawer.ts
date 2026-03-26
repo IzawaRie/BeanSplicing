@@ -10,9 +10,6 @@ export class GridDrawer extends Component {
     @property({ type: Color })
     lineColor: Color = new Color(0, 0, 0, 255);
 
-    @property({ type: Boolean })
-    showBorder: boolean = true;
-
     @property({ type: Number, min: 1, max: 3 })
     minScale: number = 1;
 
@@ -25,9 +22,7 @@ export class GridDrawer extends Component {
     @property({ type: Boolean })
     showNumber: boolean = true;  // 是否显示颜色序号
 
-    private outerLineWidth: number = 10;
     private innerLineWidth: number = 5;
-    private outerGraphics: Graphics | null = null;
     private innerGraphics: Graphics | null = null;
     private contentNode: Node | null = null;
     private blockCreator: BlockCreator = new BlockCreator();
@@ -202,7 +197,6 @@ export class GridDrawer extends Component {
         for (const child of this.node.children) {
             child.destroy();
         }
-        this.outerGraphics = null;
         this.innerGraphics = null;
         this.contentNode = null;
 
@@ -216,20 +210,9 @@ export class GridDrawer extends Component {
 
         const parentTransform = this.node.getComponent(UITransform);
 
-        const outerNode = new Node('OuterBorder');
-        this.node.addChild(outerNode);
-        outerNode.layer = Layers.Enum.UI_2D;
-
-        const outerTransform = outerNode.addComponent(UITransform);
-        if (parentTransform) {
-            outerTransform.setContentSize(parentTransform.width, parentTransform.height);
-        }
-        this.outerGraphics = outerNode.addComponent(Graphics);
-
         this.contentNode = new Node('GridContent');
         this.node.addChild(this.contentNode);
         this.contentNode.layer = Layers.Enum.UI_2D;
-        this.contentNode.setSiblingIndex(1);
 
         let contentTransform = this.contentNode.addComponent(UITransform);
         if (parentTransform) {
@@ -262,18 +245,6 @@ export class GridDrawer extends Component {
                 contentTransform = this.contentNode.addComponent(UITransform);
             }
             contentTransform.setContentSize(width, height);
-        }
-
-        const children = this.node.children;
-        for (const child of children) {
-            if (child.name === 'OuterBorder') {
-                let outerTransform = child.getComponent(UITransform);
-                if (!outerTransform) {
-                    outerTransform = child.addComponent(UITransform);
-                }
-                outerTransform.setContentSize(width, height);
-                break;
-            }
         }
     }
 
@@ -325,21 +296,7 @@ export class GridDrawer extends Component {
         const cellWidth = width / columns;
         const cellHeight = height / rows;
 
-        this.drawOuterBorder(width, height);
         this.drawInnerGrids(width, height, cellWidth, cellHeight, rows, columns);
-    }
-
-    private drawOuterBorder(width: number, height: number) {
-        if (!this.outerGraphics || !this.showBorder) return;
-
-        const halfW = width / 2;
-        const halfH = height / 2;
-
-        this.outerGraphics.clear();
-        this.outerGraphics.lineWidth = this.outerLineWidth;
-        this.outerGraphics.strokeColor = this.lineColor;
-        this.outerGraphics.rect(-halfW, -halfH, width, height);
-        this.outerGraphics.stroke();
     }
 
     private drawInnerGrids(width: number, height: number, cellWidth: number, cellHeight: number, rows: number, columns: number) {
