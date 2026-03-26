@@ -201,4 +201,33 @@ export class WXManager extends Component {
             }
         });
     }
+
+    public setShake(isShake: boolean){
+        if (typeof (wx) === 'undefined') {
+            console.warn('不在微信小游戏环境中');
+            return null;
+        }
+
+        wx.setStorageSync('shake', isShake == true ? 1 : 0);
+    }
+
+    public getShake(): Promise<number | null>{
+        if (typeof (wx) === 'undefined') {
+            console.warn('不在微信小游戏环境中');
+            return null;
+        }
+        
+        return new Promise((resolve) => {
+            wx.getStorage({
+                key: 'shake',
+                success (res) {
+                    resolve(res.data);
+                },
+                fail () {
+                    console.log('getShake fail');
+                    resolve(null);
+                }
+            });
+        });
+    }
 }

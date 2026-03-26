@@ -51,10 +51,10 @@ export class GameManager extends Component {
 
     // 当前关卡数
     private _currentLevel: number = 1;
-
+    public isShake: boolean = true;
     public hand_setting = 1; //-1:左手  1:右手
 
-    async onLoad() {
+    onLoad() {
         // 单例模式
         if (GameManager._instance) {
             this.node.destroy();
@@ -62,8 +62,7 @@ export class GameManager extends Component {
         }
         GameManager._instance = this;
 
-        this._currentLevel = await this.wxManager.getStorageLevel() ?? 1;
-        this.menuManager.updateLevelButtonText(this._currentLevel);
+        this.initStorage();
         //this.loadSavedLevel();
     }
 
@@ -180,6 +179,21 @@ export class GameManager extends Component {
     }
 
     public vibrateShort(type: 'heavy' | 'medium' | 'light' = 'medium'){
+        if(!this.isShake) return;
         this.wxManager.vibrateShort(type);
+    }
+
+    private async initStorage(){
+        this._currentLevel = await this.wxManager.getStorageLevel() ?? 1;
+        this.menuManager.updateLevelButtonText(this._currentLevel);
+
+        const shake = await this.wxManager.getShake();
+        if(shake == null){
+            this.isShake = true;
+        }else{
+            this.isShake = shake == 1 ? true : false;
+        }
+         
+        this.setting.shake_toggle.isChecked = this.isShake;
     }
 }

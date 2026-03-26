@@ -9,12 +9,15 @@ export class SettingController extends Component {
     hand_toggle_left: Toggle = null;
     @property({ type: Toggle })
     hand_toggle_right: Toggle = null;
+    @property({ type: Toggle })
+    shake_toggle: Toggle = null;
 
     public lastState: GameState = null;
 
     start() {
         this.hand_toggle_left?.node.on(Toggle.EventType.TOGGLE, this.onLeftToggleChanged, this);
         this.hand_toggle_right?.node.on(Toggle.EventType.TOGGLE, this.onRightToggleChanged, this);
+        this.shake_toggle?.node.on(Toggle.EventType.TOGGLE, this.onShakeToggleChanged, this);
     }
 
     onEnable() {
@@ -28,6 +31,7 @@ export class SettingController extends Component {
     onDestroy() {
         this.hand_toggle_left?.node.off(Toggle.EventType.TOGGLE, this.onLeftToggleChanged, this);
         this.hand_toggle_right?.node.off(Toggle.EventType.TOGGLE, this.onRightToggleChanged, this);
+        this.shake_toggle?.node.off(Toggle.EventType.TOGGLE, this.onShakeToggleChanged, this);
     }
 
     /**
@@ -88,6 +92,17 @@ export class SettingController extends Component {
 
         return touchPos.x >= contentWorldPos.x - halfW && touchPos.x <= contentWorldPos.x + halfW &&
                touchPos.y >= contentWorldPos.y - halfH && touchPos.y <= contentWorldPos.y + halfH;
+    }
+
+    /**
+     * 震动切换事件
+     */
+    private onShakeToggleChanged(toggle: Toggle): void {
+        const gameManager = GameManager.getInstance();
+        if (gameManager) {
+            gameManager.isShake = toggle.isChecked;
+            gameManager.wxManager.setShake(toggle.isChecked);
+        }
     }
 }
 
