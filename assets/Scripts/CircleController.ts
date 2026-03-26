@@ -39,6 +39,7 @@ export class CircleController extends Component {
     // circle 子节点
     private circleNode: Node | null = null;
     private progressNode: Node | null = null;
+    private pointNode: Node | null = null;
 
     /**
      * 判断游戏是否进行中
@@ -102,6 +103,8 @@ export class CircleController extends Component {
         // 获取并保存 progress 节点
         this.progressNode = this.circleNode.getChildByName('progress');
         this.progressNode.active = false;
+
+        this.pointNode = this.circleNode.getChildByName('point');
     }
 
     /**
@@ -219,8 +222,9 @@ export class CircleController extends Component {
 
         this.circleNode.setPosition(newX, newY, 0);
 
+        const pointWorldPos = this.pointNode.getWorldPosition();
         // 检测是否拖动到了某个 block 上（使用偏移后的位置）
-        const newTargetBlock = this.getBlockAtPosition(pos.x + offsetX, pos.y + offsetY);
+        const newTargetBlock = this.getBlockAtPosition(pointWorldPos.x, pointWorldPos.y);
 
         if (newTargetBlock) {
             const newTargetIndex = this.getBlockNumber(newTargetBlock);
@@ -314,36 +318,36 @@ export class CircleController extends Component {
             }
         }
 
-        // 如果没找到有编号的 block，查找周围8个方向
-        const neighborOffsets = [
-            { row: -1, col: -1 }, { row: -1, col: 0 }, { row: -1, col: 1 },
-            { row: 0, col: -1 },                      { row: 0, col: 1 },
-            { row: 1, col: -1 },  { row: 1, col: 0 },  { row: 1, col: 1 }
-        ];
+        // // 如果没找到有编号的 block，查找周围8个方向
+        // const neighborOffsets = [
+        //     { row: -1, col: -1 }, { row: -1, col: 0 }, { row: -1, col: 1 },
+        //     { row: 0, col: -1 },                      { row: 0, col: 1 },
+        //     { row: 1, col: -1 },  { row: 1, col: 0 },  { row: 1, col: 1 }
+        // ];
 
-        for (const offset of neighborOffsets) {
-            if (directBlock) {
-                // 根据找到的 block 计算行列
-                const row = this.getBlockRow(directBlock);
-                const col = this.getBlockCol(directBlock);
-                const neighborRow = row + offset.row;
-                const neighborCol = col + offset.col;
+        // for (const offset of neighborOffsets) {
+        //     if (directBlock) {
+        //         // 根据找到的 block 计算行列
+        //         const row = this.getBlockRow(directBlock);
+        //         const col = this.getBlockCol(directBlock);
+        //         const neighborRow = row + offset.row;
+        //         const neighborCol = col + offset.col;
 
-                if (neighborRow >= 0 && neighborRow < blocks.length &&
-                    neighborCol >= 0 && neighborCol < blocks[0].length) {
-                    const neighborBlock = blocks[neighborRow][neighborCol];
-                    if (neighborBlock) {
-                        const neighborNum = this.getBlockNumber(neighborBlock);
-                        if (neighborNum > 0) {
-                            return neighborBlock;
-                        }
-                    }
-                }
-            }
-        }
+        //         if (neighborRow >= 0 && neighborRow < blocks.length &&
+        //             neighborCol >= 0 && neighborCol < blocks[0].length) {
+        //             const neighborBlock = blocks[neighborRow][neighborCol];
+        //             if (neighborBlock) {
+        //                 const neighborNum = this.getBlockNumber(neighborBlock);
+        //                 if (neighborNum > 0) {
+        //                     return neighborBlock;
+        //                 }
+        //             }
+        //         }
+        //     }
+        // }
 
-        // 如果周围8个方向都没有有编号的 block，返回直接找到的 block（即使没有编号）
-        return directBlock;
+        // // 如果周围8个方向都没有有编号的 block，返回直接找到的 block（即使没有编号）
+        // return directBlock;
     }
 
     /**
