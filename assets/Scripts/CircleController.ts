@@ -34,6 +34,7 @@ export class CircleController extends Component {
     private readonly HOVER_DURATION: number = 1000;   // hover 时长（毫秒）
     private readonly HOVER_DELAY: number = 500;        // 延迟开始计时（毫秒）
     private readonly POSITION_TOLERANCE: number = 20;  // 位置误差范围
+    private hasTriggeredHighlight: boolean = false;    // 是否已触发高亮
     private readonly DRAG_OFFSET: number = 120;
 
     // circle 子节点
@@ -66,6 +67,9 @@ export class CircleController extends Component {
     }
 
     update(_deltaTime: number) {
+        // 如果已触发高亮，不再更新进度
+        if (this.hasTriggeredHighlight) return;
+
         // 更新 hover 进度
         if (this.isHovering && this.targetBlock && this.targetBlockIndex > 0) {
             const elapsed = Date.now() - this.hoverStartTime;
@@ -80,9 +84,10 @@ export class CircleController extends Component {
             const progress = actualElapsed / this.HOVER_DURATION;
 
             if (progress >= 1) {
-                // 计时完成，触发变色
+                // 计时完成，触发变色，不重置进度
                 this.highlightBlocksByIndex(this.targetBlockIndex, true);
                 this.resetHover();
+                this.hasTriggeredHighlight = true;
             } else {
                 // 更新进度条
                 this.updateProgress(progress);
@@ -164,6 +169,7 @@ export class CircleController extends Component {
         this.targetBlock = null;
         this.targetBlockIndex = 0;
         this.hoverStartTime = 0;
+        this.hasTriggeredHighlight = false;
         this.updateProgress(0);
     }
 
@@ -173,8 +179,8 @@ export class CircleController extends Component {
     private updateProgress(progress: number): void {
         if (!this.progressNode) return;
 
-        // 进度为0或>=1时隐藏
-        this.progressNode.active = progress > 0 && progress < 1;
+        // 进度为0时隐藏，>=1时显示
+        this.progressNode.active = progress > 0;
         if (this.progressNode.active) {
             const sprite = this.progressNode.getComponent(Sprite);
             if (sprite) {
@@ -191,6 +197,7 @@ export class CircleController extends Component {
         if (!this.isGameActive()) return;
 
         this.isDragging = true;
+        this.hasTriggeredHighlight = false;
 
         // 显示 circle 节点
         if (this.circleNode) {
@@ -239,37 +246,33 @@ export class CircleController extends Component {
 
             // 检查该 block 是否已经是当前颜色
             if (newTargetIndex > 0 && this.isBlockColorMatched(newTargetBlock)) {
-                // 已经是相同颜色，不需要操作
-                this.resetHover();
                 return;
             }
 
             // 检查是否是同一个 block（在误差范围内）
-            if (this.targetBlock === newTargetBlock ||
+            const isSameBlock = this.targetBlock === newTargetBlock ||
                 (this.targetBlock && newTargetBlock &&
                  Math.abs(this.targetBlock.position.x - newTargetBlock.position.x) < this.POSITION_TOLERANCE &&
-                 Math.abs(this.targetBlock.position.y - newTargetBlock.position.y) < this.POSITION_TOLERANCE)) {
+                 Math.abs(this.targetBlock.position.y - newTargetBlock.position.y) < this.POSITION_TOLERANCE);
 
-                // 同一个 block，继续计时
-                if (!this.isHovering && newTargetIndex > 0) {
-                    this.isHovering = true;
+            if (!isSameBlock) {
+                // 换到了新的 block
+                if (this.hasTriggeredHighlight) {
+                    // 已经触发过高亮，立即高亮新 block
                     this.targetBlock = newTargetBlock;
                     this.targetBlockIndex = newTargetIndex;
-                    this.hoverStartTime = Date.now();
-                }
-            } else {
-                // 换到了新的 block，重置计时
-                this.resetHover();
-                if (newTargetIndex > 0) {
-                    this.isHovering = true;
-                    this.targetBlock = newTargetBlock;
-                    this.targetBlockIndex = newTargetIndex;
-                    this.hoverStartTime = Date.now();
+                    this.highlightBlocksByIndex(newTargetIndex, true);
+                } else {
+                    // 还没触发高亮，重置计时
+                    this.resetHover();
+                    if (newTargetIndex > 0) {
+                        this.isHovering = true;
+                        this.targetBlock = newTargetBlock;
+                        this.targetBlockIndex = newTargetIndex;
+                        this.hoverStartTime = Date.now();
+                    }
                 }
             }
-        } else {
-            // 没有在 block 上
-            this.resetHover();
         }
     }
 
@@ -454,46 +457,43 @@ export class CircleController extends Component {
     }
 
     /**
-     * 根据序号高亮/取消高亮所有 blocks
+     * 高亮/取消高亮目标 block
      */
-    private highlightBlocksByIndex(blockIndex: number, highlight: boolean) {
+    private highlightBlocksByIndex(_blockIndex: number, highlight: boolean) {
         const gameManager = GameManager.getInstance();
-        if (!gameManager || !gameManager.levelMode.gridDrawer) return;
+        if (!gameManager) return;
 
-        const gridDrawer = gameManager.levelMode.gridDrawer;
-        const blocks = gridDrawer.getBlocksByColorIndex(blockIndex);
+        if (!this.targetBlock) return;
 
-        for (const block of blocks) {
-            const blockController = block.getComponent(BlockController);
-            const circleNode = block.getChildByName('circle');
-            if (!circleNode) continue;
+        const blockController = this.targetBlock.getComponent(BlockController);
+        const circleNode = this.targetBlock.getChildByName('circle');
+        if (!circleNode) return;
 
-            const sprite = circleNode.getComponent(Sprite);
-            if (!sprite) continue;
+        const sprite = circleNode.getComponent(Sprite);
+        if (!sprite) return;
 
-            if (highlight) {
-                // 显示 circle 并设置颜色和 spriteFrame
-                sprite.enabled = true;
-                const circleSprite = this.circleNode.getComponent(Sprite);
-                if (circleSprite && circleSprite.spriteFrame) {
-                    sprite.spriteFrame = circleSprite.spriteFrame;
-                }
-                // 设置 circle 颜色
-                sprite.color = new Color(this._colorR, this._colorG, this._colorB, this._colorA);
+        if (highlight) {
+            // 显示 circle 并设置颜色和 spriteFrame
+            sprite.enabled = true;
+            const circleSprite = this.circleNode.getComponent(Sprite);
+            if (circleSprite && circleSprite.spriteFrame) {
+                sprite.spriteFrame = circleSprite.spriteFrame;
+            }
+            // 设置 circle 颜色
+            sprite.color = new Color(this._colorR, this._colorG, this._colorB, this._colorA);
 
-                // 设置 block 的当前颜色
-                if (blockController) {
-                    blockController.setCurrentColor(this._colorR, this._colorG, this._colorB, this._colorA);
-                    blockController.state = BlockState.HAS_CIRCLE;
-                }
-            } else {
-                // 隐藏 circle
-                sprite.enabled = false;
+            // 设置 block 的当前颜色
+            if (blockController) {
+                blockController.setCurrentColor(this._colorR, this._colorG, this._colorB, this._colorA);
+                blockController.state = BlockState.HAS_CIRCLE;
+            }
+        } else {
+            // 隐藏 circle
+            sprite.enabled = false;
 
-                // 设置 block 状态为 NO_CIRCLE
-                if (blockController) {
-                    blockController.state = BlockState.NO_CIRCLE;
-                }
+            // 设置 block 状态为 NO_CIRCLE
+            if (blockController) {
+                blockController.state = BlockState.NO_CIRCLE;
             }
         }
 
