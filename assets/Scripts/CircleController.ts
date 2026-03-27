@@ -12,9 +12,12 @@ export class CircleController extends Component {
     // 原始位置
     private originalPos: { x: number, y: number, z: number } = { x: 0, y: 0, z: 0 };
 
+    // 原始缩放和旋转
+    private originalScale: { x: number, y: number, z: number } = { x: 1, y: 1, z: 1 };
+    private originalRotation: { x: number, y: number, z: number } = { x: 0, y: 0, z: 0 };
+
     // 拖动状态
     private isDragging: boolean = false;
-    private dragOffset: { x: number, y: number } = { x: 0, y: 0 };
 
     // 颜色序号（从1开始）
     private _colorIndex: number = 0;
@@ -34,13 +37,12 @@ export class CircleController extends Component {
     private readonly HOVER_DURATION: number = 1000;   // hover 时长（毫秒）
     private readonly HOVER_DELAY: number = 500;        // 延迟开始计时（毫秒）
     private readonly POSITION_TOLERANCE: number = 20;  // 位置误差范围
+    private readonly DRAG_OFFSET: number = 90;
     private hasTriggeredHighlight: boolean = false;    // 是否已触发高亮
-    private readonly DRAG_OFFSET: number = 120;
 
     // circle 子节点
     private circleNode: Node | null = null;
     private progressNode: Node | null = null;
-    private pointNode: Node | null = null;
 
     /**
      * 判断游戏是否进行中
@@ -102,14 +104,16 @@ export class CircleController extends Component {
         // 获取 circle 子节点
         this.circleNode = this.node.getChildByName('circle');
 
-        const pos = this.circleNode.position;
+        const pos = this.node.position;
         this.originalPos = { x: pos.x, y: pos.y, z: pos.z };
+
+        // 保存原始 scale 和 rotation
+        this.originalScale = { x: this.node.scale.x, y: this.node.scale.y, z: this.node.scale.z };
+        this.originalRotation = { x: this.node.eulerAngles.x, y: this.node.eulerAngles.y, z: this.node.eulerAngles.z };
 
         // 获取并保存 progress 节点
         this.progressNode = this.circleNode.getChildByName('progress');
         this.progressNode.active = false;
-
-        this.pointNode = this.circleNode.getChildByName('point');
     }
 
     /**
@@ -153,12 +157,10 @@ export class CircleController extends Component {
     }
 
     /**
-     * 重置位置 - circle 节点回到原位置
+     * 重置位置 - 节点回到原位置
      */
     public resetPosition(): void {
-        if (this.circleNode) {
-            this.circleNode.setPosition(this.originalPos.x, this.originalPos.y, this.originalPos.z);
-        }
+        this.node.setPosition(this.originalPos.x, this.originalPos.y, this.originalPos.z);
     }
 
     /**
@@ -199,39 +201,36 @@ export class CircleController extends Component {
         this.isDragging = true;
         this.hasTriggeredHighlight = false;
 
-        // 显示 circle 节点
-        if (this.circleNode) {
-            this.circleNode.active = true;
-        }
+        // 显示节点
+        this.node.active = true;
 
+        // 上下翻转
+        this.node.setScale(1, -1, 1);
+
+        // 根据左右手配置设置旋转角度
+        const handSetting = GameManager.getInstance().hand_setting;
+        const rotationZ = handSetting === -1 ? -50 : 50;
+        this.node.setRotationFromEuler(0, 0, rotationZ);
+
+        // 设置节点世界坐标为触摸位置
         const pos = event.getUILocation();
-        const nodePos = this.circleNode.position;
-        this.dragOffset = { x: pos.x - nodePos.x, y: pos.y - nodePos.y };
-        const offsetX = (this.DRAG_OFFSET * GameManager.getInstance().hand_setting * -1);
-        const offsetY = this.DRAG_OFFSET;
-        const newX = pos.x - this.dragOffset.x + offsetX;
-        const newY = pos.y - this.dragOffset.y + offsetY;
-        this.circleNode.setPosition(newX, newY, 0);
+        this.node.setWorldPosition(pos.x - this.DRAG_OFFSET, pos.y + this.DRAG_OFFSET, 0);
         this.resetHover();
     }
 
     /**
-     * 触摸移动 - 移动 circle 节点而不是主节点
+     * 触摸移动 - 移动节点
      */
     private onTouchMove(event: EventTouch) {
         if (!this.isDragging) return;
 
+        // 设置节点世界坐标为触摸位置
         const pos = event.getUILocation();
-        const offsetX = (this.DRAG_OFFSET * GameManager.getInstance().hand_setting * -1);
-        const offsetY = this.DRAG_OFFSET;
-        const newX = pos.x - this.dragOffset.x + offsetX;
-        const newY = pos.y - this.dragOffset.y + offsetY;
+        this.node.setWorldPosition(pos.x - this.DRAG_OFFSET, pos.y + this.DRAG_OFFSET, 0);
 
-        this.circleNode.setPosition(newX, newY, 0);
-
-        const pointWorldPos = this.pointNode.getWorldPosition();
-        // 检测是否拖动到了某个 block 上（使用偏移后的位置）
-        const newTargetBlock = this.getBlockAtPosition(pointWorldPos.x, pointWorldPos.y);
+        const nodeWorldPos = this.node.getWorldPosition();
+        // 检测是否拖动到了某个 block 上
+        const newTargetBlock = this.getBlockAtPosition(nodeWorldPos.x, nodeWorldPos.y);
 
         if (newTargetBlock) {
             const newTargetIndex = this.getBlockNumber(newTargetBlock);
@@ -282,10 +281,9 @@ export class CircleController extends Component {
     private onTouchEnd(_event: EventTouch) {
         this.isDragging = false;
 
-        // 隐藏 circle 节点
-        if (this.circleNode) {
-            this.circleNode.active = false;
-        }
+        // 恢复原始 scale 和 rotation
+        this.node.setScale(this.originalScale.x, this.originalScale.y, this.originalScale.z);
+        this.node.setRotationFromEuler(this.originalRotation.x, this.originalRotation.y, this.originalRotation.z);
 
         this.resetHover();
         this.resetPosition();
