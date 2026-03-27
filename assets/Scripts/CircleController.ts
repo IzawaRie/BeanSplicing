@@ -43,6 +43,7 @@ export class CircleController extends Component {
     // circle 子节点
     private circleNode: Node | null = null;
     private progressNode: Node | null = null;
+    private pointNode: Node | null = null;
 
     /**
      * 判断游戏是否进行中
@@ -114,6 +115,9 @@ export class CircleController extends Component {
         // 获取并保存 progress 节点
         this.progressNode = this.circleNode.getChildByName('progress');
         this.progressNode.active = false;
+
+        // 获取并保存 point 节点
+        this.pointNode = this.circleNode.getChildByName('point');
     }
 
     /**
@@ -201,8 +205,10 @@ export class CircleController extends Component {
         this.isDragging = true;
         this.hasTriggeredHighlight = false;
 
-        // 显示节点
-        this.node.active = true;
+        // 显示 circleNode，隐藏主节点
+        if (this.circleNode) {
+            this.circleNode.active = true;
+        }
 
         // 上下翻转
         this.node.setScale(1, -1, 1);
@@ -228,7 +234,7 @@ export class CircleController extends Component {
         const pos = event.getUILocation();
         this.node.setWorldPosition(pos.x - this.DRAG_OFFSET, pos.y + this.DRAG_OFFSET, 0);
 
-        const nodeWorldPos = this.node.getWorldPosition();
+        const nodeWorldPos = this.pointNode.getWorldPosition();
         // 检测是否拖动到了某个 block 上
         const newTargetBlock = this.getBlockAtPosition(nodeWorldPos.x, nodeWorldPos.y);
 
@@ -284,6 +290,11 @@ export class CircleController extends Component {
         // 恢复原始 scale 和 rotation
         this.node.setScale(this.originalScale.x, this.originalScale.y, this.originalScale.z);
         this.node.setRotationFromEuler(this.originalRotation.x, this.originalRotation.y, this.originalRotation.z);
+
+        // 隐藏 circleNode
+        if (this.circleNode) {
+            this.circleNode.active = false;
+        }
 
         this.resetHover();
         this.resetPosition();
