@@ -85,7 +85,6 @@ export class CircleController extends Component {
 
             const actualElapsed = elapsed - this.HOVER_DELAY;
             const progress = actualElapsed / this.HOVER_DURATION;
-
             if (progress >= 1) {
                 // 计时完成，触发变色，不重置进度
                 this.highlightBlocksByIndex(this.targetBlockIndex, true);
@@ -113,8 +112,7 @@ export class CircleController extends Component {
         this.originalRotation = { x: this.node.eulerAngles.x, y: this.node.eulerAngles.y, z: this.node.eulerAngles.z };
 
         // 获取并保存 progress 节点
-        this.progressNode = this.circleNode.getChildByName('progress');
-        this.progressNode.active = false;
+        this.progressNode = this.node.getChildByName('progress');
 
         // 获取并保存 point 节点
         this.pointNode = this.circleNode.getChildByName('point');
@@ -141,14 +139,6 @@ export class CircleController extends Component {
             const circleSprite = this.circleNode.getComponent(Sprite);
             if (circleSprite) {
                 circleSprite.color = new Color(r, g, b, a);
-            }
-        }
-
-        // 设置 progress 节点的颜色
-        if (this.progressNode) {
-            const progressSprite = this.progressNode.getComponent(Sprite);
-            if (progressSprite) {
-                progressSprite.color = new Color(r, g, b, a);
             }
         }
     }
@@ -191,7 +181,7 @@ export class CircleController extends Component {
             const sprite = this.progressNode.getComponent(Sprite);
             if (sprite) {
                 // fillRange 从 0 到 -1
-                (sprite as any).fillRange = -progress;
+                (sprite as any).fillRange = progress;
             }
         }
     }
