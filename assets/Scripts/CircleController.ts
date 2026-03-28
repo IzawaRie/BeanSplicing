@@ -37,7 +37,7 @@ export class CircleController extends Component {
     private readonly HOVER_DURATION: number = 1000;   // hover 时长（毫秒）
     private readonly HOVER_DELAY: number = 500;        // 延迟开始计时（毫秒）
     private readonly POSITION_TOLERANCE: number = 20;  // 位置误差范围
-    private readonly DRAG_OFFSET: number = 90;
+    private readonly DRAG_OFFSET: number = 0;
     private hasTriggeredHighlight: boolean = false;    // 是否已触发高亮
 
     // circle 子节点
