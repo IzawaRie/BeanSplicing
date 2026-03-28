@@ -456,7 +456,17 @@ export class CircleController extends Component {
     }
 
     /**
-     * 高亮/取消高亮目标 block
+     * 获取单个 block 的颜色序号（从 number 子节点的 Label 读取）
+     */
+    private getBlockColorIndex(block: Node): string {
+        const numNode = block.getChildByName('number');
+        if (!numNode) return '';
+        const label = numNode.getComponent(Label);
+        return label?.string ?? '';
+    }
+
+    /**
+     * 高亮/取消高亮目标 block 及所有序号相同的连通 block（洪水填充）
      */
     private highlightBlocksByIndex(_blockIndex: number, highlight: boolean) {
         const gameManager = GameManager.getInstance();
@@ -464,35 +474,83 @@ export class CircleController extends Component {
 
         if (!this.targetBlock) return;
 
-        const blockController = this.targetBlock.getComponent(BlockController);
-        const circleNode = this.targetBlock.getChildByName('circle');
-        if (!circleNode) return;
+        // 获取当前目标 block 的序号（不是镊子颜色，而是目标颜色序号）
+        const targetColorIndex = this.getBlockColorIndex(this.targetBlock);
+        if (!targetColorIndex) return; // 透明 block 没有序号
 
-        const sprite = circleNode.getComponent(Sprite);
-        if (!sprite) return;
+        // 从 GameManager 获取 GridDrawer
+        const gridDrawer = gameManager.levelMode?.gridDrawer;
+        if (!gridDrawer) return;
 
-        if (highlight) {
-            // 显示 circle 并设置颜色和 spriteFrame
-            sprite.enabled = true;
-            const circleSprite = this.circleNode.getComponent(Sprite);
-            if (circleSprite && circleSprite.spriteFrame) {
-                sprite.spriteFrame = circleSprite.spriteFrame;
+        const blocks = gridDrawer.getAllBlocks();
+        if (!blocks || blocks.length === 0) return;
+
+        const rows = blocks.length;
+        const columns = blocks[0]?.length ?? 0;
+
+        // 洪水填充：从 targetBlock 出发，找出所有序号相同的连通 block
+        const visited = new Set<string>();
+        const connectedBlocks: Node[] = [];
+        const stack: Node[] = [this.targetBlock];
+
+        while (stack.length > 0) {
+            const block = stack.pop()!;
+            const bc = block.getComponent(BlockController);
+            if (!bc) continue;
+
+            const row = bc['_row'] as number;
+            const col = bc['_col'] as number;
+            const bKey = `${row},${col}`;
+
+            if (visited.has(bKey)) continue;
+            visited.add(bKey);
+
+            // 检查序号是否相同
+            const blockColorIndex = this.getBlockColorIndex(block);
+            if (blockColorIndex !== targetColorIndex) continue;
+
+            connectedBlocks.push(block);
+
+            // 8 个方向入栈
+            const dirs = [
+                [row - 1, col - 1], [row - 1, col], [row - 1, col + 1],
+                [row, col - 1],                     [row, col + 1],
+                [row + 1, col - 1], [row + 1, col], [row + 1, col + 1]
+            ];
+            for (const [r, c] of dirs) {
+                if (r < 0 || r >= rows || c < 0 || c >= columns) continue;
+                const nb = blocks[r]?.[c];
+                if (nb && !visited.has(`${r},${c}`)) {
+                    stack.push(nb);
+                }
             }
-            // 设置 circle 颜色
-            sprite.color = new Color(this._colorR, this._colorG, this._colorB, this._colorA);
+        }
 
-            // 设置 block 的当前颜色
-            if (blockController) {
-                blockController.setCurrentColor(this._colorR, this._colorG, this._colorB, this._colorA);
-                blockController.state = BlockState.HAS_CIRCLE;
-            }
-        } else {
-            // 隐藏 circle
-            sprite.enabled = false;
+        // 对所有连通的 block 应用高亮或取消高亮
+        for (const block of connectedBlocks) {
+            const blockController = block.getComponent(BlockController);
+            const circleNode = block.getChildByName('circle');
+            if (!circleNode) continue;
+            const sprite = circleNode.getComponent(Sprite);
+            if (!sprite) continue;
 
-            // 设置 block 状态为 NO_CIRCLE
-            if (blockController) {
-                blockController.state = BlockState.NO_CIRCLE;
+            if (highlight) {
+                sprite.enabled = true;
+                const circleSprite = this.circleNode.getComponent(Sprite);
+                if (circleSprite && circleSprite.spriteFrame) {
+                    sprite.spriteFrame = circleSprite.spriteFrame;
+                }
+                sprite.color = new Color(this._colorR, this._colorG, this._colorB, this._colorA);
+
+                if (blockController) {
+                    blockController.setCurrentColor(this._colorR, this._colorG, this._colorB, this._colorA);
+                    blockController.state = BlockState.HAS_CIRCLE;
+                }
+            } else {
+                sprite.enabled = false;
+                if (blockController) {
+                    blockController.state = BlockState.NO_CIRCLE;
+                }
             }
         }
 
