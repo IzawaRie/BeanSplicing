@@ -7,8 +7,9 @@ export class BlockCreator {
 
     /**
      * 创建网格中的所有 block 节点
+     * @param callback 创建完成回调（所有 block 节点已实例化，但颜色等数据尚未应用）
      */
-    createBlocks(parent: Node, rows: number, columns: number, cellWidth: number, cellHeight: number, prefabPath: string = 'block'): void {
+    createBlocks(parent: Node, rows: number, columns: number, cellWidth: number, cellHeight: number, prefabPath: string = 'block', callback?: () => void): void {
         // 创建容器节点
         this.blocksContainer = new Node('BlocksContainer');
         parent.addChild(this.blocksContainer);
@@ -20,6 +21,7 @@ export class BlockCreator {
             }
 
             this.doCreateBlocks(parent, rows, columns, cellWidth, cellHeight, prefab);
+            callback?.();
         });
     }
 

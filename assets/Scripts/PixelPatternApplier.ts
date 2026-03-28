@@ -41,6 +41,12 @@ export class PixelPatternApplier extends Component {
 
             const patternData = (jsonAsset as JsonAsset).json as PixelPatternJson;
             this.applyPattern(patternData);
+
+            // 图案应用完成后，绘制有效 block 的网格线
+            if (this.gridDrawer) {
+                this.gridDrawer.drawInnerGridsWithPattern(patternData.gridHeight, patternData.gridWidth);
+            }
+
             callback?.();
         });
     }

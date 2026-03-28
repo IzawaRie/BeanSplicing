@@ -1,4 +1,4 @@
-import { _decorator, Component, Sprite, Graphics, Color, Node, UITransform, Layers, EventTouch, input, Input, EventMouse, Label } from 'cc';
+import { _decorator, Component, Graphics, Color, Node, UITransform, Layers, EventTouch, input, Input, EventMouse, Label } from 'cc';
 import { BlockCreator } from './BlockCreator';
 import { BlockController, BlockState } from './BlockController';
 import { GameManager } from './GameManager';
@@ -232,22 +232,6 @@ export class GridDrawer extends Component {
         callback?.();
     }
 
-    private updateContentSize() {
-        const uiTransform = this.node.getComponent(UITransform);
-        if (!uiTransform) return;
-
-        const width = uiTransform.width;
-        const height = uiTransform.height;
-
-        if (this.contentNode) {
-            let contentTransform = this.contentNode.getComponent(UITransform);
-            if (!contentTransform) {
-                contentTransform = this.contentNode.addComponent(UITransform);
-            }
-            contentTransform.setContentSize(width, height);
-        }
-    }
-
     public loadBlockPrefab(callback?: () => void) {
         // 从 LevelConfig 获取当前关卡的网格配置
         const levelConfig = LevelConfig.getInstance();
@@ -255,39 +239,40 @@ export class GridDrawer extends Component {
         const rows = gridConfig?.rows || 6;
         const columns = gridConfig?.columns || 6;
 
-        this.drawAllGrids(rows, columns);
-
         const uiTransform = this.node.getComponent(UITransform);
 
         const cellWidth = uiTransform.width / columns;
         const cellHeight = uiTransform.height / rows;
 
-        this.blockCreator.createBlocks(this.contentNode!, rows, columns, cellWidth, cellHeight);
+        // 先只创建 blocks，grid 线条在 pattern 应用后再绘制
+        this.blockCreator.createBlocks(this.contentNode!, rows, columns, cellWidth, cellHeight, 'block', () => {
+            // 设置 BlocksContainer 在内边框下面
+            const blocksContainer = this.blockCreator.getBlocksContainer();
+            const innerNode = this.contentNode?.getChildByName('InnerGrids');
+            if (blocksContainer && innerNode) {
+                blocksContainer.setSiblingIndex(0);
+            }
 
-        // 设置 BlocksContainer 在内边框下面
-        const blocksContainer = this.blockCreator.getBlocksContainer();
-        const innerNode = this.contentNode?.getChildByName('InnerGrids');
-        if (blocksContainer && innerNode) {
-            // 设置 BlocksContainer 在 innerNode 下面（更低的 siblingIndex）
-            blocksContainer.setSiblingIndex(0);
-        }
+            this.enableZoomFeature();
 
-        this.enableZoomFeature();
-
-        // 延迟一帧后再调用回调，确保 UI 更新
-        this.scheduleOnce(() => {
-            this.onBlocksCreated?.();
-            callback?.();
-        }, 0);
+            // 延迟一帧后再调用回调，确保 UI 更新
+            this.scheduleOnce(() => {
+                this.onBlocksCreated?.();
+                callback?.();
+            }, 0);
+        });
     }
 
-    private drawAllGrids(rows: number, columns: number) {
-        const sprite = this.getComponent(Sprite);
+
+    /**
+     * 根据已应用的图案数据绘制网格线（只绘制有效 block 区域）
+     * 每个有效 block 画全部4条边，共享边会重复绘制但视觉上无影响
+     */
+    public drawInnerGridsWithPattern(rows: number, columns: number): void {
+        if (!this.innerGraphics) return;
+
         const uiTransform = this.node.getComponent(UITransform);
-
-        if (!sprite || !uiTransform) return;
-
-        this.updateContentSize();
+        if (!uiTransform) return;
 
         const width = uiTransform.width;
         const height = uiTransform.height;
@@ -296,12 +281,6 @@ export class GridDrawer extends Component {
         const cellWidth = width / columns;
         const cellHeight = height / rows;
 
-        this.drawInnerGrids(width, height, cellWidth, cellHeight, rows, columns);
-    }
-
-    private drawInnerGrids(width: number, height: number, cellWidth: number, cellHeight: number, rows: number, columns: number) {
-        if (!this.innerGraphics) return;
-
         const halfW = width / 2;
         const halfH = height / 2;
 
@@ -309,16 +288,38 @@ export class GridDrawer extends Component {
         this.innerGraphics.lineWidth = this.innerLineWidth;
         this.innerGraphics.strokeColor = this.lineColor;
 
-        for (let i = 1; i < columns; i++) {
-            const x = -halfW + i * cellWidth;
-            this.innerGraphics.moveTo(x, -halfH);
-            this.innerGraphics.lineTo(x, halfH);
-        }
+        const blocks = this.blockCreator.getAllBlocks();
+        if (!blocks || blocks.length === 0) return;
 
-        for (let j = 1; j < rows; j++) {
-            const y = -halfH + j * cellHeight;
-            this.innerGraphics.moveTo(-halfW, y);
-            this.innerGraphics.lineTo(halfW, y);
+        // 遍历所有 block，只对有效 block（targetColorA > 0）画全部4条边
+        for (let row = 0; row < rows; row++) {
+            for (let col = 0; col < columns; col++) {
+                const block = blocks[row]?.[col];
+                if (!block) continue;
+
+                const blockController = block.getComponent(BlockController);
+                if (!blockController || blockController.targetColorA === 0) continue;
+
+                // block 左下角世界坐标
+                const bx = -halfW + col * cellWidth;
+                const by = halfH - row * cellHeight;
+
+                // 上边
+                this.innerGraphics.moveTo(bx, by);
+                this.innerGraphics.lineTo(bx + cellWidth, by);
+
+                // 下边
+                this.innerGraphics.moveTo(bx, by - cellHeight);
+                this.innerGraphics.lineTo(bx + cellWidth, by - cellHeight);
+
+                // 左边
+                this.innerGraphics.moveTo(bx, by);
+                this.innerGraphics.lineTo(bx, by - cellHeight);
+
+                // 右边
+                this.innerGraphics.moveTo(bx + cellWidth, by);
+                this.innerGraphics.lineTo(bx + cellWidth, by - cellHeight);
+            }
         }
 
         this.innerGraphics.stroke();
