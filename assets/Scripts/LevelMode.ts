@@ -183,10 +183,16 @@ export class LevelMode extends GameMode {
             this.start_btn.active = false;
         }
 
-        // 隐藏所有 block sprite，显示所有 number 节点
+        // 隐藏所有 block sprite（渐隐），完成后显示 number 节点并开始游戏
         if (this.gridDrawer) {
-            this.gridDrawer.hideAllBlockSprites();
-            this.gridDrawer.showAllNumberNodes();
+            this.gridDrawer.hideAllBlockSpritesFade(0.5, () => {
+                this.gridDrawer.showAllNumberNodes();
+                this.startGame();
+                this.startCountdown();
+            });
+        } else {
+            this.startGame();
+            this.startCountdown();
         }
 
         // 显示 game_label 和 game_item
@@ -196,10 +202,6 @@ export class LevelMode extends GameMode {
         if (this.game_item) {
             this.game_item.active = true;
         }
-
-        // 开始游戏（startGame 设置 GameState.PLAYING，startCountdown 启动游戏倒计时）
-        this.startGame();
-        this.startCountdown();
     }
 
     /**

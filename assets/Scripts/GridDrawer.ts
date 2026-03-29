@@ -1,4 +1,4 @@
-import { _decorator, Component, Graphics, Color, Node, UITransform, Layers, EventTouch, input, Input, EventMouse, Label, Sprite } from 'cc';
+import { _decorator, Component, Graphics, Color, Node, UITransform, Layers, EventTouch, input, Input, EventMouse, Label, Sprite, UIOpacity, tween, Tween } from 'cc';
 import { BlockCreator } from './BlockCreator';
 import { BlockController, BlockState } from './BlockController';
 import { GameManager } from './GameManager';
@@ -447,19 +447,55 @@ export class GridDrawer extends Component {
     }
 
     /**
-     * 隐藏所有 block 的 sprite（读秒结束后隐藏拼豆颜色，露出序号）
+     * 隐藏所有 block 的 sprite（读秒结束后渐隐隐藏拼豆颜色，露出序号）
+     * 只对 sprite 本身渐隐，不影响子节点（number 节点不受影响）
+     * @param duration 渐隐时长（秒），默认 0.5
+     * @param onComplete 完成后回调
      */
-    public hideAllBlockSprites(): void {
+    public hideAllBlockSpritesFade(duration: number = 0.5, onComplete?: () => void): void {
         const blocks = this.blockCreator.getAllBlocks();
         if (!blocks) return;
+
+        let completed = 0;
+        const total = blocks.length * (blocks[0]?.length ?? 0);
+        if (total === 0) {
+            onComplete?.();
+            return;
+        }
+
         for (let row = 0; row < blocks.length; row++) {
             for (let col = 0; col < blocks[row].length; col++) {
                 const block = blocks[row][col];
-                if (!block) continue;
-                const sprite = block.getComponent(Sprite);
-                if (sprite) {
-                    sprite.enabled = false;
+                if (!block) {
+                    completed++;
+                    continue;
                 }
+
+                const sprite = block.getComponent(Sprite);
+                if (!sprite) {
+                    completed++;
+                    continue;
+                }
+
+                // 获取或添加 UIOpacity 组件
+                let uiOpacity = sprite.getComponent(UIOpacity);
+                if (!uiOpacity) {
+                    uiOpacity = sprite.addComponent(UIOpacity);
+                }
+                uiOpacity.opacity = 255;
+
+                tween(uiOpacity)
+                    .to(duration, { opacity: 0 })
+                    .call(() => {
+                        // 渐隐完成后禁用 sprite，opacity 归零后重置为 255
+                        sprite.enabled = false;
+                        uiOpacity.opacity = 255;
+                        completed++;
+                        if (completed >= total) {
+                            onComplete?.();
+                        }
+                    })
+                    .start();
             }
         }
     }
