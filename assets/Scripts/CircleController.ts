@@ -1,4 +1,4 @@
-import { _decorator, Component, Node, Sprite, Color, EventTouch, UITransform, Label } from 'cc';
+import { _decorator, Component, Node, Sprite, Color, EventTouch, UITransform, Label, UIOpacity } from 'cc';
 import { GameManager, GameState } from './GameManager';
 import { BlockController, BlockState } from './BlockController';
 const { ccclass, property } = _decorator;
@@ -38,11 +38,9 @@ export class CircleController extends Component {
     private readonly HOVER_DELAY: number = 500;        // 延迟开始计时（毫秒）
     private readonly POSITION_TOLERANCE: number = 20;  // 位置误差范围
     private readonly DRAG_OFFSET: number = 0;
-    private hasTriggeredHighlight: boolean = false;    // 是否已触发高亮
 
     // circle 子节点
     private circleNode: Node | null = null;
-    private progressNode: Node | null = null;
     private pointNode: Node | null = null;
 
     /**
@@ -70,9 +68,6 @@ export class CircleController extends Component {
     }
 
     update(_deltaTime: number) {
-        // 如果已触发高亮，不再更新进度
-        if (this.hasTriggeredHighlight) return;
-
         // 更新 hover 进度
         if (this.isHovering && this.targetBlock && this.targetBlockIndex > 0) {
             const elapsed = Date.now() - this.hoverStartTime;
@@ -86,10 +81,9 @@ export class CircleController extends Component {
             const actualElapsed = elapsed - this.HOVER_DELAY;
             const progress = actualElapsed / this.HOVER_DURATION;
             if (progress >= 1) {
-                // 计时完成，触发变色，不重置进度
+                // 计时完成，触发变色，然后重置
                 this.highlightBlocksByIndex(this.targetBlockIndex, true);
                 this.resetHover();
-                this.hasTriggeredHighlight = true;
             } else {
                 // 更新进度条
                 this.updateProgress(progress);
@@ -110,9 +104,6 @@ export class CircleController extends Component {
         // 保存原始 scale 和 rotation
         this.originalScale = { x: this.node.scale.x, y: this.node.scale.y, z: this.node.scale.z };
         this.originalRotation = { x: this.node.eulerAngles.x, y: this.node.eulerAngles.y, z: this.node.eulerAngles.z };
-
-        // 获取并保存 progress 节点
-        this.progressNode = this.node.getChildByName('progress');
 
         // 获取并保存 point 节点
         this.pointNode = this.circleNode.getChildByName('point');
@@ -165,7 +156,6 @@ export class CircleController extends Component {
         this.targetBlock = null;
         this.targetBlockIndex = 0;
         this.hoverStartTime = 0;
-        this.hasTriggeredHighlight = false;
         this.updateProgress(0);
     }
 
@@ -173,17 +163,16 @@ export class CircleController extends Component {
      * 更新进度条
      */
     private updateProgress(progress: number): void {
-        if (!this.progressNode) return;
+        if (!this.circleNode) return;
 
-        // 进度为0时隐藏，>=1时显示
-        this.progressNode.active = progress > 0;
-        if (this.progressNode.active) {
-            const sprite = this.progressNode.getComponent(Sprite);
-            if (sprite) {
-                // fillRange 从 0 到 -1
-                (sprite as any).fillRange = progress;
-            }
+        // 确保有 UIOpacity 组件
+        let uiOpacity = this.circleNode.getComponent(UIOpacity);
+        if (!uiOpacity) {
+            uiOpacity = this.circleNode.addComponent(UIOpacity);
         }
+
+        // opacity 从 0（进度0）到 255（进度1）
+        uiOpacity.opacity = Math.round(progress * 255);
     }
 
     /**
@@ -193,7 +182,6 @@ export class CircleController extends Component {
         if (!this.isGameActive()) return;
 
         this.isDragging = true;
-        this.hasTriggeredHighlight = false;
 
         // 显示 circleNode，隐藏主节点
         if (this.circleNode) {
@@ -251,21 +239,13 @@ export class CircleController extends Component {
                  Math.abs(this.targetBlock.position.y - newTargetBlock.position.y) < this.POSITION_TOLERANCE);
 
             if (!isSameBlock) {
-                // 换到了新的 block
-                if (this.hasTriggeredHighlight) {
-                    // 已经触发过高亮，立即高亮新 block
+                // 换到了新的 block，重置计时
+                this.resetHover();
+                if (newTargetIndex > 0) {
+                    this.isHovering = true;
                     this.targetBlock = newTargetBlock;
                     this.targetBlockIndex = newTargetIndex;
-                    this.highlightBlocksByIndex(newTargetIndex, true);
-                } else {
-                    // 还没触发高亮，重置计时
-                    this.resetHover();
-                    if (newTargetIndex > 0) {
-                        this.isHovering = true;
-                        this.targetBlock = newTargetBlock;
-                        this.targetBlockIndex = newTargetIndex;
-                        this.hoverStartTime = Date.now();
-                    }
+                    this.hoverStartTime = Date.now();
                 }
             }
         }
