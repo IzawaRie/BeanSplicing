@@ -450,11 +450,10 @@ export class CircleController extends Component {
 
     /**
      * 高亮/取消高亮目标 block 及所有序号相同的连通 block（洪水填充，带波纹扩散动画）
-     * @returns 高亮的 block 数量
+     * @returns 真正变化的高亮 block 数量（新增计+1，取消计-1）
      */
     private highlightBlocksByIndex(_blockIndex: number, highlight: boolean): number {
         const gameManager = GameManager.getInstance();
-        if (!gameManager) return;
 
         if (!this.targetBlock) return 0;
 
@@ -472,15 +471,15 @@ export class CircleController extends Component {
         const rows = blocks.length;
         const columns = blocks[0]?.length ?? 0;
 
-        // BFS 洪水填充，同时记录每个 block 属于第几层（用于波纹动画）
+        // BFS 洪水填充，同时记录每个 block、层级和状态变化量
         const visited = new Set<string>();
-        // { block, level } 数组，按层分组
-        const levelMap: { block: Node; level: number }[] = [];
+        // { block, level, delta } 数组
+        const levelMap: { block: Node; level: number; delta: number }[] = [];
         // 队列：[row, col, level]
         const queue: [number, number, number][] = [];
 
         const bc = this.targetBlock.getComponent(BlockController);
-        if (!bc) return;
+        if (!bc) return 0;
         const startRow = bc['_row'] as number;
         const startCol = bc['_col'] as number;
 
@@ -498,12 +497,26 @@ export class CircleController extends Component {
 
             const blockController = block.getComponent(BlockController);
             if (!blockController || blockController.targetColorA === 0) continue;
+            if (blockController.state === BlockState.IRONED) continue; // 已熨烫的跳过
 
             const blockColorIndex = this.getBlockColorIndex(block);
             if (blockColorIndex !== targetColorIndex) continue;
 
             visited.add(key);
-            levelMap.push({ block, level });
+
+            // 计算该 block 的 delta（只在高亮/取消时判断，跳过无状态变化的）
+            let delta = 0;
+            if (highlight) {
+                if (blockController.state === BlockState.NO_CIRCLE) {
+                    delta = 1; // 从无到有，计新增
+                }
+            } else {
+                if (blockController.state === BlockState.HAS_CIRCLE) {
+                    delta = -1; // 从有到无，计取消
+                }
+            }
+
+            levelMap.push({ block, level, delta });
 
             // 8 个方向入队
             const dirs: [number, number][] = [
@@ -519,15 +532,18 @@ export class CircleController extends Component {
             }
         }
 
-        // 对单个 block 应用高亮/取消高亮
-        const applyHighlight = (block: Node, isHighlight: boolean) => {
+        // 统计总 delta
+        const totalDelta = levelMap.reduce((sum, item) => sum + item.delta, 0);
+
+        // 对单个 block 应用高亮/取消高亮（动画执行，不改变 delta）
+        const applyHighlight = (block: Node) => {
             const blockController = block.getComponent(BlockController);
             const circleNode = block.getChildByName('circle');
             if (!circleNode) return;
             const sprite = circleNode.getComponent(Sprite);
             if (!sprite) return;
 
-            if (isHighlight) {
+            if (highlight) {
                 sprite.enabled = true;
                 const circleSprite = this.circleNode.getComponent(Sprite);
                 if (circleSprite && circleSprite.spriteFrame) {
@@ -555,18 +571,18 @@ export class CircleController extends Component {
             const delay = level * delayPerLevel;
             if (delay === 0 && !vibrateMap.has(0)) {
                 vibrateMap.add(0);
-                applyHighlight(block, highlight);
+                applyHighlight(block);
                 if (levelMap.length > 1) {
                     gameManager.vibrateShort();
                 }
             } else {
                 setTimeout(() => {
-                    applyHighlight(block, highlight);
+                    applyHighlight(block);
                 }, delay * 1000);
             }
         }
 
-        // 返回高亮的 block 数量
-        return levelMap.length;
+        // 返回总 delta（可能为负数）
+        return totalDelta;
     }
 }
