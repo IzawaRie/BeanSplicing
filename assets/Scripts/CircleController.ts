@@ -466,7 +466,7 @@ export class CircleController extends Component {
     }
 
     /**
-     * 高亮/取消高亮目标 block 及所有序号相同的连通 block（洪水填充）
+     * 高亮/取消高亮目标 block 及所有序号相同的连通 block（洪水填充，带波纹扩散动画）
      */
     private highlightBlocksByIndex(_blockIndex: number, highlight: boolean) {
         const gameManager = GameManager.getInstance();
@@ -488,53 +488,62 @@ export class CircleController extends Component {
         const rows = blocks.length;
         const columns = blocks[0]?.length ?? 0;
 
-        // 洪水填充：从 targetBlock 出发，找出所有序号相同的连通 block
+        // BFS 洪水填充，同时记录每个 block 属于第几层（用于波纹动画）
         const visited = new Set<string>();
-        const connectedBlocks: Node[] = [];
-        const stack: Node[] = [this.targetBlock];
+        // { block, level } 数组，按层分组
+        const levelMap: { block: Node; level: number }[] = [];
+        // 队列：[row, col, level]
+        const queue: [number, number, number][] = [];
 
-        while (stack.length > 0) {
-            const block = stack.pop()!;
-            const bc = block.getComponent(BlockController);
-            if (!bc) continue;
+        const bc = this.targetBlock.getComponent(BlockController);
+        if (!bc) return;
+        const startRow = bc['_row'] as number;
+        const startCol = bc['_col'] as number;
 
-            const row = bc['_row'] as number;
-            const col = bc['_col'] as number;
-            const bKey = `${row},${col}`;
+        queue.push([startRow, startCol, 0]);
 
-            if (visited.has(bKey)) continue;
-            visited.add(bKey);
+        while (queue.length > 0) {
+            const [row, col, level] = queue.shift()!;
+            const key = `${row},${col}`;
 
-            // 检查序号是否相同
+            if (row < 0 || row >= rows || col < 0 || col >= columns) continue;
+            if (visited.has(key)) continue;
+
+            const block = blocks[row]?.[col];
+            if (!block) continue;
+
+            const blockController = block.getComponent(BlockController);
+            if (!blockController || blockController.targetColorA === 0) continue;
+
             const blockColorIndex = this.getBlockColorIndex(block);
             if (blockColorIndex !== targetColorIndex) continue;
 
-            connectedBlocks.push(block);
+            visited.add(key);
+            levelMap.push({ block, level });
 
-            // 8 个方向入栈
-            const dirs = [
-                [row - 1, col - 1], [row - 1, col], [row - 1, col + 1],
-                [row, col - 1],                     [row, col + 1],
-                [row + 1, col - 1], [row + 1, col], [row + 1, col + 1]
+            // 8 个方向入队
+            const dirs: [number, number][] = [
+                [row - 1, col], [row + 1, col],
+                [row, col - 1], [row, col + 1],
+                [row - 1, col - 1], [row - 1, col + 1],
+                [row + 1, col - 1], [row + 1, col + 1]
             ];
             for (const [r, c] of dirs) {
-                if (r < 0 || r >= rows || c < 0 || c >= columns) continue;
-                const nb = blocks[r]?.[c];
-                if (nb && !visited.has(`${r},${c}`)) {
-                    stack.push(nb);
+                if (!visited.has(`${r},${c}`)) {
+                    queue.push([r, c, level + 1]);
                 }
             }
         }
 
-        // 对所有连通的 block 应用高亮或取消高亮
-        for (const block of connectedBlocks) {
+        // 对单个 block 应用高亮/取消高亮
+        const applyHighlight = (block: Node, isHighlight: boolean) => {
             const blockController = block.getComponent(BlockController);
             const circleNode = block.getChildByName('circle');
-            if (!circleNode) continue;
+            if (!circleNode) return;
             const sprite = circleNode.getComponent(Sprite);
-            if (!sprite) continue;
+            if (!sprite) return;
 
-            if (highlight) {
+            if (isHighlight) {
                 sprite.enabled = true;
                 const circleSprite = this.circleNode.getComponent(Sprite);
                 if (circleSprite && circleSprite.spriteFrame) {
@@ -552,8 +561,25 @@ export class CircleController extends Component {
                     blockController.state = BlockState.NO_CIRCLE;
                 }
             }
-        }
+        };
 
-        gameManager.vibrateShort();
+        // 按层顺序，层内并行，层间延迟扩散
+        const delayPerLevel = 0.05; // 每层延迟 50ms
+        const vibrateMap = new Set<number>(); // 只在最外层振动一次
+
+        for (const { block, level } of levelMap) {
+            const delay = level * delayPerLevel;
+            if (delay === 0 && !vibrateMap.has(0)) {
+                vibrateMap.add(0);
+                applyHighlight(block, highlight);
+                if (levelMap.length > 1) {
+                    gameManager.vibrateShort();
+                }
+            } else {
+                setTimeout(() => {
+                    applyHighlight(block, highlight);
+                }, delay * 1000);
+            }
+        }
     }
 }

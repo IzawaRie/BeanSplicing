@@ -432,48 +432,37 @@ export class GridDrawer extends Component {
         const blocks = this.blockCreator.getAllBlocks();
         if (!blocks || blocks.length === 0) return;
 
-        // 颜色到序号的映射
-        const colorMap = new Map<string, number>();
-        // 存储每个位置的序号
-        const numberMap: number[][] = [];
+        // 第一步：收集所有不重复的颜色 key（顺序按扫描顺序）
+        const colorKeys: string[] = [];
+        const colorKeySet = new Set<string>();
 
-        let colorIndex = 1;
-
-        // 遍历所有 blocks，统计颜色
         for (let row = 0; row < blocks.length; row++) {
-            numberMap[row] = [];
             for (let col = 0; col < blocks[row].length; col++) {
                 const block = blocks[row][col];
                 if (!block) continue;
-
-                // 通过 BlockController 获取目标颜色
-                const blockController = block.getComponent(BlockController);
-                if (!blockController) continue;
-
-                const colorR = blockController.targetColorR;
-                const colorG = blockController.targetColorG;
-                const colorB = blockController.targetColorB;
-                const colorA = blockController.targetColorA;
-
-                // 使用 rgba 作为颜色 key（忽略透明度为0的）
-                if (colorA === 0) {
-                    numberMap[row][col] = 0; // 透明块不显示序号
-                    continue;
+                const bc = block.getComponent(BlockController);
+                if (!bc || bc.targetColorA === 0) continue;
+                const colorKey = `${bc.targetColorR},${bc.targetColorG},${bc.targetColorB}`;
+                if (!colorKeySet.has(colorKey)) {
+                    colorKeySet.add(colorKey);
+                    colorKeys.push(colorKey);
                 }
-
-                const colorKey = `${colorR},${colorG},${colorB}`;
-
-                // 如果这个颜色还没有序号，分配一个新序号
-                if (!colorMap.has(colorKey)) {
-                    colorMap.set(colorKey, colorIndex++);
-                }
-
-                // 记录该位置的序号
-                numberMap[row][col] = colorMap.get(colorKey)!;
             }
         }
 
-        // 遍历所有 blocks，设置 number 子节点的 Label
+        // 第二步：打乱颜色顺序（Fisher-Yates 洗牌）
+        for (let i = colorKeys.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [colorKeys[i], colorKeys[j]] = [colorKeys[j], colorKeys[i]];
+        }
+
+        // 第三步：颜色 key → 随机序号
+        const colorMap = new Map<string, number>();
+        for (let i = 0; i < colorKeys.length; i++) {
+            colorMap.set(colorKeys[i], i + 1);
+        }
+
+        // 第四步：遍历所有 blocks，设置 number 子节点的 Label
         for (let row = 0; row < blocks.length; row++) {
             for (let col = 0; col < blocks[row].length; col++) {
                 const block = blocks[row][col];
@@ -481,45 +470,29 @@ export class GridDrawer extends Component {
 
                 const numberNode = block.getChildByName('number');
                 if (!numberNode) continue;
-
                 const label = numberNode.getComponent(Label);
                 if (!label) continue;
 
-                const num = numberMap[row][col];
-                if (num > 0) {
-                    label.string = num.toString();
-                } else {
+                const bc = block.getComponent(BlockController);
+                if (!bc || bc.targetColorA === 0) {
                     label.string = '';
+                    continue;
                 }
+
+                const colorKey = `${bc.targetColorR},${bc.targetColorG},${bc.targetColorB}`;
+                const num = colorMap.get(colorKey);
+                label.string = num !== undefined ? num.toString() : '';
             }
         }
 
         console.log(`颜色统计完成：共 ${colorMap.size} 种颜色`);
 
-        // 保存颜色列表到 GameManager
+        // 保存颜色列表到 GameManager（按打乱后的顺序）
         const colorList: { r: number; g: number; b: number; a: number }[] = [];
-        for (let row = 0; row < blocks.length; row++) {
-            for (let col = 0; col < blocks[row].length; col++) {
-                const block = blocks[row][col];
-                if (!block) continue;
 
-                const blockController = block.getComponent(BlockController);
-                if (!blockController) continue;
-
-                const a = blockController.targetColorA;
-                if (a === 0) continue; // 跳过透明
-
-                const r = blockController.targetColorR;
-                const g = blockController.targetColorG;
-                const b = blockController.targetColorB;
-                const colorKey = `${r},${g},${b}`;
-
-                // 检查是否已添加到列表
-                const existingIndex = colorList.findIndex(c => `${c.r},${c.g},${c.b}` === colorKey);
-                if (existingIndex === -1) {
-                    colorList.push({ r, g, b, a });
-                }
-            }
+        for (const colorKey of colorKeys) {
+            const [r, g, b] = colorKey.split(',').map(Number);
+            colorList.push({ r, g, b, a: 255 });
         }
 
         // 保存到 GameManager

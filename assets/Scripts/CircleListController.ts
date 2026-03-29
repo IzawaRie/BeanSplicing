@@ -41,11 +41,18 @@ export class CircleListController extends Component {
      * @param colors 颜色列表 [{ r, g, b, a }]
      */
     public updateColorList(colors: { r: number, g: number, b: number, a: number }[]): void {
+        // 打乱颜色顺序（Fisher-Yates 洗牌）
+        const shuffled = [...colors];
+        for (let i = shuffled.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
+
         // 隐藏所有节点
         this.hideAllNodes();
 
         // 显示对应数量的节点并设置颜色
-        const count = Math.min(colors.length, this.colorNodes.length);
+        const count = Math.min(shuffled.length, this.colorNodes.length);
         for (let i = 0; i < count; i++) {
             const node = this.colorNodes[i];
             if (node) {
@@ -54,7 +61,7 @@ export class CircleListController extends Component {
                 const circleController = node.getComponent(CircleController);
                 if (circleController) {
                     // 序号从1开始
-                    circleController.setColor(colors[i].r, colors[i].g, colors[i].b, colors[i].a, i + 1);
+                    circleController.setColor(shuffled[i].r, shuffled[i].g, shuffled[i].b, shuffled[i].a, i + 1);
                 }
             }
         }
