@@ -162,6 +162,11 @@ export class LevelMode extends GameMode {
         if (this.daojishi_label) {
             this.daojishi_label.string = '10';
         }
+
+        // 显示所有 block 的 sprite（显示拼豆颜色）
+        if (this.gridDrawer) {
+            this.gridDrawer.showAllBlockSprites();
+        }
     }
 
     /**
@@ -176,6 +181,12 @@ export class LevelMode extends GameMode {
         }
         if (this.start_btn) {
             this.start_btn.active = false;
+        }
+
+        // 隐藏所有 block sprite，显示所有 number 节点
+        if (this.gridDrawer) {
+            this.gridDrawer.hideAllBlockSprites();
+            this.gridDrawer.showAllNumberNodes();
         }
 
         // 显示 game_label 和 game_item

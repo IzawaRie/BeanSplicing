@@ -1,4 +1,4 @@
-import { _decorator, Component, Graphics, Color, Node, UITransform, Layers, EventTouch, input, Input, EventMouse, Label } from 'cc';
+import { _decorator, Component, Graphics, Color, Node, UITransform, Layers, EventTouch, input, Input, EventMouse, Label, Sprite } from 'cc';
 import { BlockCreator } from './BlockCreator';
 import { BlockController, BlockState } from './BlockController';
 import { GameManager } from './GameManager';
@@ -428,9 +428,75 @@ export class GridDrawer extends Component {
         this.assignColorNumbers();
     }
 
+    /**
+     * 显示所有 block 的 sprite（读秒倒计时时显示拼豆颜色）
+     */
+    public showAllBlockSprites(): void {
+        const blocks = this.blockCreator.getAllBlocks();
+        if (!blocks) return;
+        for (let row = 0; row < blocks.length; row++) {
+            for (let col = 0; col < blocks[row].length; col++) {
+                const block = blocks[row][col];
+                if (!block) continue;
+                const sprite = block.getComponent(Sprite);
+                if (sprite) {
+                    sprite.enabled = true;
+                }
+            }
+        }
+    }
+
+    /**
+     * 隐藏所有 block 的 sprite（读秒结束后隐藏拼豆颜色，露出序号）
+     */
+    public hideAllBlockSprites(): void {
+        const blocks = this.blockCreator.getAllBlocks();
+        if (!blocks) return;
+        for (let row = 0; row < blocks.length; row++) {
+            for (let col = 0; col < blocks[row].length; col++) {
+                const block = blocks[row][col];
+                if (!block) continue;
+                const sprite = block.getComponent(Sprite);
+                if (sprite) {
+                    sprite.enabled = false;
+                }
+            }
+        }
+    }
+
+    /**
+     * 显示所有 number 节点（读秒结束后显示序号）
+     */
+    public showAllNumberNodes(): void {
+        const blocks = this.blockCreator.getAllBlocks();
+        if (!blocks) return;
+        for (let row = 0; row < blocks.length; row++) {
+            for (let col = 0; col < blocks[row].length; col++) {
+                const block = blocks[row][col];
+                if (!block) continue;
+                const numberNode = block.getChildByName('number');
+                if (numberNode) {
+                    numberNode.active = true;
+                }
+            }
+        }
+    }
+
     private assignColorNumbers(): void {
         const blocks = this.blockCreator.getAllBlocks();
         if (!blocks || blocks.length === 0) return;
+
+        // 先隐藏所有 number 节点（倒计时结束后再显示）
+        for (let row = 0; row < blocks.length; row++) {
+            for (let col = 0; col < blocks[row].length; col++) {
+                const block = blocks[row][col];
+                if (!block) continue;
+                const numberNode = block.getChildByName('number');
+                if (numberNode) {
+                    numberNode.active = false;
+                }
+            }
+        }
 
         // 第一步：收集所有不重复的颜色 key（顺序按扫描顺序）
         const colorKeys: string[] = [];
