@@ -51,7 +51,19 @@ export class LevelMode extends GameMode {
     time_label: Label = null;
 
     @property({ type: UIOpacity })
-    drawer_opacity: UIOpacity  = null;
+    drawer_opacity: UIOpacity = null;
+
+    @property({ type: Node })
+    game_label: Node = null;
+
+    @property({ type: Label })
+    daojishi_label: Label = null;
+
+    @property({ type: Node })
+    game_item: Node = null;
+
+    @property({ type: Node })
+    start_btn: Node = null;
 
     private currentScore: number = 0;
     private _patternPath: string = '';
@@ -62,11 +74,29 @@ export class LevelMode extends GameMode {
 
     // 倒计时相关
     private _remainingTime: number = 0;  // 剩余秒数
+    // 读秒倒计时相关
+    private _daojiTime: number = 0;       // 读秒倒计时秒数
+    private _isDaojiCounting: boolean = false; // 是否在读秒中
 
     get modeType(): GameModeType { return GameModeType.LEVEL; }
 
     update(_deltaTime: number): void {
         const gameManager = GameManager.getInstance();
+
+        // 读秒倒计时
+        if (this._isDaojiCounting) {
+            this._daojiTime -= _deltaTime;
+            const sec = Math.max(0, Math.ceil(this._daojiTime));
+            if (this.daojishi_label) {
+                this.daojishi_label.string = sec.toString();
+            }
+            if (this._daojiTime <= 0) {
+                this._daojiTime = 0;
+                this.onDaojishiEnd();
+            }
+            return; // 读秒期间不处理游戏倒计时
+        }
+
         if (gameManager.gameState != GameState.PLAYING) return;
 
         this._remainingTime -= _deltaTime;
@@ -91,6 +121,9 @@ export class LevelMode extends GameMode {
         if (this.settingBtn) {
             this.settingBtn.on(Node.EventType.TOUCH_END, this.onSettingBtnClick, this);
         }
+        if (this.start_btn) {
+            this.start_btn.on(Node.EventType.TOUCH_END, this.onStartBtnClick, this);
+        }
     }
 
     /**
@@ -99,10 +132,72 @@ export class LevelMode extends GameMode {
     startLevel(levelId: number, patternPath: string = ''): void {
         this.currentScore = 0;
         this._patternPath = patternPath;
+        this.startDaojishi();
+        console.log(`闯关模式: 关卡 ${levelId}, 图案: ${patternPath}`);
+    }
+
+    /**
+     * 开始读秒倒计时
+     */
+    private startDaojishi(): void {
+        // 隐藏 game_label 和 game_item
+        if (this.game_label) {
+            this.game_label.active = false;
+        }
+        if (this.game_item) {
+            this.game_item.active = false;
+        }
+
+        // 显示 daojishi_label 和 start_btn
+        if (this.daojishi_label) {
+            this.daojishi_label.node.active = true;
+        }
+        if (this.start_btn) {
+            this.start_btn.active = true;
+        }
+
+        // 开始读秒
+        this._daojiTime = 10;
+        this._isDaojiCounting = true;
+        if (this.daojishi_label) {
+            this.daojishi_label.string = '10';
+        }
+    }
+
+    /**
+     * 读秒结束，开始游戏
+     */
+    private onDaojishiEnd(): void {
+        this._isDaojiCounting = false;
+
+        // 隐藏 daojishi_label 和 start_btn
+        if (this.daojishi_label) {
+            this.daojishi_label.node.active = false;
+        }
+        if (this.start_btn) {
+            this.start_btn.active = false;
+        }
+
+        // 显示 game_label 和 game_item
+        if (this.game_label) {
+            this.game_label.active = true;
+        }
+        if (this.game_item) {
+            this.game_item.active = true;
+        }
+
+        // 开始游戏（startGame 设置 GameState.PLAYING，startCountdown 启动游戏倒计时）
         this.startGame();
         this.startCountdown();
-        GameManager.getInstance().gameState = GameState.PLAYING;
-        console.log(`闯关模式: 关卡 ${levelId}, 图案: ${patternPath}`);
+    }
+
+    /**
+     * 点击 start_btn 提前结束读秒
+     */
+    private onStartBtnClick(): void {
+        if (!this._isDaojiCounting) return;
+        GameManager.getInstance().vibrateShort();
+        this.onDaojishiEnd();
     }
 
     /**
