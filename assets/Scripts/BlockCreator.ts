@@ -1,15 +1,29 @@
-import { Node, UITransform, instantiate, Prefab, resources } from 'cc';
+import { Node, UITransform, instantiate, Prefab, resources, JsonAsset } from 'cc';
 import { BlockController } from './BlockController';
+
+interface PixelBlock {
+    r: number;
+    g: number;
+    b: number;
+    a: number;
+}
 
 export class BlockCreator {
     private blocks: Node[][] = [];
     private blocksContainer: Node | null = null;
 
     /**
-     * 创建网格中的所有 block 节点
-     * @param callback 创建完成回调（所有 block 节点已实例化，但颜色等数据尚未应用）
+     * 创建网格中的 block 节点
+     * @param parent 父节点
+     * @param rows 总行数（用于初始化 blocks 数组）
+     * @param columns 总列数（用于初始化 blocks 数组）
+     * @param cellWidth 单格宽度
+     * @param cellHeight 单格高度
+     * @param prefabPath 预制体路径
+     * @param patternPath 可选，传入则只创建 alpha > 0 的 block
+     * @param callback 创建完成回调
      */
-    createBlocks(parent: Node, rows: number, columns: number, cellWidth: number, cellHeight: number, prefabPath: string = 'block', callback?: () => void): void {
+    createBlocks(parent: Node, rows: number, columns: number, cellWidth: number, cellHeight: number, prefabPath: string = 'block', patternPath?: string, callback?: () => void): void {
         // 创建容器节点
         this.blocksContainer = new Node('BlocksContainer');
         parent.addChild(this.blocksContainer);
@@ -20,12 +34,35 @@ export class BlockCreator {
                 return;
             }
 
-            this.doCreateBlocks(parent, rows, columns, cellWidth, cellHeight, prefab);
-            callback?.();
+            if (patternPath) {
+                // 有 patternPath，只创建有效的 block
+                resources.load(patternPath, JsonAsset, (err2, jsonAsset) => {
+                    if (err2 || !jsonAsset) {
+                        console.error('加载 pattern JSON 失败:', err2);
+                        this.doCreateBlocks(parent, rows, columns, cellWidth, cellHeight, prefab as Prefab);
+                    } else {
+                        const data = (jsonAsset as JsonAsset).json as { gridWidth: number; gridHeight: number; blocks: PixelBlock[] };
+                        const validPositions = new Set<string>();
+                        for (let i = 0; i < data.blocks.length; i++) {
+                            if (data.blocks[i].a > 0) {
+                                const row = Math.floor(i / data.gridWidth);
+                                const col = i % data.gridWidth;
+                                validPositions.add(`${row},${col}`);
+                            }
+                        }
+                        this.doCreateBlocks(parent, rows, columns, cellWidth, cellHeight, prefab as Prefab, validPositions);
+                    }
+                    callback?.();
+                });
+            } else {
+                // 无 patternPath，创建所有 block
+                this.doCreateBlocks(parent, rows, columns, cellWidth, cellHeight, prefab as Prefab);
+                callback?.();
+            }
         });
     }
 
-    private doCreateBlocks(parent: Node, rows: number, columns: number, cellWidth: number, cellHeight: number, prefab: Prefab) {
+    private doCreateBlocks(parent: Node, rows: number, columns: number, cellWidth: number, cellHeight: number, prefab: Prefab, validPositions?: Set<string>) {
         const parentTransform = parent.getComponent(UITransform);
         if (!parentTransform) return;
 
@@ -39,6 +76,12 @@ export class BlockCreator {
         for (let row = 0; row < rows; row++) {
             this.blocks[row] = [];
             for (let col = 0; col < columns; col++) {
+                // 如果有 validPositions，跳过无效位置
+                if (validPositions && !validPositions.has(`${row},${col}`)) {
+                    this.blocks[row][col] = null;
+                    continue;
+                }
+
                 const block = instantiate(prefab);
                 this.blocksContainer!.addChild(block);
 

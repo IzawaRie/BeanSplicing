@@ -326,8 +326,8 @@ export class MenuManager extends Component {
         // 步骤1: createGraphicsNodes -> setProgress(0.1)
         gridDrawer.createGraphicsNodes(() => {
             gameManager.progress?.setProgress(0.3, () => {
-                // 步骤2: loadBlockPrefab -> setProgress(0.5)
-                gridDrawer.loadBlockPrefab(() => {
+                // 步骤2: loadBlockPrefab (只创建有效 block) -> setProgress(0.5)
+                gridDrawer.loadBlockPrefab(levelData.patternPath, () => {
                     gameManager.progress?.setProgress(0.5, () => {
                         // 步骤3: loadPatternAndPalette -> setProgress(0.9)
                         gameManager.levelMode.loadPatternAndPalette(levelData.patternPath, () => {

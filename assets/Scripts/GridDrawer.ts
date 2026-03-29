@@ -232,7 +232,7 @@ export class GridDrawer extends Component {
         callback?.();
     }
 
-    public loadBlockPrefab(callback?: () => void) {
+    public loadBlockPrefab(patternPath?: string, callback?: () => void) {
         // 从 LevelConfig 获取当前关卡的网格配置
         const levelConfig = LevelConfig.getInstance();
         const gridConfig = levelConfig.getCurrentGridConfig();
@@ -245,7 +245,7 @@ export class GridDrawer extends Component {
         const cellHeight = uiTransform.height / rows;
 
         // 先只创建 blocks，grid 线条在 pattern 应用后再绘制
-        this.blockCreator.createBlocks(this.contentNode!, rows, columns, cellWidth, cellHeight, 'block', () => {
+        this.blockCreator.createBlocks(this.contentNode!, rows, columns, cellWidth, cellHeight, 'block', patternPath, () => {
             // 设置 BlocksContainer 在内边框下面
             const blocksContainer = this.blockCreator.getBlocksContainer();
             const innerNode = this.contentNode?.getChildByName('InnerGrids');
