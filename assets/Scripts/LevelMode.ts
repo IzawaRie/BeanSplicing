@@ -194,7 +194,7 @@ export class LevelMode extends GameMode {
 
         // 进度 = (高亮数 * 0.5 + 熨烫数 * 1) / 总数 * 100
         const progress = (this._highlightedCount * 0.5 + this._ironedCount * 1) / this._totalBlockCount;
-        const percent = Math.min(100, Math.round(progress * 100));
+        const percent = Math.min(100, Math.floor(progress * 100));
 
         // 更新 progress_sp fillRange（0 到 1）
         if (this.progress_sp) {
