@@ -9,7 +9,7 @@ const { ccclass, property } = _decorator;
 @ccclass('CircleListController')
 export class CircleListController extends Component {
     @property(Node)
-    niezi_parent: Node = null;
+    neizi_nodes: Node[] = [];
 
     public colorNodes: Node[] = [];
 
@@ -28,7 +28,7 @@ export class CircleListController extends Component {
      * 加载所有颜色节点
      */
     public setAllNodes() {
-        this.colorNodes = this.niezi_parent.children;
+        this.colorNodes = this.neizi_nodes;
         for(let i = 0; i < this.colorNodes.length; i++){
             const circle = this.colorNodes[i];
             const circleController = circle.getComponent(CircleController);
