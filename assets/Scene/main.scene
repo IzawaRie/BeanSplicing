@@ -3211,7 +3211,7 @@
     "_lpos": {
       "__type__": "cc.Vec3",
       "x": 2,
-      "y": -650,
+      "y": -545.646,
       "z": 0
     },
     "_lrot": {
@@ -3885,7 +3885,7 @@
   },
   {
     "__type__": "cc.Node",
-    "_name": "jindu_mask-001",
+    "_name": "jindu",
     "_objFlags": 0,
     "__editorExtras__": {},
     "_parent": {
@@ -4710,7 +4710,7 @@
     "_lpos": {
       "__type__": "cc.Vec3",
       "x": 0,
-      "y": 0,
+      "y": 164.604,
       "z": 0
     },
     "_lrot": {
@@ -9492,7 +9492,7 @@
     "_lpos": {
       "__type__": "cc.Vec3",
       "x": 4.189,
-      "y": 311.07,
+      "y": 397.39,
       "z": 0
     },
     "_lrot": {
@@ -11439,6 +11439,15 @@
     },
     "start_btn": {
       "__id__": 277
+    },
+    "progress_node": {
+      "__id__": 103
+    },
+    "progress_sp": {
+      "__id__": 109
+    },
+    "progress_label": {
+      "__id__": 112
     },
     "_id": "89mNQxxz9BvYewWvj6tb6D"
   },

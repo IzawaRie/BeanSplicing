@@ -136,6 +136,7 @@ export class IronController extends Component {
             { row: 1, col: -1 },  { row: 1, col: 0 },  { row: 1, col: 1 }
         ];
 
+        let ironedCount = 0;
         for (const offset of neighborOffsets) {
             const targetRow = currentRow + offset.row;
             const targetCol = currentCol + offset.col;
@@ -143,37 +144,46 @@ export class IronController extends Component {
             if (targetRow >= 0 && targetRow < blocks.length &&
                 targetCol >= 0 && targetCol < blocks[0].length) {
                 const targetBlock = blocks[targetRow][targetCol];
-                if (targetBlock) {
-                    this.processBlock(targetBlock);
+                if (targetBlock && this.processBlock(targetBlock)) {
+                    ironedCount++;
                 }
             }
         }
+
+        // 更新进度
+        if (ironedCount > 0) {
+            gameManager.levelMode.onBlocksIroned(ironedCount);
+        }
+
+        // 检查是否所有 block 都已熨烫
+        gameManager.levelMode.checkAllBlocksIroned();
 
         gameManager.vibrateShort('light');
     }
 
     /**
      * 处理单个 block：如果有上色的 circle，则隐藏 circle 并显示 block 的 sprite
+     * @returns 是否成功熨烫了 block
      */
-    private processBlock(block: Node): void {
+    private processBlock(block: Node): boolean {
         // 获取 BlockController 检查状态
         const blockController = block.getComponent(BlockController);
-        if (!blockController) return;
+        if (!blockController) return false;
 
         // 检查是否可以熨烫（只有 HAS_CIRCLE 状态可以熨烫）
-        if (!blockController.canIron()) return;
+        if (!blockController.canIron()) return false;
 
         // 检查 circle 子节点
         const circleNode = block.getChildByName('circle');
-        if (!circleNode) return;
+        if (!circleNode) return false;
 
         const circleSprite = circleNode.getComponent(Sprite);
-        if (!circleSprite || !circleSprite.enabled) return;
+        if (!circleSprite || !circleSprite.enabled) return false;
 
         // 检查 circle 是否有颜色（上色了）
         const color = circleSprite.color;
         if (color.a === 0) {
-            return; // 没有颜色，不处理
+            return false; // 没有颜色，不处理
         }
 
         // 隐藏 circle 的 sprite
@@ -195,11 +205,7 @@ export class IronController extends Component {
             blockController.setIroned();
         }
 
-        // 检查是否所有 block 都已熨烫
-        const gameManager = GameManager.getInstance();
-        if (gameManager) {
-            gameManager.levelMode.checkAllBlocksIroned();
-        }
+        return true;
     }
 
     /**

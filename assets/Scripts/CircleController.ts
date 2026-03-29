@@ -34,8 +34,8 @@ export class CircleController extends Component {
     private targetBlockIndex: number = 0;            // 当前目标 block 的序号
     private hoverStartTime: number = 0;               // 开始 hover 的时间
     private isHovering: boolean = false;              // 是否正在 hover
-    private readonly HOVER_DURATION: number = 1000;   // hover 时长（毫秒）
-    private readonly HOVER_DELAY: number = 500;        // 延迟开始计时（毫秒）
+    private readonly HOVER_DURATION: number = 500;   // hover 时长（毫秒）
+    private readonly HOVER_DELAY: number = 300;        // 延迟开始计时（毫秒）
     private readonly POSITION_TOLERANCE: number = 20;  // 位置误差范围
     private readonly DRAG_OFFSET: number = 0;
 
@@ -82,7 +82,10 @@ export class CircleController extends Component {
             const progress = actualElapsed / this.HOVER_DURATION;
             if (progress >= 1) {
                 // 计时完成，触发变色，然后重置
-                this.highlightBlocksByIndex(this.targetBlockIndex, true);
+                const count = this.highlightBlocksByIndex(this.targetBlockIndex, true);
+                if (count > 0) {
+                    GameManager.getInstance().levelMode?.onBlocksHighlighted(count);
+                }
                 this.resetHover();
             } else {
                 // 更新进度条
@@ -447,23 +450,24 @@ export class CircleController extends Component {
 
     /**
      * 高亮/取消高亮目标 block 及所有序号相同的连通 block（洪水填充，带波纹扩散动画）
+     * @returns 高亮的 block 数量
      */
-    private highlightBlocksByIndex(_blockIndex: number, highlight: boolean) {
+    private highlightBlocksByIndex(_blockIndex: number, highlight: boolean): number {
         const gameManager = GameManager.getInstance();
         if (!gameManager) return;
 
-        if (!this.targetBlock) return;
+        if (!this.targetBlock) return 0;
 
         // 获取当前目标 block 的序号（不是镊子颜色，而是目标颜色序号）
         const targetColorIndex = this.getBlockColorIndex(this.targetBlock);
-        if (!targetColorIndex) return; // 透明 block 没有序号
+        if (!targetColorIndex) return 0; // 透明 block 没有序号
 
         // 从 GameManager 获取 GridDrawer
         const gridDrawer = gameManager.levelMode?.gridDrawer;
-        if (!gridDrawer) return;
+        if (!gridDrawer) return 0;
 
         const blocks = gridDrawer.getAllBlocks();
-        if (!blocks || blocks.length === 0) return;
+        if (!blocks || blocks.length === 0) return 0;
 
         const rows = blocks.length;
         const columns = blocks[0]?.length ?? 0;
@@ -561,5 +565,8 @@ export class CircleController extends Component {
                 }, delay * 1000);
             }
         }
+
+        // 返回高亮的 block 数量
+        return levelMap.length;
     }
 }

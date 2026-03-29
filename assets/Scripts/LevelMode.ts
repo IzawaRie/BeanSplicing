@@ -1,4 +1,4 @@
-import { _decorator, Component, Label, Node, tween, UIOpacity } from 'cc';
+import { _decorator, Component, Label, Node, Sprite, tween, UIOpacity } from 'cc';
 import { GameMode, GameModeType, GameResult } from './GameMode';
 import { GridDrawer } from './GridDrawer';
 import { IronController } from './IronController';
@@ -65,6 +65,15 @@ export class LevelMode extends GameMode {
     @property({ type: Node })
     start_btn: Node = null;
 
+    @property({ type: Node })
+    progress_node: Node = null;
+
+    @property({ type: Sprite })
+    progress_sp: Sprite = null;
+
+    @property({ type: Label })
+    progress_label: Label = null;
+
     private currentScore: number = 0;
     private _patternPath: string = '';
     // 当前选中的颜色序号
@@ -77,6 +86,11 @@ export class LevelMode extends GameMode {
     // 读秒倒计时相关
     private _daojiTime: number = 0;       // 读秒倒计时秒数
     private _isDaojiCounting: boolean = false; // 是否在读秒中
+
+    // 进度相关
+    private _totalBlockCount: number = 0;    // 有效 block 总数
+    private _highlightedCount: number = 0;   // 已高亮的 block 数
+    private _ironedCount: number = 0;        // 已熨烫的 block 数
 
     get modeType(): GameModeType { return GameModeType.LEVEL; }
 
@@ -126,6 +140,73 @@ export class LevelMode extends GameMode {
         }
     }
 
+    // ==================== 进度系统 ====================
+
+    /**
+     * 统计有效 block 总数
+     */
+    public initProgress(): void {
+        this._highlightedCount = 0;
+        this._ironedCount = 0;
+
+        const blocks = this.gridDrawer?.getAllBlocks();
+        if (!blocks) return;
+
+        this._totalBlockCount = 0;
+        for (let row = 0; row < blocks.length; row++) {
+            for (let col = 0; col < blocks[row].length; col++) {
+                const block = blocks[row][col];
+                if (!block) continue;
+                const bc = block.getComponent(BlockController);
+                if (!bc || bc.targetColorA === 0) continue; // 跳过透明
+                this._totalBlockCount++;
+            }
+        }
+
+        console.log(`有效 block 总数: ${this._totalBlockCount}`);
+        this.updateProgressUI();
+    }
+
+    /**
+     * 当 block 被高亮时调用
+     * @param count 高亮的 block 数量
+     */
+    public onBlocksHighlighted(count: number): void {
+        this._highlightedCount += count;
+        this.updateProgressUI();
+    }
+
+    /**
+     * 当 block 被熨烫时调用
+     * @param count 熨烫的 block 数量
+     */
+    public onBlocksIroned(count: number): void {
+        this._highlightedCount -= count;
+        this._ironedCount += count;
+        this.updateProgressUI();
+    }
+
+    /**
+     * 更新进度 UI（progress_sp fillRange 和 progress_label 文字）
+     */
+    private updateProgressUI(): void {
+        if (this._totalBlockCount <= 0) return;
+
+        // 进度 = (高亮数 * 0.5 + 熨烫数 * 1) / 总数 * 100
+        const progress = (this._highlightedCount * 0.5 + this._ironedCount * 1) / this._totalBlockCount;
+        const percent = Math.min(100, Math.round(progress * 100));
+
+        // 更新 progress_sp fillRange（0 到 1）
+        if (this.progress_sp) {
+            (this.progress_sp as any).fillRange = progress;
+        }
+
+        // 更新 progress_label 文字
+        if (this.progress_label) {
+            this.progress_label.string = `${percent}%`;
+        }
+    }
+
     /**
      * 开始指定关卡
      */
@@ -140,12 +221,15 @@ export class LevelMode extends GameMode {
      * 开始读秒倒计时
      */
     private startDaojishi(): void {
-        // 隐藏 game_label 和 game_item
+        // 隐藏 game_label、game_item 和 progress_node
         if (this.game_label) {
             this.game_label.active = false;
         }
         if (this.game_item) {
             this.game_item.active = false;
+        }
+        if (this.progress_node) {
+            this.progress_node.active = false;
         }
 
         // 显示 daojishi_label 和 start_btn
@@ -183,16 +267,26 @@ export class LevelMode extends GameMode {
             this.start_btn.active = false;
         }
 
+        // 初始化进度统计
+        this.initProgress();
+
         // 隐藏所有 block sprite（渐隐），完成后显示 number 节点并开始游戏
         if (this.gridDrawer) {
             this.gridDrawer.hideAllBlockSpritesFade(0.5, () => {
                 this.gridDrawer.showAllNumberNodes();
                 this.startGame();
                 this.startCountdown();
+                // 显示 progress_node
+                if (this.progress_node) {
+                    this.progress_node.active = true;
+                }
             });
         } else {
             this.startGame();
             this.startCountdown();
+            if (this.progress_node) {
+                this.progress_node.active = true;
+            }
         }
 
         // 显示 game_label 和 game_item
