@@ -429,6 +429,45 @@ export class GridDrawer extends Component {
     }
 
     /**
+     * 按颜色序号统计每个颜色的 block 数量
+     * @returns Map<颜色序号, { count: block数量, r, g, b, a }>
+     */
+    public countBlocksByColorNumber(): Map<number, { count: number, r: number, g: number, b: number, a: number }> {
+        const result = new Map<number, { count: number, r: number, g: number, b: number, a: number }>();
+        const blocks = this.blockCreator.getAllBlocks();
+        if (!blocks) return result;
+
+        for (let row = 0; row < blocks.length; row++) {
+            for (let col = 0; col < blocks[row].length; col++) {
+                const block = blocks[row]?.[col];
+                if (!block) continue;
+                const bc = block.getComponent(BlockController);
+                if (!bc || bc.targetColorA === 0) continue;
+
+                const numNode = block.getChildByName('number');
+                if (!numNode) continue;
+                const label = numNode.getComponent(Label);
+                if (!label || !label.string) continue;
+
+                const colorNum = parseInt(label.string) || 0;
+                if (colorNum <= 0) continue;
+
+                if (!result.has(colorNum)) {
+                    result.set(colorNum, {
+                        count: 0,
+                        r: bc.targetColorR,
+                        g: bc.targetColorG,
+                        b: bc.targetColorB,
+                        a: bc.targetColorA
+                    });
+                }
+                result.get(colorNum)!.count++;
+            }
+        }
+        return result;
+    }
+
+    /**
      * 显示所有 block 的 sprite（读秒倒计时时显示拼豆颜色）
      */
     public showAllBlockSprites(): void {

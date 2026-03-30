@@ -535,9 +535,13 @@ export class LevelMode extends GameMode {
     public setColorList(colors: { r: number; g: number; b: number; a: number }[]): void {
         this._colorList = colors;
         const gameManager = GameManager.getInstance();
+
+        // 统计每个颜色序号的 block 数量
+        const colorCounts = this.gridDrawer?.countBlocksByColorNumber() ?? new Map();
+
         // 通知 CircleListController 更新
         if (gameManager.levelMode.circleList) {
-            gameManager.levelMode.circleList.updateColorList(colors);
+            gameManager.levelMode.circleList.updateColorList(colors, colorCounts);
         }
     }
     
