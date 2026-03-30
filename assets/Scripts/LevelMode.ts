@@ -272,10 +272,9 @@ export class LevelMode extends GameMode {
         // 初始化进度统计
         this.initProgress();
 
-        // 隐藏所有 block sprite（渐隐），完成后显示 number 节点并开始游戏
+        // 隐藏所有 block sprite（渐隐），完成后开始游戏
         if (this.gridDrawer) {
             this.gridDrawer.hideAllBlockSpritesFade(0.5, () => {
-                this.gridDrawer.showAllNumberNodes();
                 this.startGame();
                 this.startCountdown();
                 // 显示 progress_node
