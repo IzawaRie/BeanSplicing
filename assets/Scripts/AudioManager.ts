@@ -6,13 +6,16 @@ const { ccclass, property } = _decorator;
 export class AudioManager extends Component {
     @property(AudioSource)
     private music: AudioSource = null;
-    @property(AudioSource)
-    private audio: AudioSource = null;
 
     private bgmClip: AudioClip = null;
     private musicTween: Tween<AudioSource> | null = null;
     private musicBundle: any = null;
     private static _instance: AudioManager | null = null;
+
+    // 音效 AudioSource 池（循环使用，避免打断正在播放的音效）
+    private effectPool: AudioSource[] = [];
+    private poolIndex: number = 0;
+    private readonly POOL_SIZE: number = 5;
 
     onLoad() {
         if (AudioManager._instance) {
@@ -20,6 +23,13 @@ export class AudioManager extends Component {
             return;
         }
         AudioManager._instance = this;
+
+        // 创建音效池
+        for (let i = 0; i < this.POOL_SIZE; i++) {
+            const source = this.addComponent(AudioSource);
+            source.playOnAwake = false;
+            this.effectPool.push(source);
+        }
 
         this.loadBgm();
     }
@@ -104,22 +114,23 @@ export class AudioManager extends Component {
     }
 
     /**
-     * 播放音效
+     * 播放音效（使用池，不会打断正在播放的同音效）
      * @param name 音效文件名（不含扩展名）
      * @param volume 音量，0-1，默认 1
      */
     public playEffect(name: string, volume: number = 1): void {
-        if (!this.audio) return;
-
         const loadAndPlay = (bundle: any) => {
             bundle.load(name, AudioClip, (err: any, clip: AudioClip) => {
                 if (err) {
                     console.error(`加载音效 ${name} 失败:`, err);
                     return;
                 }
-                this.audio.clip = clip;
-                this.audio.volume = volume;
-                this.audio.play();
+                // 从池中取一个 AudioSource，循环使用
+                const source = this.effectPool[this.poolIndex];
+                this.poolIndex = (this.poolIndex + 1) % this.POOL_SIZE;
+                source.clip = clip;
+                source.volume = volume;
+                source.play();
             });
         };
 

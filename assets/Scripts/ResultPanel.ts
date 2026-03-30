@@ -210,7 +210,7 @@ export class ResultPanel extends Component {
      * nextLevelBtn 点击事件 - 进入下一关
      */
     private onNextLevelBtnClick(): void {
-        AudioManager.instance.playEffect('click_btn');
+        AudioManager.instance.playEffect('ding');
         this.loadLevel();
     }
 

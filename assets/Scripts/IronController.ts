@@ -1,6 +1,7 @@
 import { _decorator, Component, Node, EventTouch, Sprite, UITransform, Color, tween, Vec3 } from 'cc';
 import { GameManager, GameState } from './GameManager';
 import { BlockController } from './BlockController';
+import { AudioManager } from './AudioManager';
 const { ccclass, property } = _decorator;
 
 @ccclass('IronController')
@@ -15,6 +16,11 @@ export class IronController extends Component {
     // 拖动时圆形的 Y 轴偏移量（让圆形显示在手指上方）
     @property({ type: Number })
     dragOffsetY: number = 80;
+
+    // 熨烫音效节流：上次播放时间（毫秒）
+    private lastShaTime: number = 0;
+    // 熨烫音效最小间隔（毫秒）
+    private readonly SHA_COOLDOWN: number = 100;
 
     onLoad() {
         // 保存原始位置
@@ -158,7 +164,16 @@ export class IronController extends Component {
         // 检查是否所有 block 都已熨烫
         gameManager.levelMode.checkAllBlocksIroned();
 
-        gameManager.vibrateShort('light');
+        // 节流：只在新熨烫了 block 且距上次播放超过冷却时间才播放音效
+        if (ironedCount > 0) {
+            const now = Date.now();
+            if (now - this.lastShaTime >= this.SHA_COOLDOWN) {
+                this.lastShaTime = now;
+                AudioManager.instance.playEffect('sha', 0.5);
+            }
+        }
+
+        //gameManager.vibrateShort('light');
     }
 
     /**

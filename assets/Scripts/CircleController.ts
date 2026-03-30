@@ -567,7 +567,7 @@ export class CircleController extends Component {
         };
 
         // 按层顺序，层内并行，层间延迟扩散
-        const delayPerLevel = 0.05; // 每层延迟 50ms
+        const delayPerLevel = 0.06; // 每层延迟 50ms
         const triggeredLevels = new Set<number>(); // 每层只触发一次音效
 
         for (const { block, level } of levelMap) {
