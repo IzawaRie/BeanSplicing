@@ -1,6 +1,7 @@
 import { _decorator, Component, Label, Node, Sprite, SpriteFrame, Texture2D, ImageAsset, UITransform, tween, Vec3 } from 'cc';
 import { GameManager, GameState } from './GameManager';
 import { BlockController, BlockState } from './BlockController';
+import { AudioManager } from './AudioManager';
 const { ccclass, property } = _decorator;
 
 @ccclass('ResultPanel')
@@ -39,7 +40,10 @@ export class ResultPanel extends Component {
         this.successNode.active = isSuccess ? true : false;
         this.failNode.active = (!isSuccess) ? true : false;
         if(isSuccess){
+            AudioManager.instance.playEffect('victory', 0.4);
             GameManager.getInstance().currentLevel++;
+        }else{
+            AudioManager.instance.playEffect('game-fail', 0.7);
         }
 
         // 播放缩放入场动画，动画完成后生成结果图片
@@ -206,6 +210,7 @@ export class ResultPanel extends Component {
      * nextLevelBtn 点击事件 - 进入下一关
      */
     private onNextLevelBtnClick(): void {
+        AudioManager.instance.playEffect('click_btn');
         this.loadLevel();
     }
 
@@ -213,6 +218,7 @@ export class ResultPanel extends Component {
      * restartBtn 点击事件 - 重新开始游戏
      */
     private onRestartLevelBtnClick(): void {
+        AudioManager.instance.playEffect('click_btn');
         this.loadLevel();
     }
 
@@ -227,13 +233,14 @@ export class ResultPanel extends Component {
     }
 
     private onShowHomePanel(){
+        AudioManager.instance.playEffect('click_btn');
         this.result_img.spriteFrame = null;
         this.node.active = false;
         const gameManager = GameManager.getInstance();
         gameManager.vibrateShort();
         gameManager.gameState = GameState.WAITING;
         gameManager.levelMode.node.active = false;
-        gameManager.audioManager.playBgm();
         gameManager.menuManager.node.active = true;
+        AudioManager.instance.playBgm();
     }
 }

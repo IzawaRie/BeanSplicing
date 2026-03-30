@@ -1,6 +1,7 @@
 import { _decorator, Component, Node, Label, resources, Prefab, instantiate, UITransform, tween, Tween, Vec3, UIOpacity, random, Sprite, Color } from 'cc';
 import { GameManager, GameState } from './GameManager';
 import { LevelConfig } from './LevelConfig';
+import { AudioManager } from './AudioManager';
 
 const { ccclass, property } = _decorator;
 
@@ -252,7 +253,8 @@ export class MenuManager extends Component {
         if (!gameManager || (gameManager.gameState != GameState.WAITING)) return;
 
         gameManager.vibrateShort();
-        gameManager.audioManager.stopBgm();
+        AudioManager.instance.playEffect('click_btn');
+        AudioManager.instance.stopBgm();
 
         // 获取当前关卡数
         const currentLevel = gameManager.currentLevel;
@@ -272,6 +274,7 @@ export class MenuManager extends Component {
         gameManager.gameState = GameState.PAUSED;
         gameManager.setting.lastState = GameState.WAITING;
         gameManager.setting.node.active = true;
+        AudioManager.instance.playEffect('setting_btn');
     }
 
     /**

@@ -9,6 +9,7 @@ import { GameManager, GameState } from './GameManager';
 import { BlockController, BlockState } from './BlockController';
 import { ResultPanel } from './ResultPanel';
 import { LevelConfig } from './LevelConfig';
+import { AudioManager } from './AudioManager';
 
 const { ccclass, property } = _decorator;
 
@@ -304,6 +305,7 @@ export class LevelMode extends GameMode {
     private onStartBtnClick(): void {
         if (!this._isDaojiCounting) return;
         GameManager.getInstance().vibrateShort();
+        AudioManager.instance.playEffect('click_btn');
         this.onDaojishiEnd();
     }
 
@@ -631,5 +633,6 @@ export class LevelMode extends GameMode {
         gameManager.gameState = GameState.PAUSED;
         gameManager.setting.lastState = GameState.PLAYING;
         gameManager.setting.node.active = true;
+        AudioManager.instance.playEffect('setting_btn');
     }
 }

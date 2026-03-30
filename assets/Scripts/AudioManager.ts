@@ -11,6 +11,7 @@ export class AudioManager extends Component {
 
     private bgmClip: AudioClip = null;
     private musicTween: Tween<AudioSource> | null = null;
+    private musicBundle: any = null;
     private static _instance: AudioManager | null = null;
 
     onLoad() {
@@ -32,6 +33,7 @@ export class AudioManager extends Component {
                 console.error('加载 Music bundle 失败:', err);
                 return;
             }
+            this.musicBundle = bundle;
 
             bundle.load('bgm', AudioClip, (err, clip) => {
                 if (err) {
@@ -95,5 +97,43 @@ export class AudioManager extends Component {
      */
     public static getInstance(): AudioManager | null {
         return AudioManager._instance;
+    }
+
+    public static get instance(){
+        return AudioManager._instance;
+    }
+
+    /**
+     * 播放音效
+     * @param name 音效文件名（不含扩展名）
+     * @param volume 音量，0-1，默认 1
+     */
+    public playEffect(name: string, volume: number = 1): void {
+        if (!this.audio) return;
+
+        const loadAndPlay = (bundle: any) => {
+            bundle.load(name, AudioClip, (err: any, clip: AudioClip) => {
+                if (err) {
+                    console.error(`加载音效 ${name} 失败:`, err);
+                    return;
+                }
+                this.audio.clip = clip;
+                this.audio.volume = volume;
+                this.audio.play();
+            });
+        };
+
+        if (this.musicBundle) {
+            loadAndPlay(this.musicBundle);
+        } else {
+            assetManager.loadBundle('Music', (err: any, bundle: any) => {
+                if (err) {
+                    console.error('加载 Music bundle 失败:', err);
+                    return;
+                }
+                this.musicBundle = bundle;
+                loadAndPlay(bundle);
+            });
+        }
     }
 }

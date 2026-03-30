@@ -39,10 +39,6 @@ export class GameManager extends Component {
     @property({ type: WXManager })
     wxManager: WXManager = null;
 
-    @property({ type: AudioManager })
-    audioManager: AudioManager = null;
-
-    // 闯关模式组件
     @property({ type: LevelMode })
     levelMode: LevelMode = null;
 

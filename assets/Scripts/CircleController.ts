@@ -1,6 +1,7 @@
 import { _decorator, Component, Node, Sprite, Color, EventTouch, UITransform, Label, UIOpacity } from 'cc';
 import { GameManager, GameState } from './GameManager';
 import { BlockController, BlockState } from './BlockController';
+import { AudioManager } from './AudioManager';
 const { ccclass, property } = _decorator;
 
 /**
@@ -183,6 +184,8 @@ export class CircleController extends Component {
      */
     private onTouchStart(event: EventTouch) {
         if (!this.isGameActive()) return;
+
+        AudioManager.instance.playEffect('circle');
 
         this.isDragging = true;
 
