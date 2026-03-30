@@ -1,7 +1,7 @@
 import { _decorator, Component, Node, Sprite, Color, EventTouch, UITransform, Label, UIOpacity } from 'cc';
+import { AudioManager } from './AudioManager';
 import { GameManager, GameState } from './GameManager';
 import { BlockController, BlockState } from './BlockController';
-import { AudioManager } from './AudioManager';
 const { ccclass, property } = _decorator;
 
 /**
@@ -568,19 +568,26 @@ export class CircleController extends Component {
 
         // 按层顺序，层内并行，层间延迟扩散
         const delayPerLevel = 0.05; // 每层延迟 50ms
-        const vibrateMap = new Set<number>(); // 只在最外层振动一次
+        const triggeredLevels = new Set<number>(); // 每层只触发一次音效
 
         for (const { block, level } of levelMap) {
             const delay = level * delayPerLevel;
-            if (delay === 0 && !vibrateMap.has(0)) {
-                vibrateMap.add(0);
+
+            if (delay === 0) {
                 applyHighlight(block);
-                if (levelMap.length > 1) {
+                if (!triggeredLevels.has(0)) {
+                    triggeredLevels.add(0);
+                    AudioManager.instance.playEffect('boop');
                     gameManager.vibrateShort();
                 }
             } else {
                 setTimeout(() => {
                     applyHighlight(block);
+                    if (!triggeredLevels.has(level)) {
+                        triggeredLevels.add(level);
+                        AudioManager.instance.playEffect('boop');
+                        gameManager.vibrateShort();
+                    }
                 }, delay * 1000);
             }
         }
