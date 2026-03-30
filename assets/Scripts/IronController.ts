@@ -1,4 +1,4 @@
-import { _decorator, Component, Node, EventTouch, Sprite, UITransform, Color, tween, Vec3 } from 'cc';
+import { _decorator, Component, Node, EventTouch, Sprite, UITransform, Color, tween, Vec3, UIOpacity } from 'cc';
 import { GameManager, GameState } from './GameManager';
 import { BlockController } from './BlockController';
 import { AudioManager } from './AudioManager';
@@ -217,6 +217,11 @@ export class IronController extends Component {
                     blockController.currentColorA
                 );
                 blockSprite.enabled = true;
+            }
+            // 恢复 opacity 为全不透明（255）
+            const uiOpacity = blockSpNode.getComponent(UIOpacity);
+            if (uiOpacity) {
+                uiOpacity.opacity = 255;
             }
         }
 

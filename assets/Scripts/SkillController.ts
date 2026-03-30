@@ -175,4 +175,32 @@ export class SkillController extends Component {
             this.fixCooldown = false;
         });
     }
+
+    /**
+     * 重置所有技能状态（新关卡开始或重新开始时调用）
+     */
+    public resetSkills(): void {
+        this.paletteCooldown = false;
+        this.timeCooldown = false;
+        this.fixCooldown = false;
+
+        // 停止所有 tween 并恢复 opacity
+        tween(this.palette_skill).stop();
+        tween(this.time_skill).stop();
+        tween(this.fix_skill).stop();
+
+        // 恢复按钮透明度
+        const resetOpacity = (node: Node) => {
+            if (node) {
+                let uiOpacity = node.getComponent(UIOpacity);
+                if (!uiOpacity) {
+                    uiOpacity = node.addComponent(UIOpacity);
+                }
+                uiOpacity.opacity = 255;
+            }
+        };
+        resetOpacity(this.palette_skill);
+        resetOpacity(this.time_skill);
+        resetOpacity(this.fix_skill);
+    }
 }

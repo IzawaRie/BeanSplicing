@@ -10,6 +10,7 @@ import { BlockController, BlockState } from './BlockController';
 import { ResultPanel } from './ResultPanel';
 import { LevelConfig } from './LevelConfig';
 import { AudioManager } from './AudioManager';
+import { SkillController } from './SkillController';
 
 const { ccclass, property } = _decorator;
 
@@ -44,6 +45,9 @@ export class LevelMode extends GameMode {
 
     @property({ type: GridDrawer })
     gridDrawer: GridDrawer = null;
+
+    @property({ type: SkillController })
+    skillController: SkillController = null;
 
     @property({ type: Label })
     level_label: Label = null;
@@ -232,6 +236,22 @@ export class LevelMode extends GameMode {
     startLevel(levelId: number, patternPath: string = ''): void {
         this.currentScore = 0;
         this._patternPath = patternPath;
+        // 重置时间冻结状态
+        this._isTimeFrozen = false;
+        this._timeFreezeTimer = 0;
+        if (this.time_label) {
+            tween(this.time_label).stop();
+            this.time_label.color = new Color(255, 255, 255, 255);
+        }
+        // 重置技能按钮状态
+        if (this.skillController) {
+            this.skillController.resetSkills();
+        }
+        // 隐藏 palette 预览
+        if (this.gridDrawer) {
+            this.gridDrawer.hideAllBlockSpritesInstant();
+            this.gridDrawer.hideAllNumberNodes();
+        }
         this.startDaojishi();
         console.log(`闯关模式: 关卡 ${levelId}, 图案: ${patternPath}`);
     }
@@ -688,7 +708,6 @@ export class LevelMode extends GameMode {
      */
     public activateFixSkill(): void {
         if (!this.gridDrawer) return;
-        this.gridDrawer.hideAllNumberNodes();
 
         const blocks = this.gridDrawer.getAllBlocks();
         if (!blocks) return;
@@ -707,18 +726,40 @@ export class LevelMode extends GameMode {
 
                 // 检查颜色是否与目标颜色匹配
                 if (!controller.isColorMatch()) {
-                    // 颜色不匹配，修复为正确的目标颜色
-                    const circleNode = block.getChildByName('circle');
-                    if (circleNode) {
-                        const sprite = circleNode.getComponent(Sprite);
-                        if (sprite) {
-                            sprite.color = new Color(
-                                controller.targetColorR,
-                                controller.targetColorG,
-                                controller.targetColorB,
-                                controller.targetColorA
-                            );
-                            sprite.enabled = true;
+                    if (controller.state === BlockState.HAS_CIRCLE) {
+                        // 有 circle 状态：修复 circle 颜色
+                        const circleNode = block.getChildByName('circle');
+                        if (circleNode) {
+                            const sprite = circleNode.getComponent(Sprite);
+                            if (sprite) {
+                                sprite.color = new Color(
+                                    controller.targetColorR,
+                                    controller.targetColorG,
+                                    controller.targetColorB,
+                                    controller.targetColorA
+                                );
+                                sprite.enabled = true;
+                            }
+                        }
+                    } else if (controller.state === BlockState.IRONED) {
+                        // 已熨烫状态：修复 block_sp 颜色
+                        const blockSpNode = block.getChildByName('block_sp');
+                        if (blockSpNode) {
+                            const sprite = blockSpNode.getComponent(Sprite);
+                            if (sprite) {
+                                sprite.color = new Color(
+                                    controller.targetColorR,
+                                    controller.targetColorG,
+                                    controller.targetColorB,
+                                    controller.targetColorA
+                                );
+                                sprite.enabled = true;
+                            }
+                            // 恢复 opacity 为全不透明
+                            const uiOpacity = blockSpNode.getComponent(UIOpacity);
+                            if (uiOpacity) {
+                                uiOpacity.opacity = 255;
+                            }
                         }
                     }
                     // 更新 block 当前颜色
@@ -738,12 +779,84 @@ export class LevelMode extends GameMode {
 
     /**
      * 调色板技能（palette_skill）
-     * 显示所有 block 的颜色和序号文字，半透明显示
+     * 显示所有 block 的颜色和序号文字
+     * - 已熨烫且颜色正确的 block：全不透明显示
+     * - 已熨烫但颜色错误 / 未熨烫的 block：半透明显示正确颜色
      */
     public activatePaletteSkill(): void {
         if (!this.gridDrawer) return;
-        // 半透明显示 block sprite
-        this.gridDrawer.showBlockSpritesSemiTransparent(120);
+
+        const blocks = this.gridDrawer.getAllBlocks();
+        if (!blocks) return;
+
+        for (let row = 0; row < blocks.length; row++) {
+            for (let col = 0; col < blocks[row].length; col++) {
+                const block = blocks[row][col];
+                if (!block) continue;
+
+                const controller = block.getComponent(BlockController);
+                if (!controller) continue;
+
+                const blockSpNode = block.getChildByName('block_sp');
+                if (!blockSpNode) continue;
+
+                const sprite = blockSpNode.getComponent(Sprite);
+                if (!sprite) continue;
+
+                let uiOpacity = blockSpNode.getComponent(UIOpacity);
+                if (!uiOpacity) {
+                    uiOpacity = blockSpNode.addComponent(UIOpacity);
+                }
+
+                let targetOpacity = 120;
+                let displayColor: Color | null = null;
+
+                if (controller.state === BlockState.IRONED) {
+                    if (controller.isColorMatch()) {
+                        // 已熨烫且颜色正确：全不透明
+                        targetOpacity = 255;
+                    } else {
+                        // 已熨烫但颜色错误：显示正确颜色，全不透明
+                        displayColor = new Color(
+                            controller.targetColorR,
+                            controller.targetColorG,
+                            controller.targetColorB,
+                            controller.targetColorA
+                        );
+                        targetOpacity = 255;
+                    }
+                } else if (controller.state === BlockState.HAS_CIRCLE) {
+                    // 有 circle：显示目标正确颜色，半透明
+                    if (controller.targetColorA > 0) {
+                        displayColor = new Color(
+                            controller.targetColorR,
+                            controller.targetColorG,
+                            controller.targetColorB,
+                            controller.targetColorA
+                        );
+                    }
+                    targetOpacity = 120;
+                } else {
+                    // 无 circle：显示目标颜色，半透明
+                    if (controller.targetColorA > 0) {
+                        displayColor = new Color(
+                            controller.targetColorR,
+                            controller.targetColorG,
+                            controller.targetColorB,
+                            controller.targetColorA
+                        );
+                    }
+                    targetOpacity = 120;
+                }
+
+                sprite.enabled = true;
+                if (displayColor) {
+                    sprite.color = displayColor;
+                }
+                uiOpacity.opacity = targetOpacity;
+            }
+        }
+
         // 显示所有 number 节点
         this.gridDrawer.showAllNumberNodes();
         console.log('palette_skill 激活：显示拼豆颜色预览');

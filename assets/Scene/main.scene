@@ -12327,6 +12327,9 @@
     "gridDrawer": {
       "__id__": 123
     },
+    "skillController": {
+      "__id__": 299
+    },
     "level_label": {
       "__id__": 92
     },
