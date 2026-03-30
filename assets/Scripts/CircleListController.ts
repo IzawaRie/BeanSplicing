@@ -16,7 +16,7 @@ export class CircleListController extends Component {
     public colorNodes: Node[] = [];
 
     private boxItemPrefab: Prefab | null = null;
-    private readonly MAX_ITEMS_PER_COLOR = 10;
+    private readonly MAX_ITEMS_PER_COLOR = 7;
 
     /**
      * 隐藏所有颜色节点
@@ -132,10 +132,10 @@ export class CircleListController extends Component {
         const itemH = 50;
 
         // 计算每列可容纳的数量（留一点间隙）
-        const spacingH = itemH * 0.1;
+        const spacingH = itemH * 0.1 * -1;
         const itemsPerCol = Math.floor(containerH / (itemH + spacingH));
         // 计算可分多少列
-        const spacingW = itemW * 0.1;
+        const spacingW = itemW * 0.1 * -1;
         const colsCount = Math.floor(containerW / (itemW + spacingW));
 
         // 将所有颜色混合打乱，均匀分布到每个格子
@@ -147,6 +147,8 @@ export class CircleListController extends Component {
             const colorIndex = colorNum - 1;
             const color = colors[colorIndex];
             if (!color) continue;
+            // 过滤白色（RGB >= 250 视为白色）
+            if (color.r >= 230 && color.g >= 230 && color.b >= 230) continue;
             const itemCount = Math.min(data.count, this.MAX_ITEMS_PER_COLOR);
             for (let i = 0; i < itemCount; i++) {
                 allItems.push({ colorNum, color });
