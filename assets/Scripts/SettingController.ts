@@ -77,7 +77,13 @@ export class SettingController extends Component {
             return; // 点击在内容面板内，不关闭
         }
 
-        GameManager.getInstance().gameState = this.lastState;
+        const gameManager = GameManager.getInstance();
+        const levelMode = gameManager.levelMode;
+        if (levelMode) {
+            levelMode.resumeFromPause();
+        }
+        // 恢复游戏状态
+        gameManager.gameState = this.lastState;
         // 点击边框外，关闭面板
         this.node.active = false;
     }

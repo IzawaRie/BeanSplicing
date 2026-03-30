@@ -1,5 +1,5 @@
 import { _decorator, Component, Label, Node, Sprite, tween, UIOpacity } from 'cc';
-import { GameMode, GameModeType, GameResult } from './GameMode';
+import { GameMode, GameModeType} from './GameMode';
 import { GridDrawer } from './GridDrawer';
 import { IronController } from './IronController';
 import { CircleListController } from './CircleListController';
@@ -87,6 +87,7 @@ export class LevelMode extends GameMode {
     // 读秒倒计时相关
     private _daojiTime: number = 0;       // 读秒倒计时秒数
     private _isDaojiCounting: boolean = false; // 是否在读秒中
+    private _savedDaojiCounting: boolean = false; // 暂停前是否在读秒中
 
     // 进度相关
     private _totalBlockCount: number = 0;    // 有效 block 总数
@@ -627,12 +628,21 @@ export class LevelMode extends GameMode {
      */
     private onSettingBtnClick(): void {
         const gameManager = GameManager.getInstance();
-        if (!gameManager?.setting || (gameManager.gameState != GameState.PLAYING)) return;
+        if (!gameManager?.setting || (gameManager.gameState == GameState.GAME_OVER)) return;
 
         gameManager.vibrateShort();
+        this._savedDaojiCounting = this._isDaojiCounting; // 保存读秒状态
+        this._isDaojiCounting = false; // 暂停读秒倒计时
+        gameManager.setting.lastState = gameManager.gameState; // 保存当前状态
         gameManager.gameState = GameState.PAUSED;
-        gameManager.setting.lastState = GameState.PLAYING;
         gameManager.setting.node.active = true;
         AudioManager.instance.playEffect('setting_btn');
+    }
+
+    /**
+     * 从暂停状态恢复（关闭设置面板时调用）
+     */
+    public resumeFromPause(): void {
+        this._isDaojiCounting = this._savedDaojiCounting;
     }
 }
