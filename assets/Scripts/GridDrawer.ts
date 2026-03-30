@@ -477,7 +477,7 @@ export class GridDrawer extends Component {
             for (let col = 0; col < blocks[row].length; col++) {
                 const block = blocks[row][col];
                 if (!block) continue;
-                const sprite = block.getComponent(Sprite);
+                const sprite = this.getBlockSprite(block);
                 if (sprite) {
                     sprite.enabled = true;
                 }
@@ -510,14 +510,14 @@ export class GridDrawer extends Component {
                     continue;
                 }
 
-                const sprite = block.getComponent(Sprite);
+                const sprite = this.getBlockSprite(block);
                 if (!sprite) {
                     completed++;
                     continue;
                 }
 
-                // 获取或添加 UIOpacity 组件
-                let uiOpacity = sprite.getComponent(UIOpacity);
+                // 获取或添加 UIOpacity 组件（添加到 block_sp 节点）
+                let uiOpacity = sprite.node.getComponent(UIOpacity);
                 if (!uiOpacity) {
                     uiOpacity = sprite.addComponent(UIOpacity);
                 }
@@ -540,6 +540,15 @@ export class GridDrawer extends Component {
     }
 
     /**
+     * 获取 block_sp 子节点的 Sprite 组件
+     */
+    private getBlockSprite(block: Node): Sprite | null {
+        const blockSp = block.getChildByName('block_sp');
+        if (!blockSp) return null;
+        return blockSp.getComponent(Sprite);
+    }
+
+    /**
      * 显示所有 number 节点（读秒结束后显示序号）
      */
     public showAllNumberNodes(): void {
@@ -552,6 +561,95 @@ export class GridDrawer extends Component {
                 const numberNode = block.getChildByName('number');
                 if (numberNode) {
                     numberNode.active = true;
+                }
+            }
+        }
+    }
+
+    /**
+     * 隐藏所有 number 节点
+     */
+    public hideAllNumberNodes(): void {
+        const blocks = this.blockCreator.getAllBlocks();
+        if (!blocks) return;
+        for (let row = 0; row < blocks.length; row++) {
+            for (let col = 0; col < blocks[row].length; col++) {
+                const block = blocks[row][col];
+                if (!block) continue;
+                const numberNode = block.getChildByName('number');
+                if (numberNode) {
+                    numberNode.active = false;
+                }
+            }
+        }
+    }
+
+    /**
+     * 显示所有 block 的 sprite（半透明，用于 palette_skill）
+     * @param opacity 半透明度（0-255）
+     */
+    public showBlockSpritesSemiTransparent(opacity: number = 100): void {
+        const blocks = this.blockCreator.getAllBlocks();
+        if (!blocks) return;
+        for (let row = 0; row < blocks.length; row++) {
+            for (let col = 0; col < blocks[row].length; col++) {
+                const block = blocks[row][col];
+                if (!block) continue;
+                const sprite = this.getBlockSprite(block);
+                if (sprite) {
+                    sprite.enabled = true;
+                    // 获取或添加 UIOpacity 组件（添加到 block_sp 节点）
+                    let uiOpacity = sprite.node.getComponent(UIOpacity);
+                    if (!uiOpacity) {
+                        uiOpacity = sprite.node.addComponent(UIOpacity);
+                    }
+                    uiOpacity.opacity = opacity;
+                }
+            }
+        }
+    }
+
+    /**
+     * 隐藏所有 block 的 sprite（即时隐藏，用于恢复游戏视图）
+     */
+    public hideAllBlockSpritesInstant(): void {
+        const blocks = this.blockCreator.getAllBlocks();
+        if (!blocks) return;
+        for (let row = 0; row < blocks.length; row++) {
+            for (let col = 0; col < blocks[row].length; col++) {
+                const block = blocks[row][col];
+                if (!block) continue;
+                const sprite = this.getBlockSprite(block);
+                if (sprite) {
+                    sprite.enabled = false;
+                }
+                // 重置 UIOpacity
+                if (sprite) {
+                    const uiOpacity = sprite.node.getComponent(UIOpacity);
+                    if (uiOpacity) {
+                        uiOpacity.opacity = 255;
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * 隐藏所有 block 上的 circle（用于 fix_skill 重置后隐藏 circle）
+     */
+    public hideAllBlockCircles(): void {
+        const blocks = this.blockCreator.getAllBlocks();
+        if (!blocks) return;
+        for (let row = 0; row < blocks.length; row++) {
+            for (let col = 0; col < blocks[row].length; col++) {
+                const block = blocks[row][col];
+                if (!block) continue;
+                const circleNode = block.getChildByName('circle');
+                if (circleNode) {
+                    const sprite = circleNode.getComponent(Sprite);
+                    if (sprite) {
+                        sprite.enabled = false;
+                    }
                 }
             }
         }

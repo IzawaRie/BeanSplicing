@@ -93,8 +93,9 @@ export class PixelPatternApplier extends Component {
      * 给单个 block 应用颜色
      */
     private applyColorToBlock(block: Node, colorData: PixelBlock): void {
-        // 直接在 block 本身设置颜色
-        const sprite = block.getComponent(Sprite);
+        // 从 block_sp 子节点获取 sprite
+        const blockSp = block.getChildByName('block_sp');
+        const sprite = blockSp?.getComponent(Sprite);
         const blockController = block.getComponent(BlockController);
         if (sprite) {
             sprite.enabled = false;

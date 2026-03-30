@@ -10311,6 +10311,15 @@
     },
     "_enabled": true,
     "__prefab": null,
+    "palette_skill": {
+      "__id__": 276
+    },
+    "time_skill": {
+      "__id__": 283
+    },
+    "fix_skill": {
+      "__id__": 290
+    },
     "_id": "fcBGwR5fhPa5YOHu4yoZ2x"
   },
   {

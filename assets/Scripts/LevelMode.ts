@@ -1,4 +1,4 @@
-import { _decorator, Component, Label, Node, Sprite, tween, UIOpacity } from 'cc';
+import { _decorator, Component, Label, Node, Sprite, tween, UIOpacity, Color } from 'cc';
 import { GameMode, GameModeType} from './GameMode';
 import { GridDrawer } from './GridDrawer';
 import { IronController } from './IronController';
@@ -88,6 +88,9 @@ export class LevelMode extends GameMode {
     private _daojiTime: number = 0;       // 读秒倒计时秒数
     private _isDaojiCounting: boolean = false; // 是否在读秒中
     private _savedDaojiCounting: boolean = false; // 暂停前是否在读秒中
+    // 时间冻结相关（time_skill）
+    private _isTimeFrozen: boolean = false; // 是否冻结时间
+    private _timeFreezeTimer: number = 0;     // 冻结剩余时间
 
     // 进度相关
     private _totalBlockCount: number = 0;    // 有效 block 总数
@@ -114,6 +117,20 @@ export class LevelMode extends GameMode {
         }
 
         if (gameManager.gameState != GameState.PLAYING) return;
+
+        // 时间冻结期间不减少倒计时
+        if (this._isTimeFrozen) {
+            this._timeFreezeTimer -= _deltaTime;
+            if (this._timeFreezeTimer <= 0) {
+                this._isTimeFrozen = false;
+                this._timeFreezeTimer = 0;
+                // 恢复时间标签颜色
+                if (this.time_label) {
+                    this.time_label.color = new Color(255, 255, 255, 255);
+                }
+            }
+            return;
+        }
 
         this._remainingTime -= _deltaTime;
 
@@ -643,5 +660,101 @@ export class LevelMode extends GameMode {
      */
     public resumeFromPause(): void {
         this._isDaojiCounting = this._savedDaojiCounting;
+    }
+
+    // ==================== 技能系统 ====================
+
+    /**
+     * 时间冻结技能（time_skill）
+     * 停止倒计时时间，持续10秒
+     */
+    public activateTimeFreeze(): void {
+        if (this._isTimeFrozen || this._isDaojiCounting) return; // 已在冻结或读秒中
+        if (this.gridDrawer) {
+            this.gridDrawer.hideAllNumberNodes();
+        }
+        this._isTimeFrozen = true;
+        this._timeFreezeTimer = 10;
+        // 改变时间标签颜色表示冻结状态
+        if (this.time_label) {
+            this.time_label.color = new Color(100, 200, 255, 255);
+        }
+        console.log('time_skill 激活：时间冻结10秒');
+    }
+
+    /**
+     * 修复技能（fix_skill）
+     * 修复所有颜色不匹配的 block，将其颜色改为正确的目标颜色
+     */
+    public activateFixSkill(): void {
+        if (!this.gridDrawer) return;
+        this.gridDrawer.hideAllNumberNodes();
+
+        const blocks = this.gridDrawer.getAllBlocks();
+        if (!blocks) return;
+
+        let fixedCount = 0;
+        for (let row = 0; row < blocks.length; row++) {
+            for (let col = 0; col < blocks[row].length; col++) {
+                const block = blocks[row][col];
+                if (!block) continue;
+
+                const controller = block.getComponent(BlockController);
+                if (!controller) continue;
+
+                // 只处理有 circle 的 block（HAS_CIRCLE 或 IRONED 状态）
+                if (controller.state !== BlockState.HAS_CIRCLE && controller.state !== BlockState.IRONED) continue;
+
+                // 检查颜色是否与目标颜色匹配
+                if (!controller.isColorMatch()) {
+                    // 颜色不匹配，修复为正确的目标颜色
+                    const circleNode = block.getChildByName('circle');
+                    if (circleNode) {
+                        const sprite = circleNode.getComponent(Sprite);
+                        if (sprite) {
+                            sprite.color = new Color(
+                                controller.targetColorR,
+                                controller.targetColorG,
+                                controller.targetColorB,
+                                controller.targetColorA
+                            );
+                            sprite.enabled = true;
+                        }
+                    }
+                    // 更新 block 当前颜色
+                    controller.setCurrentColor(
+                        controller.targetColorR,
+                        controller.targetColorG,
+                        controller.targetColorB,
+                        controller.targetColorA
+                    );
+                    fixedCount++;
+                }
+            }
+        }
+
+        console.log(`fix_skill 激活：修复了 ${fixedCount} 个错误的 block`);
+    }
+
+    /**
+     * 调色板技能（palette_skill）
+     * 显示所有 block 的颜色和序号文字，半透明显示
+     */
+    public activatePaletteSkill(): void {
+        if (!this.gridDrawer) return;
+        // 半透明显示 block sprite
+        this.gridDrawer.showBlockSpritesSemiTransparent(120);
+        // 显示所有 number 节点
+        this.gridDrawer.showAllNumberNodes();
+        console.log('palette_skill 激活：显示拼豆颜色预览');
+    }
+
+    /**
+     * 隐藏调色板预览视图（palette_skill 结束）
+     */
+    public hidePalettePreview(): void {
+        if (!this.gridDrawer) return;
+        this.gridDrawer.hideAllBlockSpritesInstant();
+        this.gridDrawer.hideAllNumberNodes();
     }
 }

@@ -89,6 +89,44 @@ export class BlockController extends Component {
     }
 
     /**
+     * 重置 block 到初始状态（无 circle）
+     * 用于 fix_skill 修复错误的 block
+     */
+    public resetBlock(): void {
+        this._state = BlockState.NO_CIRCLE;
+        this._currentColorR = -1;
+        this._currentColorG = -1;
+        this._currentColorB = -1;
+        this._currentColorA = -1;
+
+        // 隐藏 circle 节点
+        const circleNode = this.node.getChildByName('circle');
+        if (circleNode) {
+            const sprite = circleNode.getComponent(Sprite);
+            if (sprite) {
+                sprite.enabled = false;
+            }
+        }
+
+        // 隐藏 block_sp sprite（如果已显示）
+        const blockSp = this.node.getChildByName('block_sp');
+        const sprite = blockSp?.getComponent(Sprite);
+        if (sprite) {
+            sprite.enabled = false;
+        }
+    }
+
+    /**
+     * 检查当前颜色是否与目标颜色匹配
+     */
+    public isColorMatch(): boolean {
+        return this._currentColorR === this._targetColorR &&
+               this._currentColorG === this._targetColorG &&
+               this._currentColorB === this._targetColorB &&
+               this._currentColorA === this._targetColorA;
+    }
+
+    /**
      * 检查是否可以熨烫（只有 HAS_CIRCLE 状态可以熨烫）
      */
     public canIron(): boolean {

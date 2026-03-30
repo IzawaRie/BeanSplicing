@@ -97,6 +97,15 @@ export class BlockCreator {
                             circleTransform.setContentSize(cellWidth * 0.8, cellHeight * 0.8);
                         }
                     }
+
+                    // 设置 block_sp 子节点大小
+                    const blockSp = block.getChildByName('block_sp');
+                    if (blockSp) {
+                        const blockSpTransform = blockSp.getComponent(UITransform);
+                        if (blockSpTransform) {
+                            blockSpTransform.setContentSize(cellWidth, cellHeight);
+                        }
+                    }
                 }
 
                 const x = -halfW + col * cellWidth + cellWidth / 2;

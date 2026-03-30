@@ -204,21 +204,24 @@ export class IronController extends Component {
         // 隐藏 circle 的 sprite
         circleSprite.enabled = false;
 
-        // 显示 block 下的 sprite 组件
-        const blockSprite = block.getComponent(Sprite);
-        if (blockSprite) {
-            // 使用当前颜色设置 block sprite
-            blockSprite.color = new Color(
-                blockController.currentColorR,
-                blockController.currentColorG,
-                blockController.currentColorB,
-                blockController.currentColorA
-            );
-            blockSprite.enabled = true;
-
-            // 设置 block 状态为已熨烫
-            blockController.setIroned();
+        // 显示 block_sp 下的 sprite 组件
+        const blockSpNode = block.getChildByName('block_sp');
+        if (blockSpNode) {
+            const blockSprite = blockSpNode.getComponent(Sprite);
+            if (blockSprite) {
+                // 使用当前颜色设置 block sprite
+                blockSprite.color = new Color(
+                    blockController.currentColorR,
+                    blockController.currentColorG,
+                    blockController.currentColorB,
+                    blockController.currentColorA
+                );
+                blockSprite.enabled = true;
+            }
         }
+
+        // 设置 block 状态为已熨烫
+        blockController.setIroned();
 
         return true;
     }
