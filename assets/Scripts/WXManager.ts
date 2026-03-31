@@ -46,13 +46,12 @@ export class WXManager extends Component {
             // envVersion: 'development' | 'trial' | 'release'
             const accountInfo = wx.getAccountInfoSync();
             const env = accountInfo?.miniProgram?.envVersion;
-            if (env === 'release' && this.REWARDED_VIDEO_AD_UNIT_ID === 'test123') {
+            if ((env === 'release' && this.REWARDED_VIDEO_AD_UNIT_ID === 'test123') || env === 'develop' || env === 'trial') {
                 this.isDebugMode = true;
-                console.log('当前为正式版且广告位未配置，跳过广告创建，进入调试模式');
             } else {
                 this.isDebugMode = false;
-                console.log(`当前环境: ${env}`);
             }
+            console.log(`当前环境: ${env}`);
         } catch (e) {
             console.warn('获取运行环境信息失败:', e);
         }
