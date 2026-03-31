@@ -96,6 +96,61 @@ export class AudioManager extends Component {
             .start();
     }
 
+    /**
+     * 播放游戏背景音乐（game_bgm）
+     */
+    public playGameBgm(): void {
+        if (!this.music) return;
+
+        const loadAndPlay = (bundle: any) => {
+            bundle.load('game_bgm', AudioClip, (err: any, clip: AudioClip) => {
+                if (err) {
+                    console.error('加载 game_bgm 失败:', err);
+                    return;
+                }
+
+                this.music.clip = clip;
+                this.music.loop = true;
+                this.music.volume = 1;
+                this.music.play();
+            });
+        };
+
+        if (this.musicBundle) {
+            loadAndPlay(this.musicBundle);
+        } else {
+            assetManager.loadBundle('Music', (err: any, bundle: any) => {
+                if (err) {
+                    console.error('加载 Music bundle 失败:', err);
+                    return;
+                }
+                this.musicBundle = bundle;
+                loadAndPlay(bundle);
+            });
+        }
+    }
+
+    /**
+     * 停止游戏背景音乐（逐渐减小音量后停止）
+     */
+    public stopGameBgm(): void {
+        if (!this.music) return;
+
+        if (this.musicTween) {
+            this.musicTween.stop();
+            this.musicTween = null;
+        }
+
+        this.musicTween = tween(this.music)
+            .to(0.5, { volume: 0 }, { easing: 'sineIn' })
+            .call(() => {
+                this.music.stop();
+                this.music.volume = 1;
+                this.musicTween = null;
+            })
+            .start();
+    }
+
     onDestroy() {
         if (AudioManager._instance === this) {
             AudioManager._instance = null;

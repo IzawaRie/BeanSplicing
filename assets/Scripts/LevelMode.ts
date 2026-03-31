@@ -290,6 +290,8 @@ export class LevelMode extends GameMode {
         if (this.gridDrawer) {
             this.gridDrawer.showAllBlockSprites();
         }
+
+        AudioManager.instance.playGameBgm();
     }
 
     /**
@@ -399,7 +401,7 @@ export class LevelMode extends GameMode {
 
         // 检查所有可用 block 的目标颜色与当前颜色是否一致
         const isSuccess = this.checkAllBlocksColorMatch();
-
+        if(!isSuccess) AudioManager.instance.stopGameBgm();
         if (this.resultPanel?.node) {
             this.resultPanel.setResult(isSuccess);
             this.resultPanel.node.active = true;
@@ -417,6 +419,7 @@ export class LevelMode extends GameMode {
         const colorMatch = this.checkAllBlocksColorMatch();
         const isSuccess = allIroned && colorMatch;
 
+        if(!isSuccess) AudioManager.instance.stopGameBgm();
         if (this.resultPanel?.node) {
             this.resultPanel.setResult(isSuccess);
             this.resultPanel.node.active = true;
