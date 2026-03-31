@@ -1,6 +1,6 @@
 import { _decorator, Component, Node, EventTouch, Sprite, UITransform, Color, tween, Vec3, UIOpacity } from 'cc';
 import { GameManager, GameState } from './GameManager';
-import { BlockController } from './BlockController';
+import { BlockController, BlockState } from './BlockController';
 import { AudioManager } from './AudioManager';
 const { ccclass, property } = _decorator;
 
@@ -11,11 +11,6 @@ export class IronController extends Component {
 
     // 拖动状态
     private isDragging: boolean = false;
-    private dragOffset: { x: number, y: number } = { x: 0, y: 0 };
-
-    // 拖动时圆形的 Y 轴偏移量（让圆形显示在手指上方）
-    @property({ type: Number })
-    dragOffsetY: number = 80;
 
     // 熨烫音效节流：上次播放时间（毫秒）
     private lastShaTime: number = 0;
@@ -48,7 +43,6 @@ export class IronController extends Component {
     public resetPosition(): void {
         this.node.setPosition(this.originalPos.x, this.originalPos.y, this.originalPos.z);
         tween(this.node).
-            set({scale: Vec3.ZERO}).
             to(0.3, {scale: Vec3.ONE}).
             start();
     }
@@ -69,11 +63,10 @@ export class IronController extends Component {
 
         this.isDragging = true;
         const pos = event.getUILocation();
-        const nodePos = this.node.position;
-        this.dragOffset = { x: pos.x - nodePos.x, y: pos.y - nodePos.y };
+        this.node.setWorldPosition(pos.x, pos.y, 0);
         tween(this.node).
             set({scale: Vec3.ONE}).
-            to(0.1, {scale: new Vec3(1.5, 1.5, 1.5)}).
+            to(0.1, {scale: new Vec3(1.3, 1.3, 1.3)}).
             start();
     }
 
@@ -84,14 +77,94 @@ export class IronController extends Component {
         if (!this.isDragging) return;
 
         const pos = event.getUILocation();
-        const offsetX = 0;  // 熨斗暂时不需要横向偏移
-        const offsetY = this.dragOffsetY;
-        const newX = pos.x - this.dragOffset.x + offsetX;
-        const newY = pos.y - this.dragOffset.y + offsetY;
-        this.node.setPosition(newX, newY, 0);
+        this.node.setWorldPosition(pos.x, pos.y, 0);
 
-        // 检测是否拖动到了某个 block 上（使用偏移后的位置）
-        this.handleBlockAtPosition(pos.x + offsetX, pos.y + offsetY);
+        // 根据熨斗的 UITransform 范围，检测范围内所有已高亮的 block 并熨烫
+        this.handleBlocksInIronRange();
+    }
+
+    /**
+     * 根据熨斗的 UITransform 范围，检测范围内所有已高亮的 block 并熨烫
+     */
+    private handleBlocksInIronRange(): void {
+        const gameManager = GameManager.getInstance();
+        if (!gameManager || !gameManager.levelMode.gridDrawer) return;
+
+        const gridDrawer = gameManager.levelMode.gridDrawer;
+        const blocks = gridDrawer.getAllBlocks();
+        if (!blocks) return;
+
+        // 获取熨斗节点的世界坐标和尺寸
+        const ironWorldPos = this.node.getWorldPosition();
+        const ironTransform = this.node.getComponent(UITransform);
+        if (!ironTransform) return;
+
+        const ironHalfW = ironTransform.width * 0.8 / 2;
+        const ironHalfH = ironTransform.height * 0.8 / 2;
+        const ironMinX = ironWorldPos.x - ironHalfW;
+        const ironMaxX = ironWorldPos.x + ironHalfW;
+        const ironMinY = ironWorldPos.y - ironHalfH;
+        const ironMaxY = ironWorldPos.y + ironHalfH;
+
+        let ironedCount = 0;
+        for (let row = 0; row < blocks.length; row++) {
+            for (let col = 0; col < blocks[row].length; col++) {
+                const block = blocks[row][col];
+                if (!block) continue;
+
+                const blockController = block.getComponent(BlockController);
+                if (!blockController) continue;
+
+                // 只处理已高亮的 block（HAS_CIRCLE 状态）
+                if (blockController.state !== BlockState.HAS_CIRCLE) continue;
+
+                // 获取 block 世界坐标和尺寸
+                const blockWorldPos = block.getWorldPosition();
+                const blockTransform = block.getComponent(UITransform);
+                if (!blockTransform) continue;
+
+                // 获取父节点缩放
+                let scaleX = 1;
+                let scaleY = 1;
+                let parent = block.parent;
+                while (parent) {
+                    scaleX *= parent.scale.x;
+                    scaleY *= parent.scale.y;
+                    parent = parent.parent;
+                }
+
+                const blockHalfW = (blockTransform.width * scaleX) / 2;
+                const blockHalfH = (blockTransform.height * scaleY) / 2;
+                const blockMinX = blockWorldPos.x - blockHalfW;
+                const blockMaxX = blockWorldPos.x + blockHalfW;
+                const blockMinY = blockWorldPos.y - blockHalfH;
+                const blockMaxY = blockWorldPos.y + blockHalfH;
+
+                // 检测 AABB 碰撞（熨斗范围与 block 范围是否重叠）
+                const isOverlapping = !(ironMaxX < blockMinX || ironMinX > blockMaxX ||
+                                        ironMaxY < blockMinY || ironMinY > blockMaxY);
+
+                if (isOverlapping) {
+                    if (this.processBlock(block)) {
+                        ironedCount++;
+                    }
+                }
+            }
+        }
+
+        // 更新进度
+        if (ironedCount > 0) {
+            gameManager.levelMode.onBlocksIroned(ironedCount);
+            // 节流播放音效
+            const now = Date.now();
+            if (now - this.lastShaTime >= this.SHA_COOLDOWN) {
+                this.lastShaTime = now;
+                AudioManager.instance.playEffect('sha', 0.5);
+            }
+        }
+
+        // 检查是否所有 block 都已熨烫
+        gameManager.levelMode.checkAllBlocksIroned();
     }
 
     /**
@@ -102,78 +175,6 @@ export class IronController extends Component {
 
         this.isDragging = false;
         this.resetPosition();
-    }
-
-    /**
-     * 处理指定位置的 block（当前 + 周围8个）
-     */
-    private handleBlockAtPosition(worldX: number, worldY: number): void {
-        const gameManager = GameManager.getInstance();
-        if (!gameManager || !gameManager.levelMode.gridDrawer) return;
-
-        const gridDrawer = gameManager.levelMode.gridDrawer;
-        const blocks = gridDrawer.getAllBlocks();
-
-        // 获取边界
-        const bounds = gridDrawer.getContentBounds();
-        if (!bounds) return;
-
-        // 检查触摸点是否在边界内
-        if (worldX < bounds.minX || worldX > bounds.maxX ||
-            worldY < bounds.minY || worldY > bounds.maxY) {
-            return;
-        }
-
-        // 查找当前的 block
-        const currentBlock = this.findBlockAtPosition(blocks, worldX, worldY);
-        if (!currentBlock) return;
-
-        // 处理当前 block 和周围8个 block
-        const currentRow = this.getBlockRow(currentBlock);
-        const currentCol = this.getBlockCol(currentBlock);
-
-        if (currentRow < 0 || currentCol < 0) return;
-
-        // 定义周围8个方向的偏移
-        const neighborOffsets = [
-            { row: 0, col: 0 },   // 自身
-            { row: -1, col: -1 }, { row: -1, col: 0 }, { row: -1, col: 1 },
-            { row: 0, col: -1 },                       { row: 0, col: 1 },
-            { row: 1, col: -1 },  { row: 1, col: 0 },  { row: 1, col: 1 }
-        ];
-
-        let ironedCount = 0;
-        for (const offset of neighborOffsets) {
-            const targetRow = currentRow + offset.row;
-            const targetCol = currentCol + offset.col;
-
-            if (targetRow >= 0 && targetRow < blocks.length &&
-                targetCol >= 0 && targetCol < blocks[0].length) {
-                const targetBlock = blocks[targetRow][targetCol];
-                if (targetBlock && this.processBlock(targetBlock)) {
-                    ironedCount++;
-                }
-            }
-        }
-
-        // 更新进度
-        if (ironedCount > 0) {
-            gameManager.levelMode.onBlocksIroned(ironedCount);
-        }
-
-        // 检查是否所有 block 都已熨烫
-        gameManager.levelMode.checkAllBlocksIroned();
-
-        // 节流：只在新熨烫了 block 且距上次播放超过冷却时间才播放音效
-        if (ironedCount > 0) {
-            const now = Date.now();
-            if (now - this.lastShaTime >= this.SHA_COOLDOWN) {
-                this.lastShaTime = now;
-                AudioManager.instance.playEffect('sha', 0.5);
-            }
-        }
-
-        //gameManager.vibrateShort('light');
     }
 
     /**
@@ -229,86 +230,5 @@ export class IronController extends Component {
         blockController.setIroned();
 
         return true;
-    }
-
-    /**
-     * 在指定位置查找 block
-     */
-    private findBlockAtPosition(blocks: Node[][], worldX: number, worldY: number): Node | null {
-        for (let row = 0; row < blocks.length; row++) {
-            for (let col = 0; col < blocks[row].length; col++) {
-                const block = blocks[row][col];
-                if (!block) continue;
-
-                // 获取 block 的世界坐标
-                const blockWorldPos = block.getWorldPosition();
-                const uiTransform = block.getComponent(UITransform);
-                if (!uiTransform) continue;
-
-                // 获取父节点的缩放
-                let scaleX = 1;
-                let scaleY = 1;
-                let parent = block.parent;
-                while (parent) {
-                    scaleX *= parent.scale.x;
-                    scaleY *= parent.scale.y;
-                    parent = parent.parent;
-                }
-
-                // 考虑缩放后的实际尺寸
-                const width = uiTransform.width * scaleX;
-                const height = uiTransform.height * scaleY;
-
-                // 使用世界坐标检测
-                const halfW = width / 2;
-                const halfH = height / 2;
-
-                if (worldX >= blockWorldPos.x - halfW && worldX <= blockWorldPos.x + halfW &&
-                    worldY >= blockWorldPos.y - halfH && worldY <= blockWorldPos.y + halfH) {
-                    return block;
-                }
-            }
-        }
-        return null;
-    }
-
-    /**
-     * 获取 block 所在的行
-     */
-    private getBlockRow(block: Node): number {
-        const gameManager = GameManager.getInstance();
-        if (!gameManager || !gameManager.levelMode.gridDrawer) return -1;
-
-        const gridDrawer = gameManager.levelMode.gridDrawer;
-        const blocks = gridDrawer.getAllBlocks();
-
-        for (let row = 0; row < blocks.length; row++) {
-            for (let col = 0; col < blocks[row].length; col++) {
-                if (blocks[row][col] === block) {
-                    return row;
-                }
-            }
-        }
-        return -1;
-    }
-
-    /**
-     * 获取 block 所在的列
-     */
-    private getBlockCol(block: Node): number {
-        const gameManager = GameManager.getInstance();
-        if (!gameManager || !gameManager.levelMode.gridDrawer) return -1;
-
-        const gridDrawer = gameManager.levelMode.gridDrawer;
-        const blocks = gridDrawer.getAllBlocks();
-
-        for (let row = 0; row < blocks.length; row++) {
-            for (let col = 0; col < blocks[row].length; col++) {
-                if (blocks[row][col] === block) {
-                    return col;
-                }
-            }
-        }
-        return -1;
     }
 }
