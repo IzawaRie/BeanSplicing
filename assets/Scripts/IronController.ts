@@ -61,6 +61,7 @@ export class IronController extends Component {
     private onTouchStart(event: EventTouch) {
         if (!this.isGameActive()) return;
 
+        this.node.getChildByName('mask').active = false;
         this.isDragging = true;
         const pos = event.getUILocation();
         this.node.setWorldPosition(pos.x, pos.y, 0);
@@ -174,6 +175,7 @@ export class IronController extends Component {
         if (!this.isDragging) return;
 
         this.isDragging = false;
+        this.node.getChildByName('mask').active = true;
         this.resetPosition();
     }
 
