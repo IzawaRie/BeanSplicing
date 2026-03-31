@@ -49,5 +49,15 @@
         }
       }
     }
+  },
+  "splash-setting": {
+    "logo": {
+      "image": "project://settings/icon.jpg",
+      "type": "none"
+    },
+    "background": {
+      "image": "project://settings/loading_bg.jpg",
+      "type": "custom"
+    }
   }
 }
