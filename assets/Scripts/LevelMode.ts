@@ -24,9 +24,6 @@ export class LevelMode extends GameMode {
 
     @property({ type: Node })
     settingBtn: Node = null;
-
-    @property({ type: Node })
-    restartBtn: Node = null;
     
     @property({ type: ResultPanel })
     resultPanel: ResultPanel = null;
