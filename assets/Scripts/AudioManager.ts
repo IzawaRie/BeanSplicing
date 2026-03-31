@@ -97,6 +97,63 @@ export class AudioManager extends Component {
     }
 
     /**
+     * 暂停背景音乐
+     */
+    public pauseBgm(): void {
+        if (this.music && this.music.playing) {
+            this.music.pause();
+        }
+    }
+
+    /**
+     * 继续播放背景音乐（从暂停处继续）
+     */
+    public resumeBgm(): void {
+        if (this.music && !this.music.playing) {
+            this.music.play();
+        }
+    }
+
+    /**
+     * 停止游戏背景音乐（逐渐减小音量后停止）
+     */
+    public stopGameBgm(): void {
+        if (!this.music) return;
+
+        if (this.musicTween) {
+            this.musicTween.stop();
+            this.musicTween = null;
+        }
+
+        this.musicTween = tween(this.music)
+            .to(0.5, { volume: 0 }, { easing: 'sineIn' })
+            .call(() => {
+                this.music.stop();
+                this.music.volume = 1;
+                this.musicTween = null;
+            })
+            .start();
+    }
+
+    /**
+     * 暂停游戏背景音乐
+     */
+    public pauseGameBgm(): void {
+        if (this.music && this.music.playing) {
+            this.music.pause();
+        }
+    }
+
+    /**
+     * 继续播放游戏背景音乐（从暂停处继续）
+     */
+    public resumeGameBgm(): void {
+        if (this.music && !this.music.playing) {
+            this.music.play();
+        }
+    }
+
+    /**
      * 播放游戏背景音乐（game_bgm）
      */
     public playGameBgm(): void {
@@ -128,27 +185,6 @@ export class AudioManager extends Component {
                 loadAndPlay(bundle);
             });
         }
-    }
-
-    /**
-     * 停止游戏背景音乐（逐渐减小音量后停止）
-     */
-    public stopGameBgm(): void {
-        if (!this.music) return;
-
-        if (this.musicTween) {
-            this.musicTween.stop();
-            this.musicTween = null;
-        }
-
-        this.musicTween = tween(this.music)
-            .to(0.5, { volume: 0 }, { easing: 'sineIn' })
-            .call(() => {
-                this.music.stop();
-                this.music.volume = 1;
-                this.musicTween = null;
-            })
-            .start();
     }
 
     onDestroy() {

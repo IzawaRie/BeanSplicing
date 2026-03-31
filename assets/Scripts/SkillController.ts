@@ -113,8 +113,13 @@ export class SkillController extends Component {
         // 按下动画
         this.playPressAnim(this.palette_skill);
 
+        // 暂停 BGM
+        AudioManager.instance.pauseGameBgm();
+
         // 播放激励视频广告，看完后才激活技能
         WXManager.instance.showRewardedVideoAd((success) => {
+            // 继续播放 BGM
+            AudioManager.instance.resumeGameBgm();
             if (!success) return; // 中途退出，不执行技能
             levelMode.activatePaletteSkill();
 
@@ -143,8 +148,13 @@ export class SkillController extends Component {
         // 按下动画
         this.playPressAnim(this.time_skill);
 
+        // 暂停 BGM
+        AudioManager.instance.pauseGameBgm();
+
         // 播放激励视频广告，看完后才激活技能
         WXManager.instance.showRewardedVideoAd((success) => {
+            // 继续播放 BGM
+            AudioManager.instance.resumeGameBgm();
             if (!success) return; // 中途退出，不执行技能
             levelMode.activateTimeFreeze();
 
@@ -173,8 +183,13 @@ export class SkillController extends Component {
         // 按下动画
         this.playPressAnim(this.fix_skill);
 
+        // 暂停 BGM
+        AudioManager.instance.pauseGameBgm();
+
         // 播放激励视频广告，看完后才激活技能
         WXManager.instance.showRewardedVideoAd((success) => {
+            // 继续播放 BGM
+            AudioManager.instance.resumeGameBgm();
             if (!success) return; // 中途退出，不执行技能
             levelMode.activateFixSkill();
 
