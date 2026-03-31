@@ -25,14 +25,14 @@ export class WXManager extends Component {
     // 激励视频广告实例
     private rewardedVideoAd: any = null;
     // 激励视频广告位 id（在微信公众平台广告位配置获取）
-    private readonly REWARDED_VIDEO_AD_UNIT_ID: string = 'test123';
+    private readonly REWARDED_VIDEO_AD_UNIT_ID: string = 'adunit-f7349bec4122701f';
     // 是否为调试模式（正式版但广告位为 test123 时启用）
     private isDebugMode: boolean = false;
 
     onLoad() {
         this.checkEnvironment();
         if (!this.isDebugMode) {
-            //this.createRewardedVideoAd();
+            this.createRewardedVideoAd();
         }
     }
 
@@ -43,10 +43,10 @@ export class WXManager extends Component {
         if (typeof (wx) === 'undefined') return;
 
         try {
-            // envVersion: 'development' | 'trial' | 'release'
+            // envVersion: 'develop' | 'trial' | 'release'
             const accountInfo = wx.getAccountInfoSync();
             const env = accountInfo?.miniProgram?.envVersion;
-            if ((env === 'release' && this.REWARDED_VIDEO_AD_UNIT_ID === 'test123') || env === 'develop' || env === 'trial') {
+            if (env === 'release' && this.REWARDED_VIDEO_AD_UNIT_ID === 'test123') {
                 this.isDebugMode = true;
             } else {
                 this.isDebugMode = false;
@@ -63,32 +63,36 @@ export class WXManager extends Component {
     private createRewardedVideoAd(): void {
         if (typeof (wx) === 'undefined') return;
 
-        this.rewardedVideoAd = wx.createRewardedVideoAd({
-            adUnitId: this.REWARDED_VIDEO_AD_UNIT_ID
-        });
+        try {
+            this.rewardedVideoAd = wx.createRewardedVideoAd({
+                adUnitId: this.REWARDED_VIDEO_AD_UNIT_ID
+            });
 
-        // 监听加载完成
-        this.rewardedVideoAd.onLoad(() => {
-            console.log('激励视频广告加载完成');
-        });
+            // 监听加载完成
+            this.rewardedVideoAd.onLoad(() => {
+                console.log('激励视频广告加载完成');
+            });
 
-        // 监听错误
-        this.rewardedVideoAd.onError((err: any) => {
-            console.warn('激励视频广告错误:', err);
-        });
+            // 监听错误
+            this.rewardedVideoAd.onError((err: any) => {
+                console.warn('激励视频广告错误:', err);
+            });
 
-        // 监听关闭（用户主动关闭广告）
-        this.rewardedVideoAd.onClose((res: any) => {
-            // res.isEnded 表示用户是否看完广告
-            if (res && res.isEnded) {
-                console.log('激励视频广告播放完成，发放奖励');
-                this.onRewardedVideoClosed?.(true);
-            } else {
-                console.log('激励视频广告未看完，不发放奖励');
-                this.onRewardedVideoClosed?.(false);
-            }
-            this.onRewardedVideoClosed = null;
-        });
+            // 监听关闭（用户主动关闭广告）
+            this.rewardedVideoAd.onClose((res: any) => {
+                // res.isEnded 表示用户是否看完广告
+                if (res && res.isEnded) {
+                    console.log('激励视频广告播放完成，发放奖励');
+                    this.onRewardedVideoClosed?.(true);
+                } else {
+                    console.log('激励视频广告未看完，不发放奖励');
+                    this.onRewardedVideoClosed?.(false);
+                }
+                this.onRewardedVideoClosed = null;
+            });
+        } catch (e) {
+            console.warn('创建激励视频广告失败:', e);
+        }
     }
 
     // 激励视频回调
