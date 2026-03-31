@@ -2,6 +2,7 @@ import { _decorator, Component, Node, tween, UIOpacity, Vec3 } from 'cc';
 import { GameManager, GameState } from './GameManager';
 import { LevelMode } from './LevelMode';
 import { AudioManager } from './AudioManager';
+import { WXManager } from './WXManager';
 
 const { ccclass, property } = _decorator;
 
@@ -112,13 +113,16 @@ export class SkillController extends Component {
         // 按下动画
         this.playPressAnim(this.palette_skill);
 
-        // 激活调色板预览（保持显示直到游戏结束）
-        levelMode.activatePaletteSkill();
+        // 播放激励视频广告，看完后才激活技能
+        WXManager.instance.showRewardedVideoAd((success) => {
+            if (!success) return; // 中途退出，不执行技能
+            levelMode.activatePaletteSkill();
 
-        // 设置冷却
-        this.paletteCooldown = true;
-        this.startCooldown(this.palette_skill, this.COOLDOWN_TIME, () => {
-            this.paletteCooldown = false;
+            // 设置冷却
+            this.paletteCooldown = true;
+            this.startCooldown(this.palette_skill, this.COOLDOWN_TIME, () => {
+                this.paletteCooldown = false;
+            });
         });
     }
 
@@ -139,13 +143,16 @@ export class SkillController extends Component {
         // 按下动画
         this.playPressAnim(this.time_skill);
 
-        // 激活时间冻结
-        levelMode.activateTimeFreeze();
+        // 播放激励视频广告，看完后才激活技能
+        WXManager.instance.showRewardedVideoAd((success) => {
+            if (!success) return; // 中途退出，不执行技能
+            levelMode.activateTimeFreeze();
 
-        // 设置冷却
-        this.timeCooldown = true;
-        this.startCooldown(this.time_skill, this.COOLDOWN_TIME, () => {
-            this.timeCooldown = false;
+            // 设置冷却
+            this.timeCooldown = true;
+            this.startCooldown(this.time_skill, this.COOLDOWN_TIME, () => {
+                this.timeCooldown = false;
+            });
         });
     }
 
@@ -166,13 +173,16 @@ export class SkillController extends Component {
         // 按下动画
         this.playPressAnim(this.fix_skill);
 
-        // 激活修复技能
-        levelMode.activateFixSkill();
+        // 播放激励视频广告，看完后才激活技能
+        WXManager.instance.showRewardedVideoAd((success) => {
+            if (!success) return; // 中途退出，不执行技能
+            levelMode.activateFixSkill();
 
-        // 设置冷却
-        this.fixCooldown = true;
-        this.startCooldown(this.fix_skill, this.COOLDOWN_TIME, () => {
-            this.fixCooldown = false;
+            // 设置冷却
+            this.fixCooldown = true;
+            this.startCooldown(this.fix_skill, this.COOLDOWN_TIME, () => {
+                this.fixCooldown = false;
+            });
         });
     }
 

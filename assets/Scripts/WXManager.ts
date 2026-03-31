@@ -1,4 +1,5 @@
 import { _decorator, Component, Node } from 'cc';
+import { GameManager } from './GameManager';
 const { ccclass, property } = _decorator;
 
 // 微信小游戏全局对象类型声明
@@ -21,10 +22,121 @@ export class WXManager extends Component {
     @property({ type: Node })
     testBtn: Node = null;
 
-    //用户 openid
-    //public openid: string = '';
+    // 激励视频广告实例
+    private rewardedVideoAd: any = null;
+    // 激励视频广告位 id（在微信公众平台广告位配置获取）
+    private readonly REWARDED_VIDEO_AD_UNIT_ID: string = 'test123';
+    // 是否为调试模式（正式版但广告位为 test123 时启用）
+    private isDebugMode: boolean = false;
 
     onLoad() {
+        this.checkEnvironment();
+        if (!this.isDebugMode) {
+            //this.createRewardedVideoAd();
+        }
+    }
+
+    /**
+     * 检查运行环境：开发版/体验版/正式版
+     */
+    private checkEnvironment(): void {
+        if (typeof (wx) === 'undefined') return;
+
+        try {
+            // envVersion: 'development' | 'trial' | 'release'
+            const accountInfo = wx.getAccountInfoSync();
+            const env = accountInfo?.miniProgram?.envVersion;
+            if (env === 'release' && this.REWARDED_VIDEO_AD_UNIT_ID === 'test123') {
+                this.isDebugMode = true;
+                console.log('当前为正式版且广告位未配置，跳过广告创建，进入调试模式');
+            } else {
+                this.isDebugMode = false;
+                console.log(`当前环境: ${env}`);
+            }
+        } catch (e) {
+            console.warn('获取运行环境信息失败:', e);
+        }
+    }
+
+    /**
+     * 创建激励视频广告
+     */
+    private createRewardedVideoAd(): void {
+        if (typeof (wx) === 'undefined') return;
+
+        this.rewardedVideoAd = wx.createRewardedVideoAd({
+            adUnitId: this.REWARDED_VIDEO_AD_UNIT_ID
+        });
+
+        // 监听加载完成
+        this.rewardedVideoAd.onLoad(() => {
+            console.log('激励视频广告加载完成');
+        });
+
+        // 监听错误
+        this.rewardedVideoAd.onError((err: any) => {
+            console.warn('激励视频广告错误:', err);
+        });
+
+        // 监听关闭（用户主动关闭广告）
+        this.rewardedVideoAd.onClose((res: any) => {
+            // res.isEnded 表示用户是否看完广告
+            if (res && res.isEnded) {
+                console.log('激励视频广告播放完成，发放奖励');
+                this.onRewardedVideoClosed?.(true);
+            } else {
+                console.log('激励视频广告未看完，不发放奖励');
+                this.onRewardedVideoClosed?.(false);
+            }
+            this.onRewardedVideoClosed = null;
+        });
+    }
+
+    // 激励视频回调
+    private onRewardedVideoClosed: ((success: boolean) => void) | null = null;
+
+    /**
+     * 显示激励视频广告
+     * @param callback 播放结束后的回调，参数表示是否完整看完
+     */
+    public showRewardedVideoAd(callback: (success: boolean) => void): void {
+        if (typeof (wx) === 'undefined') {
+            console.warn('不在微信小游戏环境中，模拟激励视频');
+            callback?.(true);
+            return;
+        }
+
+        // 调试模式：直接返回成功，跳过广告
+        if (this.isDebugMode) {
+            console.log('调试模式：跳过广告，直接执行技能');
+            callback?.(true);
+            return;
+        }
+
+        if (!this.rewardedVideoAd) {
+            console.warn('激励视频广告未创建');
+            callback?.(false);
+            return;
+        }
+
+        this.onRewardedVideoClosed = callback;
+
+        this.rewardedVideoAd.show().then(() => {
+            console.log('激励视频广告显示成功');
+        }).catch((err: any) => {
+            // 广告可能未加载，先加载再显示
+            console.warn('激励视频广告显示失败，尝试加载:', err);
+            this.rewardedVideoAd.load().then(() => {
+                console.log('激励视频广告重新加载成功');
+                return this.rewardedVideoAd.show();
+            }).then(() => {
+                console.log('激励视频广告重新显示成功');
+            }).catch((loadErr: any) => {
+                console.warn('激励视频广告加载失败:', loadErr);
+                this.onRewardedVideoClosed?.(false);
+                this.onRewardedVideoClosed = null;
+            });
+        });
     }
 
     start() {
@@ -268,5 +380,8 @@ export class WXManager extends Component {
         });
     }
 
-
+    public static get instance(): WXManager | null {
+        const gameManager = GameManager.getInstance();
+        return gameManager?.wxManager ?? null;
+    }
 }
