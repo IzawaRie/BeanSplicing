@@ -286,6 +286,9 @@ export class LevelMode extends GameMode {
             this.daojishi_label.string = '10';
         }
 
+        // 立即初始化游戏倒计时，避免显示上一关的残留数值
+        this.startCountdown();
+
         // 显示所有 block 的 sprite（显示拼豆颜色）
         if (this.gridDrawer) {
             this.gridDrawer.showAllBlockSprites();
