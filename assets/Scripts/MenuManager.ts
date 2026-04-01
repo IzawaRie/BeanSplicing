@@ -1,5 +1,5 @@
 import { _decorator, Component, Node, Label, resources, Prefab, instantiate, UITransform, tween, Tween, Vec3, UIOpacity, random, Sprite, Color } from 'cc';
-import { GameManager, GameState } from './GameManager';
+import { GameManager, GameState, DifficultyMode } from './GameManager';
 import { LevelConfig } from './LevelConfig';
 import { AudioManager } from './AudioManager';
 
@@ -11,7 +11,13 @@ export class MenuManager extends Component {
     bg: Node = null;
 
     @property({ type: Node })
-    start_btn: Node = null;
+    simple_btn: Node = null;
+
+    @property({ type: Node })
+    medium_btn: Node = null;
+
+    @property({ type: Node })
+    hard_btn: Node = null;
 
     @property({ type: Node })
     setting_btn: Node = null;
@@ -84,12 +90,19 @@ export class MenuManager extends Component {
 
     /**
      * 更新关卡按钮文字
+     * @param level 关卡数
+     * @param difficulty 难度模式（默认简单）
      */
-    public updateLevelButtonText(level: number): void {
-        if (!this.start_btn) return;
+    public updateLevelButtonText(level: number, difficulty: DifficultyMode = DifficultyMode.SIMPLE): void {
+        const btnMap: Record<DifficultyMode, Node> = {
+            [DifficultyMode.SIMPLE]: this.simple_btn,
+            [DifficultyMode.MEDIUM]: this.medium_btn,
+            [DifficultyMode.HARD]:   this.hard_btn,
+        };
+        const btn = btnMap[difficulty];
+        if (!btn) return;
 
-        // 查找 start_btn 下的 Label 组件
-        const label = this.start_btn.children[0].getComponent(Label);
+        const label = btn.children[0].getComponent(Label);
         if (label) {
             label.string = `第${this.toChineseNum(level)}关`;
         }
@@ -126,8 +139,14 @@ export class MenuManager extends Component {
             }
         });
 
-        if (this.start_btn) {
-            this.start_btn.on(Node.EventType.TOUCH_END, this.onStartClick, this);
+        if (this.simple_btn) {
+            this.simple_btn.on(Node.EventType.TOUCH_END, this.onSimpleClick, this);
+        }
+        if (this.medium_btn) {
+            this.medium_btn.on(Node.EventType.TOUCH_END, this.onMediumClick, this);
+        }
+        if (this.hard_btn) {
+            this.hard_btn.on(Node.EventType.TOUCH_END, this.onHardClick, this);
         }
 
         if (this.setting_btn) {
@@ -246,9 +265,9 @@ export class MenuManager extends Component {
     }
 
     /**
-     * 开始按钮点击事件
+     * 难度按钮点击事件（通用）
      */
-    private onStartClick(): void {
+    private onDifficultyClick(difficulty: DifficultyMode): void {
         const gameManager = GameManager.getInstance();
         if (!gameManager || (gameManager.gameState != GameState.WAITING)) return;
 
@@ -256,11 +275,33 @@ export class MenuManager extends Component {
         AudioManager.instance.playEffect('click_btn');
         AudioManager.instance.stopBgm();
 
-        // 获取当前关卡数
+        // 切换难度并获取对应关卡数
+        gameManager.currentDifficulty = difficulty;
         const currentLevel = gameManager.currentLevel;
-        console.log(`开始游戏 - 第${this.toChineseNum(currentLevel)}关`);
+        console.log(`开始游戏 - ${difficulty} - 第${this.toChineseNum(currentLevel)}关`);
         this.showProgressPanel();
-        this.loadLevel(currentLevel);
+        this.loadLevel(currentLevel, difficulty);
+    }
+
+    /**
+     * 简单模式点击事件
+     */
+    private onSimpleClick(): void {
+        this.onDifficultyClick(DifficultyMode.SIMPLE);
+    }
+
+    /**
+     * 中等模式点击事件
+     */
+    private onMediumClick(): void {
+        this.onDifficultyClick(DifficultyMode.MEDIUM);
+    }
+
+    /**
+     * 困难模式点击事件
+     */
+    private onHardClick(): void {
+        this.onDifficultyClick(DifficultyMode.HARD);
     }
 
     /**
@@ -299,7 +340,7 @@ export class MenuManager extends Component {
     /**
      * 加载关卡
      */
-    public loadLevel(levelId: number): void {
+    public loadLevel(levelId: number, difficulty: DifficultyMode = DifficultyMode.SIMPLE): void {
         const gameManager = GameManager.getInstance();
         if (!gameManager) {
             console.error('GameManager 未找到');
@@ -368,8 +409,14 @@ export class MenuManager extends Component {
     }
 
     onDestroy() {
-        if (this.start_btn) {
-            this.start_btn.off(Node.EventType.TOUCH_END, this.onStartClick, this);
+        if (this.simple_btn) {
+            this.simple_btn.off(Node.EventType.TOUCH_END, this.onSimpleClick, this);
+        }
+        if (this.medium_btn) {
+            this.medium_btn.off(Node.EventType.TOUCH_END, this.onMediumClick, this);
+        }
+        if (this.hard_btn) {
+            this.hard_btn.off(Node.EventType.TOUCH_END, this.onHardClick, this);
         }
         if (this.setting_btn) {
             this.setting_btn.off(Node.EventType.TOUCH_END, this.onSettingBtnClick, this);

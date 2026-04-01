@@ -20,6 +20,15 @@ export enum GameState {
 }
 
 /**
+ * 难度模式枚举
+ */
+export enum DifficultyMode {
+    SIMPLE = 'simple',
+    MEDIUM = 'medium',
+    HARD = 'hard'
+}
+
+/**
  * 游戏管理器
  * 负责游戏全局状态管理和多模式支持
  */
@@ -47,13 +56,19 @@ export class GameManager extends Component {
 
     // 游戏状态
     private _gameState: GameState = GameState.WAITING;
-    
+
     // 当前游戏模式
     private currentMode: GameMode = null;
     private _currentModeType: GameModeType = GameModeType.LEVEL;
 
-    // 当前关卡数
-    private _currentLevel: number = 1;
+    // 当前难度模式
+    private _currentDifficulty: DifficultyMode = DifficultyMode.SIMPLE;
+
+    // 三种难度的独立关卡数
+    private _simpleLevel: number = 1;
+    private _mediumLevel: number = 1;
+    private _hardLevel: number = 1;
+
     public isShake: boolean = true;
     public hand_setting = 1; //-1:左手  1:右手
 
@@ -105,22 +120,50 @@ export class GameManager extends Component {
     // ==================== 当前关卡 ====================
 
     /**
-     * 获取当前关卡数
+     * 获取当前难度模式
      */
-    public get currentLevel(): number {
-        return this._currentLevel;
+    public get currentDifficulty(): DifficultyMode {
+        return this._currentDifficulty;
     }
 
     /**
-     * 设置当前关卡数
+     * 设置当前难度模式
+     */
+    public set currentDifficulty(value: DifficultyMode) {
+        this._currentDifficulty = value;
+    }
+
+    /**
+     * 获取当前难度对应的关卡数
+     */
+    public get currentLevel(): number {
+        switch (this._currentDifficulty) {
+            case DifficultyMode.SIMPLE: return this._simpleLevel;
+            case DifficultyMode.MEDIUM: return this._mediumLevel;
+            case DifficultyMode.HARD:   return this._hardLevel;
+        }
+    }
+
+    /**
+     * 设置当前难度对应的关卡数
      */
     public set currentLevel(value: number) {
-        this._currentLevel = value;
+        switch (this._currentDifficulty) {
+            case DifficultyMode.SIMPLE:
+                this._simpleLevel = value;
+                this.wxManager.setStorageLevelByDifficulty(DifficultyMode.SIMPLE, value);
+                break;
+            case DifficultyMode.MEDIUM:
+                this._mediumLevel = value;
+                this.wxManager.setStorageLevelByDifficulty(DifficultyMode.MEDIUM, value);
+                break;
+            case DifficultyMode.HARD:
+                this._hardLevel = value;
+                this.wxManager.setStorageLevelByDifficulty(DifficultyMode.HARD, value);
+                break;
+        }
         LevelConfig.getInstance().setCurrentLevelIndex(value - 1);
-        // 通知 LevelMode 更新按钮文字
         this.levelMode.updateMenuLevelButton();
-        //this.cloudStorage.submitLevel(value);
-        this.wxManager.setStorageLevel(value);
     }
 
     // ==================== 游戏模式 ====================
@@ -187,8 +230,14 @@ export class GameManager extends Component {
     }
 
     private async initStorage(){
-        this._currentLevel = await this.wxManager.getStorageLevel() ?? 1;
-        this.menuManager.updateLevelButtonText(this._currentLevel);
+        // 加载三种难度的关卡数
+        this._simpleLevel = await this.wxManager.getStorageLevelByDifficulty(DifficultyMode.SIMPLE) ?? 1;
+        this._mediumLevel = await this.wxManager.getStorageLevelByDifficulty(DifficultyMode.MEDIUM) ?? 1;
+        this._hardLevel   = await this.wxManager.getStorageLevelByDifficulty(DifficultyMode.HARD)   ?? 1;
+        // 更新按钮文字
+        this.menuManager.updateLevelButtonText(this._simpleLevel, DifficultyMode.SIMPLE);
+        this.menuManager.updateLevelButtonText(this._mediumLevel, DifficultyMode.MEDIUM);
+        this.menuManager.updateLevelButtonText(this._hardLevel, DifficultyMode.HARD);
 
         const shake = await this.wxManager.getShake();
         if(shake == null){

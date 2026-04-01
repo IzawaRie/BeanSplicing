@@ -1,5 +1,5 @@
 import { _decorator, Component, Node } from 'cc';
-import { GameManager } from './GameManager';
+import { GameManager, DifficultyMode } from './GameManager';
 const { ccclass, property } = _decorator;
 
 // 微信小游戏全局对象类型声明
@@ -287,6 +287,32 @@ export class WXManager extends Component {
 
         wx.removeStorageSync('level');
         console.log('已清除关卡缓存');
+    }
+
+    /**
+     * 按难度保存关卡数
+     */
+    public setStorageLevelByDifficulty(difficulty: DifficultyMode, level: number): void {
+        if (typeof (wx) === 'undefined') return;
+        wx.setStorageSync(`level_${difficulty}`, level);
+    }
+
+    /**
+     * 按难度获取关卡数
+     */
+    public getStorageLevelByDifficulty(difficulty: DifficultyMode): Promise<number | null> {
+        if (typeof (wx) === 'undefined') return Promise.resolve(null);
+        return new Promise((resolve) => {
+            wx.getStorage({
+                key: `level_${difficulty}`,
+                success(res) {
+                    resolve(res.data);
+                },
+                fail() {
+                    resolve(null);
+                }
+            });
+        });
     }
 
     /**
