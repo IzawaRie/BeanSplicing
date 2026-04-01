@@ -698,12 +698,12 @@ export class LevelMode extends GameMode {
             this.gridDrawer.hideAllNumberNodes();
         }
         this._isTimeFrozen = true;
-        this._timeFreezeTimer = 10;
+        this._timeFreezeTimer = 30;
         // 改变时间标签颜色表示冻结状态
         if (this.time_label) {
             this.time_label.color = new Color(100, 200, 255, 255);
         }
-        console.log('time_skill 激活：时间冻结10秒');
+        console.log('time_skill 激活：时间冻结30秒');
     }
 
     /**
