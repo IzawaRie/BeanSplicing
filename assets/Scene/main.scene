@@ -703,7 +703,7 @@
       "b": 255,
       "a": 255
     },
-    "_string": "简单模式",
+    "_string": "简单难度",
     "_horizontalAlign": 1,
     "_verticalAlign": 1,
     "_actualFontSize": 50,
@@ -1066,7 +1066,7 @@
       "b": 255,
       "a": 255
     },
-    "_string": "中等模式",
+    "_string": "进阶难度",
     "_horizontalAlign": 1,
     "_verticalAlign": 1,
     "_actualFontSize": 50,
@@ -1429,7 +1429,7 @@
       "b": 255,
       "a": 255
     },
-    "_string": "困难模式",
+    "_string": "高手难度",
     "_horizontalAlign": 1,
     "_verticalAlign": 1,
     "_actualFontSize": 50,
