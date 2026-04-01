@@ -4,84 +4,175 @@
       "id": 1,
       "name": "第一关",
       "grid": { "rows": 16, "columns": 16 },
-      "patternPath": "pixel_patterns/star",
+      "patternPath": "pixel_patterns/icon",
       "time": 150
     },
     {
       "id": 2,
       "name": "第二关",
-      "grid": { "rows": 16, "columns": 16 },
-      "patternPath": "pixel_patterns/duck",
+      "grid": { "rows": 25, "columns": 25 },
+      "patternPath": "pixel_patterns/banana",
       "time": 150
     },
     {
       "id": 3,
       "name": "第三关",
       "grid": { "rows": 16, "columns": 16 },
-      "patternPath": "pixel_patterns/cry",
+      "patternPath": "pixel_patterns/duck",
       "time": 150
     },
     {
       "id": 4,
       "name": "第四关",
-      "grid": { "rows": 16, "columns": 16 },
-      "patternPath": "pixel_patterns/dog",
+      "grid": { "rows": 24, "columns": 24 },
+      "patternPath": "pixel_patterns/tihu",
       "time": 150
     },
     {
       "id": 5,
       "name": "第五关",
-      "grid": { "rows": 16, "columns": 16 },
-      "patternPath": "pixel_patterns/kitty",
-      "time": 150
-    },
-    {
-      "id": 6,
-      "name": "第六关",
-      "grid": { "rows": 17, "columns": 17 },
-      "patternPath": "pixel_patterns/dog2",
-      "time": 150
-    },
-    {
-      "id": 7,
-      "name": "第七关",
-      "grid": { "rows": 19, "columns": 19 },
-      "patternPath": "pixel_patterns/kuluomi",
-      "time": 150
-    },
-    {
-      "id": 8,
-      "name": "第八关",
-      "grid": { "rows": 23, "columns": 23 },
-      "patternPath": "pixel_patterns/luobo",
-      "time": 150
-    },
-    {
-      "id": 9,
-      "name": "第九关",
-      "grid": { "rows": 24, "columns": 24 },
-      "patternPath": "pixel_patterns/strawberry",
-      "time": 150
-    },
-    {
-      "id": 10,
-      "name": "第十关",
-      "grid": { "rows": 26, "columns": 26 },
-      "patternPath": "pixel_patterns/ice-cream",
-      "time": 150
-    },
-    {
-      "id": 11,
-      "name": "第十一关",
       "grid": { "rows": 26, "columns": 26 },
       "patternPath": "pixel_patterns/mushroom",
       "time": 150
     },
     {
+      "id": 6,
+      "name": "第六关",
+      "grid": { "rows": 24, "columns": 24 },
+      "patternPath": "pixel_patterns/duodong",
+      "time": 150
+    },
+    {
+      "id": 7,
+      "name": "第七关",
+      "grid": { "rows": 16, "columns": 16 },
+      "patternPath": "pixel_patterns/dog",
+      "time": 150
+    },
+    {
+      "id": 8,
+      "name": "第八关",
+      "grid": { "rows": 16, "columns": 16 },
+      "patternPath": "pixel_patterns/cry",
+      "time": 150
+    },
+    {
+      "id": 9,
+      "name": "第九关",
+      "grid": { "rows": 20, "columns": 20 },
+      "patternPath": "pixel_patterns/peach",
+      "time": 150
+    },
+    {
+      "id": 10,
+      "name": "第十关",
+      "grid": { "rows": 21, "columns": 21 },
+      "patternPath": "pixel_patterns/orange",
+      "time": 150
+    },
+    {
+      "id": 11,
+      "name": "第十一关",
+      "grid": { "rows": 24, "columns": 24 },
+      "patternPath": "pixel_patterns/grape",
+      "time": 150
+    },
+    {
       "id": 12,
       "name": "第十二关",
+      "grid": { "rows": 25, "columns": 25 },
+      "patternPath": "pixel_patterns/cherry",
+      "time": 150
+    },
+    {
+      "id": 13,
+      "name": "第十三关",
+      "grid": { "rows": 17, "columns": 17 },
+      "patternPath": "pixel_patterns/dog2",
+      "time": 150
+    },
+    {
+      "id": 14,
+      "name": "第十四关",
+      "grid": { "rows": 23, "columns": 23 },
+      "patternPath": "pixel_patterns/luobo",
+      "time": 150
+    },
+    {
+      "id": 15,
+      "name": "第十五关",
+      "grid": { "rows": 24, "columns": 24 },
+      "patternPath": "pixel_patterns/strawberry",
+      "time": 150
+    },
+    {
+      "id": 16,
+      "name": "第十六关",
+      "grid": { "rows": 23, "columns": 23 },
+      "patternPath": "pixel_patterns/shark",
+      "time": 150
+    },
+    {
+      "id": 17,
+      "name": "第十七关",
       "grid": { "rows": 27, "columns": 27 },
       "patternPath": "pixel_patterns/watermelon",
+      "time": 150
+    },
+    {
+      "id": 18,
+      "name": "第十八关",
+      "grid": { "rows": 32, "columns": 32 },
+      "patternPath": "pixel_patterns/stick",
+      "time": 150
+    },
+    {
+      "id": 19,
+      "name": "第十九关",
+      "grid": { "rows": 19, "columns": 19 },
+      "patternPath": "pixel_patterns/kuluomi",
+      "time": 150
+    },
+    {
+      "id": 20,
+      "name": "第二十关",
+      "grid": { "rows": 20, "columns": 20 },
+      "patternPath": "pixel_patterns/simple_strawberry",
+      "time": 150
+    },
+    {
+      "id": 21,
+      "name": "第二十一关",
+      "grid": { "rows": 26, "columns": 26 },
+      "patternPath": "pixel_patterns/apple",
+      "time": 150
+    },
+    {
+      "id": 22,
+      "name": "第二十二关",
+      "grid": { "rows": 26, "columns": 26 },
+      "patternPath": "pixel_patterns/milk",
+      "time": 150
+    },
+    {
+      "id": 23,
+      "name": "第二十三关",
+      "grid": { "rows": 30, "columns": 30 },
+      "patternPath": "pixel_patterns/pineapple",
+      "time": 150
+    },
+    {
+      "id": 24,
+      "name": "第二十四关",
+      "grid": { "rows": 32, "columns": 32 },
+      "patternPath": "pixel_patterns/star_full",
+      "time": 150
+    },
+    {
+      "id": 25,
+      "name": "第二十五关",
+      "grid": { "rows": 32, "columns": 32 },
+      "patternPath": "pixel_patterns/snowman",
       "time": 150
     }
   ],
@@ -96,8 +187,8 @@
     {
       "id": 2,
       "name": "第二关",
-      "grid": { "rows": 19, "columns": 19 },
-      "patternPath": "pixel_patterns/mihoutao",
+      "grid": { "rows": 16, "columns": 16 },
+      "patternPath": "pixel_patterns/kitty",
       "time": 300
     },
     {
@@ -111,21 +202,28 @@
       "id": 4,
       "name": "第四关",
       "grid": { "rows": 26, "columns": 26 },
-      "patternPath": "pixel_patterns/hash-browns",
+      "patternPath": "pixel_patterns/ice-cream",
       "time": 300
     },
     {
       "id": 5,
       "name": "第五关",
-      "grid": { "rows": 31, "columns": 31 },
-      "patternPath": "pixel_patterns/egg",
+      "grid": { "rows": 15, "columns": 15 },
+      "patternPath": "pixel_patterns/lesser_panda",
       "time": 300
     },
     {
       "id": 6,
       "name": "第六关",
-      "grid": { "rows": 32, "columns": 32 },
-      "patternPath": "pixel_patterns/star_full",
+      "grid": { "rows": 19, "columns": 19 },
+      "patternPath": "pixel_patterns/mihoutao",
+      "time": 300
+    },
+    {
+      "id": 7,
+      "name": "第七关",
+      "grid": { "rows": 26, "columns": 26 },
+      "patternPath": "pixel_patterns/hash-browns",
       "time": 300
     }
   ],
@@ -140,22 +238,36 @@
     {
       "id": 2,
       "name": "第二关",
-      "grid": { "rows": 24, "columns": 24 },
-      "patternPath": "pixel_patterns/hamburg",
+      "grid": { "rows": 16, "columns": 16 },
+      "patternPath": "pixel_patterns/snake",
       "time": 420
     },
     {
       "id": 3,
       "name": "第三关",
-      "grid": { "rows": 32, "columns": 32 },
-      "patternPath": "pixel_patterns/christmas_tree",
+      "grid": { "rows": 18, "columns": 18 },
+      "patternPath": "pixel_patterns/tiger",
       "time": 420
     },
     {
       "id": 4,
       "name": "第四关",
+      "grid": { "rows": 31, "columns": 31 },
+      "patternPath": "pixel_patterns/tiger",
+      "time": 420
+    },
+    {
+      "id": 5,
+      "name": "第五关",
       "grid": { "rows": 32, "columns": 32 },
-      "patternPath": "pixel_patterns/apple",
+      "patternPath": "pixel_patterns/christmas_tree",
+      "time": 420
+    },
+    {
+      "id": 6,
+      "name": "第六关",
+      "grid": { "rows": 24, "columns": 24 },
+      "patternPath": "pixel_patterns/hamburg",
       "time": 420
     }
   ]
