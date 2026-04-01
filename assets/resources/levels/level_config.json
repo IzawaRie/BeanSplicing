@@ -3,111 +3,160 @@
     {
       "id": 1,
       "name": "第一关",
-      "grid": { "rows": 22, "columns": 22 },
-      "patternPath": "pixel_patterns/chips",
-      "time": 180
+      "grid": { "rows": 16, "columns": 16 },
+      "patternPath": "pixel_patterns/star",
+      "time": 150
     },
     {
       "id": 2,
       "name": "第二关",
       "grid": { "rows": 16, "columns": 16 },
       "patternPath": "pixel_patterns/duck",
-      "time": 180
+      "time": 150
     },
     {
       "id": 3,
       "name": "第三关",
       "grid": { "rows": 16, "columns": 16 },
       "patternPath": "pixel_patterns/cry",
-      "time": 180
+      "time": 150
     },
     {
       "id": 4,
       "name": "第四关",
       "grid": { "rows": 16, "columns": 16 },
       "patternPath": "pixel_patterns/dog",
-      "time": 180
+      "time": 150
     },
     {
       "id": 5,
       "name": "第五关",
+      "grid": { "rows": 16, "columns": 16 },
+      "patternPath": "pixel_patterns/kitty",
+      "time": 150
+    },
+    {
+      "id": 6,
+      "name": "第六关",
       "grid": { "rows": 17, "columns": 17 },
       "patternPath": "pixel_patterns/dog2",
-      "time": 180
+      "time": 150
+    },
+    {
+      "id": 7,
+      "name": "第七关",
+      "grid": { "rows": 19, "columns": 19 },
+      "patternPath": "pixel_patterns/kuluomi",
+      "time": 150
+    },
+    {
+      "id": 8,
+      "name": "第八关",
+      "grid": { "rows": 23, "columns": 23 },
+      "patternPath": "pixel_patterns/luobo",
+      "time": 150
+    },
+    {
+      "id": 9,
+      "name": "第九关",
+      "grid": { "rows": 24, "columns": 24 },
+      "patternPath": "pixel_patterns/strawberry",
+      "time": 150
+    },
+    {
+      "id": 10,
+      "name": "第十关",
+      "grid": { "rows": 26, "columns": 26 },
+      "patternPath": "pixel_patterns/ice-cream",
+      "time": 150
+    },
+    {
+      "id": 11,
+      "name": "第十一关",
+      "grid": { "rows": 26, "columns": 26 },
+      "patternPath": "pixel_patterns/mushroom",
+      "time": 150
+    },
+    {
+      "id": 12,
+      "name": "第十二关",
+      "grid": { "rows": 27, "columns": 27 },
+      "patternPath": "pixel_patterns/watermelon",
+      "time": 150
     }
   ],
   "medium": [
     {
       "id": 1,
       "name": "第一关",
-      "grid": { "rows": 26, "columns": 26 },
-      "patternPath": "pixel_patterns/ice-cream",
-      "time": 150
-    },
-    {
-      "id": 2,
-      "name": "第二关",
-      "grid": { "rows": 16, "columns": 16 },
-      "patternPath": "pixel_patterns/kitty",
-      "time": 150
-    },
-    {
-      "id": 3,
-      "name": "第三关",
-      "grid": { "rows": 19, "columns": 19 },
-      "patternPath": "pixel_patterns/kuluomi",
-      "time": 150
-    },
-    {
-      "id": 4,
-      "name": "第四关",
       "grid": { "rows": 16, "columns": 16 },
       "patternPath": "pixel_patterns/handun",
-      "time": 150
-    },
-    {
-      "id": 5,
-      "name": "第五关",
-      "grid": { "rows": 24, "columns": 24 },
-      "patternPath": "pixel_patterns/poket",
-      "time": 150
-    }
-  ],
-  "hard": [
-    {
-      "id": 1,
-      "name": "第一关",
-      "grid": { "rows": 26, "columns": 26 },
-      "patternPath": "pixel_patterns/milk",
-      "time": 120
+      "time": 300
     },
     {
       "id": 2,
       "name": "第二关",
-      "grid": { "rows": 24, "columns": 24 },
-      "patternPath": "pixel_patterns/poket",
-      "time": 120
+      "grid": { "rows": 19, "columns": 19 },
+      "patternPath": "pixel_patterns/mihoutao",
+      "time": 300
     },
     {
       "id": 3,
       "name": "第三关",
-      "grid": { "rows": 24, "columns": 24 },
-      "patternPath": "pixel_patterns/hamburg",
-      "time": 120
+      "grid": { "rows": 22, "columns": 22 },
+      "patternPath": "pixel_patterns/chips",
+      "time": 300
     },
     {
       "id": 4,
       "name": "第四关",
       "grid": { "rows": 26, "columns": 26 },
       "patternPath": "pixel_patterns/hash-browns",
-      "time": 120
+      "time": 300
     },
     {
       "id": 5,
       "name": "第五关",
+      "grid": { "rows": 31, "columns": 31 },
+      "patternPath": "pixel_patterns/egg",
+      "time": 300
+    },
+    {
+      "id": 6,
+      "name": "第六关",
+      "grid": { "rows": 32, "columns": 32 },
+      "patternPath": "pixel_patterns/star_full",
+      "time": 300
+    }
+  ],
+  "hard": [
+    {
+      "id": 1,
+      "name": "第一关",
+      "grid": { "rows": 24, "columns": 24 },
+      "patternPath": "pixel_patterns/poket",
+      "time": 420
+    },
+    {
+      "id": 2,
+      "name": "第二关",
+      "grid": { "rows": 24, "columns": 24 },
+      "patternPath": "pixel_patterns/hamburg",
+      "time": 420
+    },
+    {
+      "id": 3,
+      "name": "第三关",
+      "grid": { "rows": 32, "columns": 32 },
+      "patternPath": "pixel_patterns/christmas_tree",
+      "time": 420
+    },
+    {
+      "id": 4,
+      "name": "第四关",
       "grid": { "rows": 32, "columns": 32 },
       "patternPath": "pixel_patterns/apple",
-      "time": 120
+      "time": 420
     }
   ]
 }
