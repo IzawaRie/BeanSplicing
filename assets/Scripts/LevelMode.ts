@@ -5,7 +5,7 @@ import { IronController } from './IronController';
 import { CircleListController } from './CircleListController';
 import { PaletteGenerator } from './PaletteGenerator';
 import { PixelPatternApplier } from './PixelPatternApplier';
-import { GameManager, GameState } from './GameManager';
+import { GameManager, GameState, DifficultyMode } from './GameManager';
 import { BlockController, BlockState } from './BlockController';
 import { ResultPanel } from './ResultPanel';
 import { LevelConfig } from './LevelConfig';
@@ -490,10 +490,11 @@ export class LevelMode extends GameMode {
     /**
      * 更新 MenuManager 的关卡按钮文字
      */
-    public updateMenuLevelButton(): void {
+    public updateMenuLevelButton(difficulty?: DifficultyMode): void {
         const gameManager = GameManager.getInstance();
         if (gameManager.menuManager) {
-            gameManager.menuManager.updateLevelButtonText(gameManager.currentLevel);
+            const diff = difficulty ?? gameManager.currentDifficulty;
+            gameManager.menuManager.updateLevelButtonText(gameManager.currentLevel, diff);
         }
     }
 

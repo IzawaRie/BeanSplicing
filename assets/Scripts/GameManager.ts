@@ -163,7 +163,7 @@ export class GameManager extends Component {
                 break;
         }
         LevelConfig.getInstance().setCurrentLevelIndex(value - 1);
-        this.levelMode.updateMenuLevelButton();
+        this.levelMode.updateMenuLevelButton(this._currentDifficulty);
     }
 
     // ==================== 游戏模式 ====================

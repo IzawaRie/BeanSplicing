@@ -1,4 +1,5 @@
 import { resources, JsonAsset } from 'cc';
+import { DifficultyMode } from './GameManager';
 
 /**
  * 网格配置
@@ -20,10 +21,12 @@ export interface LevelData {
 }
 
 /**
- * 关卡配置数据
+ * 关卡配置数据（支持三种难度）
  */
 export interface LevelConfigData {
-    levels: LevelData[];
+    simple: LevelData[];
+    medium: LevelData[];
+    hard: LevelData[];
 }
 
 /**
@@ -33,6 +36,7 @@ export interface LevelConfigData {
 export class LevelConfig {
     private static instance: LevelConfig | null = null;
     private configData: LevelConfigData | null = null;
+    private currentDifficulty: DifficultyMode = DifficultyMode.SIMPLE;
     private currentLevelIndex: number = 0;
 
     private constructor() {}
@@ -59,23 +63,35 @@ export class LevelConfig {
             }
 
             this.configData = (data as JsonAsset).json as LevelConfigData;
-            console.log('关卡配置加载成功, 共', this.getLevelCount(), '个关卡');
+            console.log('关卡配置加载成功');
+            console.log(`  简单模式: ${this.getLevelCount(DifficultyMode.SIMPLE)} 关`);
+            console.log(`  中等模式: ${this.getLevelCount(DifficultyMode.MEDIUM)} 关`);
+            console.log(`  困难模式: ${this.getLevelCount(DifficultyMode.HARD)} 关`);
             callback?.(true);
         });
     }
 
     /**
-     * 获取关卡总数
+     * 获取指定难度的关卡总数
      */
-    public getLevelCount(): number {
-        return this.configData?.levels.length || 0;
+    public getLevelCount(difficulty?: DifficultyMode): number {
+        const diff = difficulty ?? this.currentDifficulty;
+        return this.configData?.[diff]?.length || 0;
     }
 
     /**
-     * 获取指定关卡数据
+     * 获取指定难度和关卡号的数据
      */
-    public getLevel(levelId: number): LevelData | null {
-        return this.configData?.levels.find(level => level.id === levelId) || null;
+    public getLevel(levelId: number, difficulty?: DifficultyMode): LevelData | null {
+        const diff = difficulty ?? this.currentDifficulty;
+        return this.configData?.[diff]?.find(level => level.id === levelId) || null;
+    }
+
+    /**
+     * 获取当前难度和索引对应的关卡数据
+     */
+    public getCurrentLevel(): LevelData | null {
+        return this.configData?.[this.currentDifficulty]?.[this.currentLevelIndex] || null;
     }
 
     /**
@@ -86,10 +102,10 @@ export class LevelConfig {
     }
 
     /**
-     * 获取当前关卡的网格配置
+     * 获取当前难度的网格配置
      */
     public getCurrentGridConfig(): GridConfig | null {
-        const level = this.configData?.levels[this.currentLevelIndex];
+        const level = this.getCurrentLevel();
         return level?.grid || null;
     }
 
@@ -97,8 +113,23 @@ export class LevelConfig {
      * 获取当前关卡的限时（秒）
      */
     public getCurrentLevelTime(): number {
-        const level = this.configData?.levels[this.currentLevelIndex];
+        const level = this.getCurrentLevel();
         return level?.time ?? 60;
+    }
+
+    /**
+     * 设置当前难度
+     * 注意：不会重置 currentLevelIndex，由调用方负责同步
+     */
+    public setDifficulty(difficulty: DifficultyMode): void {
+        this.currentDifficulty = difficulty;
+    }
+
+    /**
+     * 获取当前难度
+     */
+    public getDifficulty(): DifficultyMode {
+        return this.currentDifficulty;
     }
 
     /**
@@ -108,25 +139,6 @@ export class LevelConfig {
         if (index >= 0 && index < this.getLevelCount()) {
             this.currentLevelIndex = index;
         }
-    }
-
-    /**
-     * 获取下一个关卡数据
-     */
-    public getNextLevel(): LevelData | null {
-        const nextId = this.configData?.levels[this.currentLevelIndex]?.id + 1 || 1;
-        return this.getLevel(nextId);
-    }
-
-    /**
-     * 进入下一关
-     */
-    public nextLevel(): boolean {
-        if (this.currentLevelIndex < this.getLevelCount() - 1) {
-            this.currentLevelIndex++;
-            return true;
-        }
-        return false;
     }
 
     /**

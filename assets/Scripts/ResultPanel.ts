@@ -1,5 +1,5 @@
 import { _decorator, Component, Label, Node, Sprite, SpriteFrame, Texture2D, ImageAsset, UITransform, tween, Vec3 } from 'cc';
-import { GameManager, GameState } from './GameManager';
+import { GameManager, GameState, DifficultyMode } from './GameManager';
 import { BlockController, BlockState } from './BlockController';
 import { AudioManager } from './AudioManager';
 const { ccclass, property } = _decorator;
@@ -229,7 +229,7 @@ export class ResultPanel extends Component {
         gameManager.levelMode.node.active = false;
         gameManager.vibrateShort();
         gameManager.menuManager.showProgressPanel();
-        gameManager.menuManager.loadLevel(gameManager.currentLevel);
+        gameManager.menuManager.loadLevel(gameManager.currentLevel, gameManager.currentDifficulty);
     }
 
     private onShowHomePanel(){

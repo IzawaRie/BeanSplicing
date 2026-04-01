@@ -347,12 +347,13 @@ export class MenuManager extends Component {
             return;
         }
 
-        // 设置当前关卡数
-        gameManager.currentLevel = levelId;
-
-        const levelData = this.levelConfig?.getLevel(levelId);
+        // 设置难度并获取关卡数据
+        this.levelConfig?.setDifficulty(difficulty);
+        // 同步 currentLevelIndex 与 levelId，保持一致
+        this.levelConfig?.setCurrentLevelIndex(levelId - 1);
+        const levelData = this.levelConfig?.getLevel(levelId, difficulty);
         if (!levelData) {
-            console.error(`关卡 ${levelId} 不存在`);
+            console.error(`关卡 ${levelId} 不存在（难度: ${difficulty}）`);
             return;
         }
 
@@ -382,8 +383,8 @@ export class MenuManager extends Component {
                                     // 步骤5: 隐藏进度面板，显示游戏页面
                                     gameManager.progress.node.active = false;
                                     gameManager.levelMode.node.active = true;
-                                    gameManager.levelMode.level_label.string = `第${this.toChineseNum(gameManager.currentLevel)}关`;
-                                    console.log(`开始关卡: ${levelData.name}, 图案: ${levelData.patternPath}`);
+                                    gameManager.levelMode.level_label.string = `第${this.toChineseNum(levelId)}关`;
+                                    console.log(`开始关卡: ${levelData.name}, 图案: ${levelData.patternPath}, 难度: ${difficulty}`);
                                 });
                             });
                         });
