@@ -387,4 +387,56 @@ export class WXManager extends Component {
         const gameManager = GameManager.getInstance();
         return gameManager?.wxManager ?? null;
     }
+
+    /**
+     * 设置音乐开关
+     */
+    public setMusic(isOn: boolean): void {
+        if (typeof (wx) === 'undefined') return;
+        wx.setStorageSync('music', isOn ? 1 : 0);
+    }
+
+    /**
+     * 获取音乐开关
+     */
+    public getMusic(): Promise<number | null> {
+        if (typeof (wx) === 'undefined') return Promise.resolve(null);
+        return new Promise((resolve) => {
+            wx.getStorage({
+                key: 'music',
+                success(res) {
+                    resolve(res.data);
+                },
+                fail() {
+                    resolve(null);
+                }
+            });
+        });
+    }
+
+    /**
+     * 设置音效开关
+     */
+    public setAudio(isOn: boolean): void {
+        if (typeof (wx) === 'undefined') return;
+        wx.setStorageSync('audio', isOn ? 1 : 0);
+    }
+
+    /**
+     * 获取音效开关
+     */
+    public getAudio(): Promise<number | null> {
+        if (typeof (wx) === 'undefined') return Promise.resolve(null);
+        return new Promise((resolve) => {
+            wx.getStorage({
+                key: 'audio',
+                success(res) {
+                    resolve(res.data);
+                },
+                fail() {
+                    resolve(null);
+                }
+            });
+        });
+    }
 }

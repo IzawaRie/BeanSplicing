@@ -13,6 +13,10 @@ export class SettingController extends Component {
     hand_toggle_right: Toggle = null;
     @property({ type: Toggle })
     shake_toggle: Toggle = null;
+    @property({ type: Toggle })
+    music_toggle: Toggle = null;
+    @property({ type: Toggle })
+    audio_toggle: Toggle = null;
 
     public lastState: GameState = null;
 
@@ -20,6 +24,8 @@ export class SettingController extends Component {
         this.hand_toggle_left?.node.on(Toggle.EventType.TOGGLE, this.onLeftToggleChanged, this);
         this.hand_toggle_right?.node.on(Toggle.EventType.TOGGLE, this.onRightToggleChanged, this);
         this.shake_toggle?.node.on(Toggle.EventType.TOGGLE, this.onShakeToggleChanged, this);
+        this.music_toggle?.node.on(Toggle.EventType.TOGGLE, this.onMusicToggleChanged, this);
+        this.audio_toggle?.node.on(Toggle.EventType.TOGGLE, this.onAudioToggleChanged, this);
     }
 
     onEnable() {
@@ -112,6 +118,28 @@ export class SettingController extends Component {
         if (gameManager) {
             gameManager.isShake = toggle.isChecked;
             gameManager.wxManager.setShake(toggle.isChecked);
+        }
+    }
+
+    /**
+     * 音乐切换事件
+     */
+    private onMusicToggleChanged(toggle: Toggle): void {
+        const gameManager = GameManager.getInstance();
+        if (gameManager) {
+            gameManager.wxManager.setMusic(toggle.isChecked);
+            gameManager.audioManager.setMusicEnabled(toggle.isChecked);
+        }
+    }
+
+    /**
+     * 音效切换事件
+     */
+    private onAudioToggleChanged(toggle: Toggle): void {
+        const gameManager = GameManager.getInstance();
+        if (gameManager) {
+            gameManager.wxManager.setAudio(toggle.isChecked);
+            gameManager.audioManager.setAudioEnabled(toggle.isChecked);
         }
     }
 }

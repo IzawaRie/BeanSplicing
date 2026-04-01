@@ -39,6 +39,9 @@ export class GameManager extends Component {
     @property({ type: WXManager })
     wxManager: WXManager = null;
 
+    @property({ type: AudioManager })
+    audioManager: AudioManager = null;
+
     @property({ type: LevelMode })
     levelMode: LevelMode = null;
 
@@ -204,5 +207,17 @@ export class GameManager extends Component {
                 this.setting.hand_toggle_right.isChecked = true;
             }
         }
+
+        // 加载音乐开关设置
+        const music = await this.wxManager.getMusic();
+        const isMusicOn = music == null ? true : (music == 1);
+        this.audioManager.setMusicEnabled(isMusicOn);
+        this.setting.music_toggle.isChecked = isMusicOn;
+
+        // 加载音效开关设置
+        const audio = await this.wxManager.getAudio();
+        const isAudioOn = audio == null ? true : (audio == 1);
+        this.audioManager.setAudioEnabled(isAudioOn);
+        this.setting.audio_toggle.isChecked = isAudioOn;
     }
 }

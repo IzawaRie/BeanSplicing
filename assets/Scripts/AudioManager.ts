@@ -12,6 +12,10 @@ export class AudioManager extends Component {
     private musicBundle: any = null;
     private static _instance: AudioManager | null = null;
 
+    // 音乐和音效开关
+    private _isMusicEnabled: boolean = true;
+    private _isAudioEnabled: boolean = true;
+
     // 音效 AudioSource 池（循环使用，避免打断正在播放的音效）
     private effectPool: AudioSource[] = [];
     private poolIndex: number = 0;
@@ -66,7 +70,7 @@ export class AudioManager extends Component {
      */
     public playBgm(): void {
         if (this.music && this.bgmClip) {
-            this.music.volume = 1;
+            this.music.volume = this._isMusicEnabled ? 1 : 0;
             this.music.clip = this.bgmClip;
             this.music.loop = true;
             this.music.play();
@@ -168,7 +172,7 @@ export class AudioManager extends Component {
 
                 this.music.clip = clip;
                 this.music.loop = true;
-                this.music.volume = 1;
+                this.music.volume = this._isMusicEnabled ? 1 : 0;
                 this.music.play();
             });
         };
@@ -210,6 +214,8 @@ export class AudioManager extends Component {
      * @param volume 音量，0-1，默认 1
      */
     public playEffect(name: string, volume: number = 1): void {
+        if (!this._isAudioEnabled) return;
+
         const loadAndPlay = (bundle: any) => {
             bundle.load(name, AudioClip, (err: any, clip: AudioClip) => {
                 if (err) {
@@ -237,5 +243,36 @@ export class AudioManager extends Component {
                 loadAndPlay(bundle);
             });
         }
+    }
+
+    /**
+     * 设置音乐开关
+     */
+    public setMusicEnabled(isEnabled: boolean): void {
+        this._isMusicEnabled = isEnabled;
+        if (this.music) {
+            this.music.volume = isEnabled ? 1 : 0;
+        }
+    }
+
+    /**
+     * 获取音乐开关状态
+     */
+    public isMusicEnabled(): boolean {
+        return this._isMusicEnabled;
+    }
+
+    /**
+     * 设置音效开关
+     */
+    public setAudioEnabled(isEnabled: boolean): void {
+        this._isAudioEnabled = isEnabled;
+    }
+
+    /**
+     * 获取音效开关状态
+     */
+    public isAudioEnabled(): boolean {
+        return this._isAudioEnabled;
     }
 }
