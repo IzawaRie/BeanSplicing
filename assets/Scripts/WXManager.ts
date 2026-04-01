@@ -277,7 +277,7 @@ export class WXManager extends Component {
     }
 
     /**
-     * 清除关卡缓存
+     * 清除所有难度的关卡缓存
      */
     public clearStorageLevel(): void {
         if (typeof (wx) === 'undefined') {
@@ -285,8 +285,10 @@ export class WXManager extends Component {
             return;
         }
 
-        wx.removeStorageSync('level');
-        console.log('已清除关卡缓存');
+        wx.removeStorageSync('level_simple');
+        wx.removeStorageSync('level_medium');
+        wx.removeStorageSync('level_hard');
+        console.log('已清除所有难度关卡缓存');
     }
 
     /**
