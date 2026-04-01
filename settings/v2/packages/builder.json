@@ -57,7 +57,15 @@
     },
     "background": {
       "image": "project://settings/loading_bg.jpg",
-      "type": "custom"
-    }
+      "type": "custom",
+      "color": {
+        "x": 0.9686274509803922,
+        "y": 0.9254901960784314,
+        "z": 0.8549019607843137,
+        "w": 1
+      }
+    },
+    "displayRatio": 1,
+    "totalTime": 3000
   }
 }
