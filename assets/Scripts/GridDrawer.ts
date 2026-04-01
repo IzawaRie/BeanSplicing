@@ -284,45 +284,76 @@ export class GridDrawer extends Component {
         const halfW = width / 2;
         const halfH = height / 2;
 
+        const blocks = this.blockCreator.getAllBlocks();
+        if (!blocks || blocks.length === 0) return;
+
+        // 检查指定位置的 block 是否有效（targetColorA > 0）
+        const isValid = (row: number, col: number): boolean => {
+            if (row < 0 || row >= rows || col < 0 || col >= columns) return false;
+            const block = blocks[row]?.[col];
+            if (!block) return false;
+            const controller = block.getComponent(BlockController);
+            return !!controller && controller.targetColorA > 0;
+        };
+
+        // 收集所有需要画的线段
+        interface Line { x1: number; y1: number; x2: number; y2: number; }
+        const lines: Line[] = [];
+
+        // 画每个有效 block 的全部四边，再跳过与相邻有效 block 的共享边
+        for (let row = 0; row < rows; row++) {
+            for (let col = 0; col < columns; col++) {
+                if (!isValid(row, col)) continue;
+
+                const bx = -halfW + col * cellWidth;
+                const by = halfH - row * cellHeight;
+
+                // 上边：画
+                lines.push({ x1: bx, y1: by, x2: bx + cellWidth, y2: by });
+                // 下边：画
+                lines.push({ x1: bx, y1: by - cellHeight, x2: bx + cellWidth, y2: by - cellHeight });
+                // 左边：画
+                lines.push({ x1: bx, y1: by, x2: bx, y2: by - cellHeight });
+                // 右边：画
+                lines.push({ x1: bx + cellWidth, y1: by, x2: bx + cellWidth, y2: by - cellHeight });
+            }
+        }
+
+        // 移除重复的共享边（只保留一个方向的边）
+        const lineSet = new Set<string>();
+        const uniqueLines: Line[] = [];
+        const key = (x1: number, y1: number, x2: number, y2: number) => {
+            // 排序端点，保证 (a,b) 和 (b,a) 一样
+            const pts = [[x1, y1], [x2, y2]].sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+            return `${pts[0][0]},${pts[0][1]}-${pts[1][0]},${pts[1][1]}`;
+        };
+        for (const l of lines) {
+            const k = key(l.x1, l.y1, l.x2, l.y2);
+            if (!lineSet.has(k)) {
+                lineSet.add(k);
+                uniqueLines.push(l);
+            }
+        }
+
+        // 替换为去重后的线段
+        lines.length = 0;
+        lines.push(...uniqueLines);
+
+        // 分批绘制
         this.innerGraphics.clear();
         this.innerGraphics.lineWidth = this.innerLineWidth;
         this.innerGraphics.strokeColor = this.lineColor;
 
-        const blocks = this.blockCreator.getAllBlocks();
-        if (!blocks || blocks.length === 0) return;
-
-        // 遍历所有 block，只对有效 block（targetColorA > 0）画全部4条边
-        for (let row = 0; row < rows; row++) {
-            for (let col = 0; col < columns; col++) {
-                const block = blocks[row]?.[col];
-                if (!block) continue;
-
-                const blockController = block.getComponent(BlockController);
-                if (!blockController || blockController.targetColorA === 0) continue;
-
-                // block 左下角世界坐标
-                const bx = -halfW + col * cellWidth;
-                const by = halfH - row * cellHeight;
-
-                // 上边
-                this.innerGraphics.moveTo(bx, by);
-                this.innerGraphics.lineTo(bx + cellWidth, by);
-
-                // 下边
-                this.innerGraphics.moveTo(bx, by - cellHeight);
-                this.innerGraphics.lineTo(bx + cellWidth, by - cellHeight);
-
-                // 左边
-                this.innerGraphics.moveTo(bx, by);
-                this.innerGraphics.lineTo(bx, by - cellHeight);
-
-                // 右边
-                this.innerGraphics.moveTo(bx + cellWidth, by);
-                this.innerGraphics.lineTo(bx + cellWidth, by - cellHeight);
+        // 分批绘制，每批最多 BATCH_SIZE 条线
+        const BATCH_SIZE = 500;
+        for (let i = 0; i < lines.length; i += BATCH_SIZE) {
+            const batch = lines.slice(i, i + BATCH_SIZE);
+            for (const line of batch) {
+                this.innerGraphics.moveTo(line.x1, line.y1);
+                this.innerGraphics.lineTo(line.x2, line.y2);
             }
+            this.innerGraphics.stroke();
         }
-
-        this.innerGraphics.stroke();
     }
 
     updateGrid() {

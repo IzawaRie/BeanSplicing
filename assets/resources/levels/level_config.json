@@ -253,7 +253,7 @@
       "id": 4,
       "name": "第四关",
       "grid": { "rows": 31, "columns": 31 },
-      "patternPath": "pixel_patterns/tiger",
+      "patternPath": "pixel_patterns/egg",
       "time": 420
     },
     {
