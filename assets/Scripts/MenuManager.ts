@@ -112,8 +112,15 @@ export class MenuManager extends Component {
         if (!btn) return;
 
         const label = btn.children[0].getComponent(Label);
-        if (label) {
+        const uiOpacity = btn.getComponent(UIOpacity) ?? btn.addComponent(UIOpacity);
+        const hasLevel = this.levelConfig?.hasLevel(level, difficulty) ?? false;
+
+        if (hasLevel) {
             label.string = `第${this.toChineseNum(level)}关`;
+            uiOpacity.opacity = 255;
+        } else {
+            label.string = '敬请期待';
+            uiOpacity.opacity = 128; // 置灰
         }
     }
 
@@ -143,6 +150,15 @@ export class MenuManager extends Component {
         this.levelConfig.loadConfig((success) => {
             if (success) {
                 console.log('关卡配置加载完成');
+                // 配置加载完成后更新所有难度按钮文字
+                const gameManager = GameManager.getInstance();
+                const allDiffs = [DifficultyMode.SIMPLE, DifficultyMode.MEDIUM, DifficultyMode.HARD];
+                for (const diff of allDiffs) {
+                    gameManager.currentDifficulty = diff;
+                    this.updateLevelButtonText(gameManager.currentLevel, diff);
+                }
+                // 恢复默认难度
+                gameManager.currentDifficulty = DifficultyMode.SIMPLE;
             } else {
                 console.error('关卡配置加载失败');
             }
@@ -291,6 +307,16 @@ export class MenuManager extends Component {
             return;
         }
 
+        // 切换难度并获取对应关卡数
+        gameManager.currentDifficulty = difficulty;
+        const currentLevel = gameManager.currentLevel;
+
+        // 检查关卡是否存在
+        if (!this.levelConfig?.hasLevel(currentLevel, difficulty)) {
+            gameManager.window.showWithMessage('关卡制作中...敬请期待！', false);
+            return;
+        }
+
         gameManager.vibrateShort();
         AudioManager.instance.playEffect('click_btn');
         AudioManager.instance.stopBgm();
@@ -298,9 +324,6 @@ export class MenuManager extends Component {
         // 消耗体力
         gameManager.power--;
 
-        // 切换难度并获取对应关卡数
-        gameManager.currentDifficulty = difficulty;
-        const currentLevel = gameManager.currentLevel;
         console.log(`开始游戏 - ${difficulty} - 第${this.toChineseNum(currentLevel)}关`);
         this.showProgressPanel();
         this.loadLevel(currentLevel, difficulty);

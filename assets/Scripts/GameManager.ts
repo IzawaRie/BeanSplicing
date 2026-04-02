@@ -311,10 +311,6 @@ export class GameManager extends Component {
         this._simpleLevel = await this.wxManager.getStorageLevelByDifficulty(DifficultyMode.SIMPLE) ?? 1;
         this._mediumLevel = await this.wxManager.getStorageLevelByDifficulty(DifficultyMode.MEDIUM) ?? 1;
         this._hardLevel   = await this.wxManager.getStorageLevelByDifficulty(DifficultyMode.HARD)   ?? 1;
-        // 更新按钮文字
-        this.menuManager.updateLevelButtonText(this._simpleLevel, DifficultyMode.SIMPLE);
-        this.menuManager.updateLevelButtonText(this._mediumLevel, DifficultyMode.MEDIUM);
-        this.menuManager.updateLevelButtonText(this._hardLevel, DifficultyMode.HARD);
 
         const shake = await this.wxManager.getShake();
         if(shake == null){

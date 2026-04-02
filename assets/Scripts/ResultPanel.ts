@@ -2,6 +2,7 @@ import { _decorator, Component, Label, Node, Sprite, SpriteFrame, Texture2D, Ima
 import { GameManager, GameState, DifficultyMode } from './GameManager';
 import { BlockController, BlockState } from './BlockController';
 import { AudioManager } from './AudioManager';
+import { LevelConfig } from './LevelConfig';
 const { ccclass, property } = _decorator;
 
 @ccclass('ResultPanel')
@@ -39,13 +40,30 @@ export class ResultPanel extends Component {
      */
     public setResult(isSuccess: boolean): void {
         this._isSuccess = isSuccess;
+        const gameManager = GameManager.getInstance();
+        const difficulty = gameManager.currentDifficulty;
 
         this.successNode.active = isSuccess ? true : false;
         this.failNode.active = (!isSuccess) ? true : false;
-        if(isSuccess){
+
+        if (isSuccess) {
             AudioManager.instance.playEffect('victory', 0.4);
-            GameManager.getInstance().currentLevel++;
-        }else{
+            gameManager.currentLevel++;
+
+            // 检查是否还有下一关
+            const hasNextLevel = LevelConfig.getInstance().hasLevel(gameManager.currentLevel, difficulty);
+            if (hasNextLevel) {
+                // 有下一关，显示下一关按钮，隐藏返回按钮
+                this.nextLevelBtn.active = true;
+                this.homelBtn2.active = true;
+                this.homelBtn2.setPosition(180, this.homelBtn2.position.y, 0);
+            } else {
+                // 没有下一关，隐藏下一关按钮，居中返回按钮
+                this.nextLevelBtn.active = false;
+                this.homelBtn2.active = true;
+                this.homelBtn2.setPosition(0, this.homelBtn2.position.y, 0);
+            }
+        } else {
             AudioManager.instance.playEffect('game-fail', 0.7);
         }
 

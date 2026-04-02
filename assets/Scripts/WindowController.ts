@@ -86,10 +86,15 @@ export class WindowController extends Component {
 
     /**
      * 打开窗口并显示提示文字
+     * @param message 提示文字
+     * @param showAdBtn 是否显示广告按钮，默认 true
      */
-    public showWithMessage(message: string): void {
+    public showWithMessage(message: string, showAdBtn: boolean = true): void {
         if (this.content) {
             this.content.string = message;
+        }
+        if (this.ad_btn) {
+            this.ad_btn.active = showAdBtn;
         }
         this.node.active = true;
     }

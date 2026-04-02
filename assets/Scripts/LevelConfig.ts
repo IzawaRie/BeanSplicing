@@ -80,6 +80,15 @@ export class LevelConfig {
     }
 
     /**
+     * 检查指定难度的指定关卡是否存在
+     */
+    public hasLevel(levelId: number, difficulty?: DifficultyMode): boolean {
+        const diff = difficulty ?? this.currentDifficulty;
+        const level = this.configData?.[diff]?.find(l => l.id === levelId);
+        return level !== undefined;
+    }
+
+    /**
      * 获取指定难度和关卡号的数据
      */
     public getLevel(levelId: number, difficulty?: DifficultyMode): LevelData | null {
