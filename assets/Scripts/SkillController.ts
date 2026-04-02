@@ -103,6 +103,7 @@ export class SkillController extends Component {
     private onPaletteSkillClick(): void {
         if (!this.isGameActive()) return;
         if (this.paletteCooldown) return;
+        if (GameManager.getInstance()?.isWindowBlocking()) return;
 
         const levelMode = this.getLevelMode();
         if (!levelMode) return;
@@ -138,6 +139,7 @@ export class SkillController extends Component {
     private onTimeSkillClick(): void {
         if (!this.isGameActive()) return;
         if (this.timeCooldown) return;
+        if (GameManager.getInstance()?.isWindowBlocking()) return;
 
         const levelMode = this.getLevelMode();
         if (!levelMode) return;
@@ -173,6 +175,7 @@ export class SkillController extends Component {
     private onFixSkillClick(): void {
         if (!this.isGameActive()) return;
         if (this.fixCooldown) return;
+        if (GameManager.getInstance()?.isWindowBlocking()) return;
 
         const levelMode = this.getLevelMode();
         if (!levelMode) return;

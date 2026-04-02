@@ -149,6 +149,7 @@ export class WXManager extends Component {
     }
 
     private onTestBtnClick(): void {
+        if (GameManager.getInstance()?.isWindowBlocking()) return;
         this.clearStorageLevel();
     }
 

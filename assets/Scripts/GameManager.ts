@@ -7,6 +7,7 @@ import { LevelConfig } from './LevelConfig';
 import { SettingController } from './SettingController';
 import { WXManager } from './WXManager';
 import { AudioManager } from './AudioManager';
+import { WindowController } from './WindowController';
 const { ccclass, property } = _decorator;
 
 /**
@@ -54,6 +55,9 @@ export class GameManager extends Component {
     @property({ type: LevelMode })
     levelMode: LevelMode = null;
 
+    @property({ type: WindowController })
+    window: WindowController = null;
+
     // 游戏状态
     private _gameState: GameState = GameState.WAITING;
 
@@ -71,6 +75,16 @@ export class GameManager extends Component {
 
     public isShake: boolean = true;
     public hand_setting = 1; //-1:左手  1:右手
+
+    // 窗口是否打开
+    public isWindowOpen: boolean = false;
+
+    /**
+     * 检查是否有窗口阻挡按钮点击
+     */
+    public isWindowBlocking(): boolean {
+        return this.isWindowOpen || (this.setting?.node?.active ?? false) || (this.window?.node?.active ?? false);
+    }
 
     onLoad() {
         // 单例模式

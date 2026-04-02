@@ -210,6 +210,8 @@ export class ResultPanel extends Component {
      * nextLevelBtn 点击事件 - 进入下一关
      */
     private onNextLevelBtnClick(): void {
+        const gameManager = GameManager.getInstance();
+        if (gameManager?.isWindowBlocking()) return;
         AudioManager.instance.playEffect('ding');
         this.loadLevel();
     }
@@ -218,6 +220,8 @@ export class ResultPanel extends Component {
      * restartBtn 点击事件 - 重新开始游戏
      */
     private onRestartLevelBtnClick(): void {
+        const gameManager = GameManager.getInstance();
+        if (gameManager?.isWindowBlocking()) return;
         AudioManager.instance.playEffect('click_btn');
         this.loadLevel();
     }
@@ -233,10 +237,11 @@ export class ResultPanel extends Component {
     }
 
     private onShowHomePanel(){
+        const gameManager = GameManager.getInstance();
+        if (gameManager?.isWindowBlocking()) return;
         AudioManager.instance.playEffect('click_btn');
         this.result_img.spriteFrame = null;
         this.node.active = false;
-        const gameManager = GameManager.getInstance();
         gameManager.vibrateShort();
         gameManager.gameState = GameState.WAITING;
         gameManager.levelMode.node.active = false;

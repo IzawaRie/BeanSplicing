@@ -343,7 +343,9 @@ export class LevelMode extends GameMode {
      */
     private onStartBtnClick(): void {
         if (!this._isDaojiCounting) return;
-        GameManager.getInstance().vibrateShort();
+        const gameManager = GameManager.getInstance();
+        if (gameManager?.isWindowBlocking()) return;
+        gameManager?.vibrateShort();
         AudioManager.instance.playEffect('click_btn');
         this.onDaojishiEnd();
     }
@@ -669,6 +671,7 @@ export class LevelMode extends GameMode {
     private onSettingBtnClick(): void {
         const gameManager = GameManager.getInstance();
         if (!gameManager?.setting || (gameManager.gameState == GameState.GAME_OVER)) return;
+        if (gameManager.isWindowBlocking()) return;
 
         gameManager.vibrateShort();
         this._savedDaojiCounting = this._isDaojiCounting; // 保存读秒状态

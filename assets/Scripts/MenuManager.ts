@@ -22,6 +22,12 @@ export class MenuManager extends Component {
     @property({ type: Node })
     setting_btn: Node = null;
 
+    @property({ type: Node })
+    power_btn: Node = null;
+
+    @property({ type: Label })
+    power_label: Label = null;
+
     private levelConfig: LevelConfig | null = null;
     private starPrefab: Prefab = null;
     private spawnedStars: Node[] = [];
@@ -152,6 +158,9 @@ export class MenuManager extends Component {
         if (this.setting_btn) {
             this.setting_btn.on(Node.EventType.TOUCH_END, this.onSettingBtnClick, this);
         }
+        if (this.power_btn) {
+            this.power_btn.on(Node.EventType.TOUCH_END, this.onPowerBtnClick, this);
+        }
     }
 
     /**
@@ -270,6 +279,7 @@ export class MenuManager extends Component {
     private onDifficultyClick(difficulty: DifficultyMode): void {
         const gameManager = GameManager.getInstance();
         if (!gameManager || (gameManager.gameState != GameState.WAITING)) return;
+        if (gameManager.isWindowBlocking()) return;
 
         gameManager.vibrateShort();
         AudioManager.instance.playEffect('click_btn');
@@ -310,12 +320,26 @@ export class MenuManager extends Component {
     private onSettingBtnClick(): void {
         const gameManager = GameManager.getInstance();
         if (!gameManager?.setting || (gameManager.gameState != GameState.WAITING)) return;
+        if (gameManager.isWindowBlocking()) return;
 
         gameManager.vibrateShort();
         gameManager.gameState = GameState.PAUSED;
         gameManager.setting.lastState = GameState.WAITING;
         gameManager.setting.node.active = true;
         AudioManager.instance.playEffect('setting_btn');
+    }
+
+    /**
+     * 点击体力按钮，显示窗口
+     */
+    private onPowerBtnClick(): void {
+        const gameManager = GameManager.getInstance();
+        if (!gameManager?.window || (gameManager.gameState != GameState.WAITING)) return;
+        if (gameManager.isWindowBlocking()) return;
+
+        gameManager.vibrateShort();
+        gameManager.window.node.active = true;
+        AudioManager.instance.playEffect('click_btn');
     }
 
     /**
