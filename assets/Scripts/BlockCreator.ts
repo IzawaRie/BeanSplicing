@@ -106,6 +106,14 @@ export class BlockCreator {
                             blockSpTransform.setContentSize(cellWidth, cellHeight);
                         }
                     }
+
+                    const red_mask = block.getChildByName('red_mask');
+                    if (red_mask) {
+                        const redMaskTransform = red_mask.getComponent(UITransform);
+                        if (redMaskTransform) {
+                            redMaskTransform.setContentSize(cellWidth, cellHeight);
+                        }
+                    }
                 }
 
                 const x = -halfW + col * cellWidth + cellWidth / 2;

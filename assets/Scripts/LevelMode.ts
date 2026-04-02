@@ -98,6 +98,12 @@ export class LevelMode extends GameMode {
     private _highlightedCount: number = 0;   // 已高亮的 block 数
     private _ironedCount: number = 0;        // 已熨烫的 block 数
 
+    // 空闲闪烁相关（进度 > 90% 且 10 秒无操作）
+    private _idleFlashTimer: number = 0;      // 空闲计时器
+    private _isIdleFlashing: boolean = false;  // 是否正在闪烁
+    private readonly _IDLE_FLASH_THRESHOLD: number = 10; // 10 秒阈值
+    private readonly _IDLE_FLASH_PROGRESS: number = 0.8; // 80% 进度阈值
+
     get modeType(): GameModeType { return GameModeType.LEVEL; }
 
     update(_deltaTime: number): void {
@@ -149,6 +155,9 @@ export class LevelMode extends GameMode {
             gameManager.gameState = GameState.GAME_OVER;
             this.onTimeUp();
         }
+
+        // 空闲闪烁逻辑
+        this.updateIdleFlash(_deltaTime);
     }
 
     start(){
@@ -158,6 +167,104 @@ export class LevelMode extends GameMode {
         if (this.start_btn) {
             this.start_btn.on(Node.EventType.TOUCH_END, this.onStartBtnClick, this);
         }
+    }
+
+    // ==================== 空闲闪烁系统 ====================
+
+    /**
+     * 每帧更新空闲闪烁
+     */
+    private updateIdleFlash(deltaTime: number): void {
+        const gameManager = GameManager.getInstance();
+        if (gameManager?.gameState != GameState.PLAYING) return;
+
+        // 计算当前进度
+        const progress = (this._highlightedCount * 0.5 + this._ironedCount) / this._totalBlockCount;
+        const isHighProgress = progress >= this._IDLE_FLASH_PROGRESS;
+
+        if (isHighProgress && !this._isIdleFlashing) {
+            // 进度超过 90%，开始计时
+            this._idleFlashTimer += deltaTime;
+            if (this._idleFlashTimer >= this._IDLE_FLASH_THRESHOLD) {
+                this.startIdleFlash();
+                this._idleFlashTimer = 0;
+            }
+        } else if (!isHighProgress) {
+            // 进度低于 90%，停止闪烁，重置计时器
+            this._idleFlashTimer = 0;
+            if (this._isIdleFlashing) {
+                this.stopIdleFlash();
+            }
+        }
+    }
+
+    /**
+     * 开始空闲闪烁（闪烁所有未高亮的 block）
+     */
+    private startIdleFlash(): void {
+        this._isIdleFlashing = true;
+        const blocks = this.gridDrawer.getAllBlocks();
+
+        for (let row = 0; row < blocks.length; row++) {
+            for (let col = 0; col < blocks[row].length; col++) {
+                const block = blocks[row][col];
+                if (!block) continue;
+
+                const blockController = block.getComponent(BlockController);
+                // 只闪烁未高亮的 block（无 circle 或无颜色的）
+                if (blockController && blockController.state !== BlockState.HAS_CIRCLE) {
+                    const redMask = block.getChildByName('red_mask');
+                    if (redMask) {
+                        const uiOpacity = redMask.getComponent(UIOpacity) ?? redMask.addComponent(UIOpacity);
+                        // opacity 0 -> 200 -> 0 闪烁 3 次
+                        tween(uiOpacity)
+                            .to(0.4, { opacity: 200 })
+                            .to(0.4, { opacity: 0 })
+                            .union()
+                            .repeat(3)
+                            .call(()=>{
+                                this._isIdleFlashing = false;
+                                this._idleFlashTimer = 0;
+                            }).start();
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * 停止空闲闪烁
+     */
+    private stopIdleFlash(): void {
+        this._isIdleFlashing = false;
+        this._idleFlashTimer = 0;
+        const blocks = this.gridDrawer.getAllBlocks();
+
+        for (let row = 0; row < blocks.length; row++) {
+            for (let col = 0; col < blocks[row].length; col++) {
+                const block = blocks[row][col];
+                if (!block) continue;
+
+                const redMask = block.getChildByName('red_mask');
+                if (redMask) {
+                    const uiOpacity = redMask.getComponent(UIOpacity);
+                    if (uiOpacity) {
+                        tween(uiOpacity).stop();
+                        uiOpacity.opacity = 0;
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * 玩家有操作时调用，重置空闲计时器并停止闪烁
+     */
+    public resetIdleFlashTimer(): void {
+        if (this._isIdleFlashing) {
+            this.stopIdleFlash();
+        }
+        this._idleFlashTimer = 0;
     }
 
     // ==================== 进度系统 ====================
@@ -236,6 +343,9 @@ export class LevelMode extends GameMode {
         // 重置时间冻结状态
         this._isTimeFrozen = false;
         this._timeFreezeTimer = 0;
+        // 重置空闲闪烁状态
+        this._idleFlashTimer = 0;
+        this._isIdleFlashing = false;
         if (this.time_label) {
             tween(this.time_label).stop();
             this.time_label.color = new Color(255, 255, 255, 255);
