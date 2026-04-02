@@ -25,6 +25,9 @@ export class ResultPanel extends Component {
     @property(Node)
     homelBtn: Node = null;
 
+    @property(Node)
+    homelBtn2: Node = null;
+
     @property(Sprite)
     result_img: Sprite = null;
 
@@ -197,13 +200,14 @@ export class ResultPanel extends Component {
         this.nextLevelBtn?.on(Node.EventType.TOUCH_END, this.onNextLevelBtnClick, this);
         this.restartBtn?.on(Node.EventType.TOUCH_END, this.onRestartLevelBtnClick, this);
         this.homelBtn?.on(Node.EventType.TOUCH_END, this.onShowHomePanel, this);
+        this.homelBtn2?.on(Node.EventType.TOUCH_END, this.onShowHomePanel, this);
 
     }
 
     onDestroy() {
         this.nextLevelBtn?.off(Node.EventType.TOUCH_END, this.onNextLevelBtnClick, this);
         this.restartBtn?.off(Node.EventType.TOUCH_END, this.onRestartLevelBtnClick, this);
-        this.homelBtn?.off(Node.EventType.TOUCH_END, this.onShowHomePanel, this);
+        this.homelBtn2?.off(Node.EventType.TOUCH_END, this.onShowHomePanel, this);
     }
 
     /**
