@@ -468,4 +468,30 @@ export class WXManager extends Component {
             });
         });
     }
+
+    /**
+     * 设置体力值
+     */
+    public setPower(power: number): void {
+        if (typeof (wx) === 'undefined') return;
+        wx.setStorageSync('power', power);
+    }
+
+    /**
+     * 获取体力值
+     */
+    public getPower(): Promise<number | null> {
+        if (typeof (wx) === 'undefined') return Promise.resolve(null);
+        return new Promise((resolve) => {
+            wx.getStorage({
+                key: 'power',
+                success(res) {
+                    resolve(res.data);
+                },
+                fail() {
+                    resolve(null);
+                }
+            });
+        });
+    }
 }

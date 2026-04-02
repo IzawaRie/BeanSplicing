@@ -80,7 +80,16 @@ export class GameManager extends Component {
     public isWindowOpen: boolean = false;
 
     // 体力值
-    public power: number = 10;
+    private _power: number = 10;
+
+    public get power(): number {
+        return this._power;
+    }
+
+    public set power(value: number) {
+        this._power = value;
+        this.wxManager.setPower(value);
+    }
 
     /**
      * 检查是否有窗口阻挡按钮点击
@@ -285,5 +294,16 @@ export class GameManager extends Component {
         const isAudioOn = audio == null ? true : (audio == 1);
         this.audioManager.setAudioEnabled(isAudioOn);
         this.setting.audio_toggle.isChecked = isAudioOn;
+
+        // 加载体力值
+        const savedPower = await this.wxManager.getPower();
+        if (savedPower != null) {
+            this._power = savedPower;
+        } else {
+            // 没有存档，默认10并上传
+            this._power = 10;
+            this.wxManager.setPower(10);
+        }
+        this.menuManager.power_label.string = `${this._power}`;
     }
 }
