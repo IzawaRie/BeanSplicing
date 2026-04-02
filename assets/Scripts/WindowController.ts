@@ -55,11 +55,6 @@ export class WindowController extends Component {
             if (success) {
                 // 观看成功后增加体力
                 gameManager.power++;
-                // 更新 power_label
-                const menuManager = gameManager.menuManager;
-                if (menuManager?.power_label) {
-                    menuManager.power_label.string = `${gameManager.power}`;
-                }
                 // 关闭窗口
                 this.closeWindow();
             }
@@ -87,6 +82,16 @@ export class WindowController extends Component {
      */
     public closeWindow(): void {
         this.node.active = false;
+    }
+
+    /**
+     * 打开窗口并显示提示文字
+     */
+    public showWithMessage(message: string): void {
+        if (this.content) {
+            this.content.string = message;
+        }
+        this.node.active = true;
     }
 
     /**

@@ -212,6 +212,11 @@ export class ResultPanel extends Component {
     private onNextLevelBtnClick(): void {
         const gameManager = GameManager.getInstance();
         if (gameManager?.isWindowBlocking()) return;
+        if (gameManager.power <= 0) {
+            gameManager.window.showWithMessage('体力值不足，请等待下次体力值更新或观看视频获取体力值！');
+            return;
+        }
+        gameManager.power--;
         AudioManager.instance.playEffect('ding');
         this.loadLevel();
     }
@@ -222,6 +227,11 @@ export class ResultPanel extends Component {
     private onRestartLevelBtnClick(): void {
         const gameManager = GameManager.getInstance();
         if (gameManager?.isWindowBlocking()) return;
+        if (gameManager.power <= 0) {
+            gameManager.window.showWithMessage('体力值不足，请等待下次体力值更新或观看视频获取体力值！');
+            return;
+        }
+        gameManager.power--;
         AudioManager.instance.playEffect('click_btn');
         this.loadLevel();
     }

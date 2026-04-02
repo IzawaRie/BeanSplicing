@@ -89,6 +89,10 @@ export class GameManager extends Component {
     public set power(value: number) {
         this._power = value;
         this.wxManager.setPower(value);
+        // 同步更新 UI
+        if (this.menuManager?.power_label) {
+            this.menuManager.power_label.string = `${value}`;
+        }
     }
 
     /**
@@ -298,12 +302,10 @@ export class GameManager extends Component {
         // 加载体力值
         const savedPower = await this.wxManager.getPower();
         if (savedPower != null) {
-            this._power = savedPower;
+            this.power = savedPower; // 通过 setter 赋值，自动更新 UI 和存储
         } else {
             // 没有存档，默认10并上传
-            this._power = 10;
-            this.wxManager.setPower(10);
+            this.power = 10;
         }
-        this.menuManager.power_label.string = `${this._power}`;
     }
 }

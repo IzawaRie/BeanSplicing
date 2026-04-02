@@ -161,12 +161,6 @@ export class MenuManager extends Component {
         if (this.power_btn) {
             this.power_btn.on(Node.EventType.TOUCH_END, this.onPowerBtnClick, this);
         }
-
-        // 初始化 power_label
-        const gameManager = GameManager.getInstance();
-        if (this.power_label && gameManager) {
-            this.power_label.string = `${gameManager.power}`;
-        }
     }
 
     /**
@@ -286,10 +280,20 @@ export class MenuManager extends Component {
         const gameManager = GameManager.getInstance();
         if (!gameManager || (gameManager.gameState != GameState.WAITING)) return;
         if (gameManager.isWindowBlocking()) return;
+        if (gameManager.power <= 0) {
+            // 体力不足，打开窗口提示
+            if (gameManager.window) {
+                gameManager.window.showWithMessage('体力值不足，请等待下次体力值更新或观看视频获取体力值！');
+            }
+            return;
+        }
 
         gameManager.vibrateShort();
         AudioManager.instance.playEffect('click_btn');
         AudioManager.instance.stopBgm();
+
+        // 消耗体力
+        gameManager.power--;
 
         // 切换难度并获取对应关卡数
         gameManager.currentDifficulty = difficulty;
@@ -344,11 +348,7 @@ export class MenuManager extends Component {
         if (gameManager.isWindowBlocking()) return;
 
         gameManager.vibrateShort();
-        // 更新窗口内容
-        if (gameManager.window.content) {
-            gameManager.window.content.string = '看视频获得更多能量！';
-        }
-        gameManager.window.node.active = true;
+        gameManager.window.showWithMessage('看视频获得更多能量！');
         AudioManager.instance.playEffect('click_btn');
     }
 
