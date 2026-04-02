@@ -79,6 +79,9 @@ export class GameManager extends Component {
     // 窗口是否打开
     public isWindowOpen: boolean = false;
 
+    // 体力值
+    public power: number = 10;
+
     /**
      * 检查是否有窗口阻挡按钮点击
      */
