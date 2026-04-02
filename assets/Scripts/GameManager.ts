@@ -79,6 +79,12 @@ export class GameManager extends Component {
     // 窗口是否打开
     public isWindowOpen: boolean = false;
 
+    // 存储是否加载完成
+    private _storageLoaded: boolean = false;
+    public get storageLoaded(): boolean {
+        return this._storageLoaded;
+    }
+
     // 体力值
     private _power: number = 10;
 
@@ -115,22 +121,29 @@ export class GameManager extends Component {
     }
 
     /**
-     * 每帧更新体力恢复逻辑
+     * 每帧更新体力恢复逻辑（仅在存储加载完成后调用）
      */
     public updatePowerRegen(): void {
+        if (!this._storageLoaded) return;
+        if (this._powerNextRegenTime <= 0) return;
         if (this._power >= this.POWER_MAX) {
             this._powerNextRegenTime = 0;
+            this.wxManager.setPowerNextRegenTime(0);
             return;
         }
-        if (this._powerNextRegenTime <= 0) return;
 
         const now = Date.now();
         if (now >= this._powerNextRegenTime) {
-            // 恢复体力
+            // 倒计时到期，恢复体力并设置下一轮倒计时
             this._power = Math.min(this._power + this.POWER_REGEN_AMOUNT, this.POWER_MAX);
             this.wxManager.setPower(this._power);
-            this.wxManager.setPowerNextRegenTime(0);
-            this._powerNextRegenTime = 0;
+            if (this._power >= this.POWER_MAX) {
+                this._powerNextRegenTime = 0;
+                this.wxManager.setPowerNextRegenTime(0);
+            } else {
+                this._powerNextRegenTime = now + this.POWER_REGEN_INTERVAL;
+                this.wxManager.setPowerNextRegenTime(this._powerNextRegenTime);
+            }
         }
     }
 
@@ -143,7 +156,9 @@ export class GameManager extends Component {
     }
 
     update(_deltaTime: number): void {
-        this.updatePowerRegen();
+        if (this._storageLoaded) {
+            this.updatePowerRegen();
+        }
     }
 
     /**
@@ -392,5 +407,6 @@ export class GameManager extends Component {
             // 没有存档，默认10
             this.power = 10;
         }
+        this._storageLoaded = true;
     }
 }
