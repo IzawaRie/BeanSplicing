@@ -34,6 +34,34 @@ export class SkillController extends Component {
         if (this.fix_skill) {
             this.fix_skill.on(Node.EventType.TOUCH_END, this.onFixSkillClick, this);
         }
+
+        // 注册 wenhao 按钮触摸事件
+        this.registerWenhaoEvent(this.palette_skill, '图案显示技能：显示所有拼豆格\n\n子上的颜色(半透明状态)和对应\n\n颜色序号');
+        this.registerWenhaoEvent(this.time_skill, '时间冻结技能：冻结游戏倒计时\n\n30秒，冻结结束后继续倒计时');
+        this.registerWenhaoEvent(this.fix_skill, '超级修复技能：修复所有颜色不\n\n匹配的拼豆(包括错误拼豆和错误\n\n颜色熨烫状态)');
+    }
+
+    /**
+     * 注册 wenhao 子节点的点击事件
+     */
+    private registerWenhaoEvent(skillNode: Node, tipMessage: string): void {
+        if (!skillNode) return;
+        const wenhao = skillNode.getChildByName('wenhao');
+        if (wenhao) {
+            wenhao.on(Node.EventType.TOUCH_END, () => {
+                this.onWenhaoClick(tipMessage);
+            }, this);
+        }
+    }
+
+    /**
+     * wenhao 点击事件
+     */
+    private onWenhaoClick(tipMessage: string): void {
+        const gameManager = GameManager.getInstance();
+        if (!gameManager?.window) return;
+        gameManager.vibrateShort();
+        gameManager.window.showWithMessage(tipMessage, false);
     }
 
     onDestroy() {
