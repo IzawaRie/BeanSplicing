@@ -96,15 +96,19 @@ export class GameManager extends Component {
     }
 
     public set power(value: number) {
-        const oldPower = this._power;
         this._power = value;
         this.wxManager.setPower(value);
         // 同步更新 UI
         if (this.menuManager?.power_label) {
             this.menuManager.power_label.string = `${value}`;
         }
-        // 当体力减少且小于上限时，设置下次恢复时间
-        if (oldPower > value && value < this.POWER_MAX && this._powerNextRegenTime <= 0) {
+        // 体力满了，清除倒计时
+        if (value >= this.POWER_MAX) {
+            this._powerNextRegenTime = 0;
+            return;
+        }
+        // 没有倒计时时，设置下次恢复时间（无论增减）
+        if (this._powerNextRegenTime <= 0) {
             this._powerNextRegenTime = Date.now() + this.POWER_REGEN_INTERVAL;
             this.wxManager.setPowerNextRegenTime(this._powerNextRegenTime);
         }
@@ -347,17 +351,15 @@ export class GameManager extends Component {
         const savedNextRegen = await this.wxManager.getPowerNextRegenTime();
         if (savedPower != null) {
             this._power = savedPower;
-            this._powerNextRegenTime = savedNextRegen ?? 0;
-            // 检查离线期间是否有需要恢复的体力
-            if (this._power < this.POWER_MAX && this._powerNextRegenTime > 0) {
-                const now = Date.now();
-                if (now >= this._powerNextRegenTime) {
-                    // 计算离线期间累积了多少次恢复
-                    const elapsed = now - this._powerNextRegenTime;
+            const now = Date.now();
+            // 有待恢复的倒计时
+            if (this._power < this.POWER_MAX && savedNextRegen != null && savedNextRegen > 0) {
+                if (now >= savedNextRegen) {
+                    // 离线期间累积恢复
+                    const elapsed = now - savedNextRegen;
                     const regenCount = Math.floor(elapsed / this.POWER_REGEN_INTERVAL) + 1;
                     this._power = Math.min(this._power + regenCount * this.POWER_REGEN_AMOUNT, this.POWER_MAX);
                     this.wxManager.setPower(this._power);
-                    // 重置下次恢复时间
                     if (this._power >= this.POWER_MAX) {
                         this._powerNextRegenTime = 0;
                         this.wxManager.setPowerNextRegenTime(0);
@@ -365,6 +367,18 @@ export class GameManager extends Component {
                         this._powerNextRegenTime = now + this.POWER_REGEN_INTERVAL;
                         this.wxManager.setPowerNextRegenTime(this._powerNextRegenTime);
                     }
+                } else {
+                    // 倒计时未过期，使用保存的倒计时
+                    this._powerNextRegenTime = savedNextRegen;
+                }
+            } else {
+                // 无待恢复的倒计时（满体力或没有保存倒计时）
+                if (this._power < this.POWER_MAX) {
+                    // 开始新的 30 分钟倒计时
+                    this._powerNextRegenTime = now + this.POWER_REGEN_INTERVAL;
+                    this.wxManager.setPowerNextRegenTime(this._powerNextRegenTime);
+                } else {
+                    this._powerNextRegenTime = 0;
                 }
             }
             // 更新 UI
