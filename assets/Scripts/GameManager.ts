@@ -355,18 +355,21 @@ export class GameManager extends Component {
             // 有待恢复的倒计时
             if (this._power < this.POWER_MAX && savedNextRegen != null && savedNextRegen > 0) {
                 if (now >= savedNextRegen) {
-                    // 离线期间累积恢复
+                    // 离线过去了多少分钟（从 savedNextRegen 算起）
                     const elapsed = now - savedNextRegen;
+                    // 过去了多少个 30 分钟 + savedNextRegen 那次 = floor(elapsed/30) + 1
                     const regenCount = Math.floor(elapsed / this.POWER_REGEN_INTERVAL) + 1;
+                    // 离线恢复
                     this._power = Math.min(this._power + regenCount * this.POWER_REGEN_AMOUNT, this.POWER_MAX);
                     this.wxManager.setPower(this._power);
+                    // 下一轮倒计时：当前轮已过的部分（passed 分钟后下一轮到期）
+                    const passed = elapsed % this.POWER_REGEN_INTERVAL;
                     if (this._power >= this.POWER_MAX) {
                         this._powerNextRegenTime = 0;
-                        this.wxManager.setPowerNextRegenTime(0);
                     } else {
-                        this._powerNextRegenTime = now + this.POWER_REGEN_INTERVAL;
-                        this.wxManager.setPowerNextRegenTime(this._powerNextRegenTime);
+                        this._powerNextRegenTime = now + passed;
                     }
+                    this.wxManager.setPowerNextRegenTime(this._powerNextRegenTime);
                 } else {
                     // 倒计时未过期，使用保存的倒计时
                     this._powerNextRegenTime = savedNextRegen;
