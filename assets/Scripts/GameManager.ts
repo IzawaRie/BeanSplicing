@@ -82,17 +82,64 @@ export class GameManager extends Component {
     // 体力值
     private _power: number = 10;
 
+    // 体力恢复间隔（30分钟，毫秒）
+    private readonly POWER_REGEN_INTERVAL: number = 30 * 60 * 1000;
+    // 每次恢复体力值
+    private readonly POWER_REGEN_AMOUNT: number = 3;
+    // 体力上限
+    private readonly POWER_MAX: number = 10;
+    // 下次恢复时间（时间戳，毫秒）
+    private _powerNextRegenTime: number = 0;
+
     public get power(): number {
         return this._power;
     }
 
     public set power(value: number) {
+        const oldPower = this._power;
         this._power = value;
         this.wxManager.setPower(value);
         // 同步更新 UI
         if (this.menuManager?.power_label) {
             this.menuManager.power_label.string = `${value}`;
         }
+        // 当体力减少且小于上限时，设置下次恢复时间
+        if (oldPower > value && value < this.POWER_MAX && this._powerNextRegenTime <= 0) {
+            this._powerNextRegenTime = Date.now() + this.POWER_REGEN_INTERVAL;
+            this.wxManager.setPowerNextRegenTime(this._powerNextRegenTime);
+        }
+    }
+
+    /**
+     * 每帧更新体力恢复逻辑
+     */
+    public updatePowerRegen(): void {
+        if (this._power >= this.POWER_MAX) {
+            this._powerNextRegenTime = 0;
+            return;
+        }
+        if (this._powerNextRegenTime <= 0) return;
+
+        const now = Date.now();
+        if (now >= this._powerNextRegenTime) {
+            // 恢复体力
+            this._power = Math.min(this._power + this.POWER_REGEN_AMOUNT, this.POWER_MAX);
+            this.wxManager.setPower(this._power);
+            this.wxManager.setPowerNextRegenTime(0);
+            this._powerNextRegenTime = 0;
+        }
+    }
+
+    /**
+     * 获取体力下次恢复剩余时间（毫秒），未在恢复中返回 0
+     */
+    public getPowerRegenRemaining(): number {
+        if (this._power >= this.POWER_MAX || this._powerNextRegenTime <= 0) return 0;
+        return Math.max(0, this._powerNextRegenTime - Date.now());
+    }
+
+    update(_deltaTime: number): void {
+        this.updatePowerRegen();
     }
 
     /**
@@ -301,10 +348,35 @@ export class GameManager extends Component {
 
         // 加载体力值
         const savedPower = await this.wxManager.getPower();
+        const savedNextRegen = await this.wxManager.getPowerNextRegenTime();
         if (savedPower != null) {
-            this.power = savedPower; // 通过 setter 赋值，自动更新 UI 和存储
+            this._power = savedPower;
+            this._powerNextRegenTime = savedNextRegen ?? 0;
+            // 检查离线期间是否有需要恢复的体力
+            if (this._power < this.POWER_MAX && this._powerNextRegenTime > 0) {
+                const now = Date.now();
+                if (now >= this._powerNextRegenTime) {
+                    // 计算离线期间累积了多少次恢复
+                    const elapsed = now - this._powerNextRegenTime;
+                    const regenCount = Math.floor(elapsed / this.POWER_REGEN_INTERVAL) + 1;
+                    this._power = Math.min(this._power + regenCount * this.POWER_REGEN_AMOUNT, this.POWER_MAX);
+                    this.wxManager.setPower(this._power);
+                    // 重置下次恢复时间
+                    if (this._power >= this.POWER_MAX) {
+                        this._powerNextRegenTime = 0;
+                        this.wxManager.setPowerNextRegenTime(0);
+                    } else {
+                        this._powerNextRegenTime = now + this.POWER_REGEN_INTERVAL;
+                        this.wxManager.setPowerNextRegenTime(this._powerNextRegenTime);
+                    }
+                }
+            }
+            // 更新 UI
+            if (this.menuManager?.power_label) {
+                this.menuManager.power_label.string = `${this._power}`;
+            }
         } else {
-            // 没有存档，默认10并上传
+            // 没有存档，默认10
             this.power = 10;
         }
     }

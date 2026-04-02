@@ -28,6 +28,9 @@ export class MenuManager extends Component {
     @property({ type: Label })
     power_label: Label = null;
 
+    @property({ type: Label })
+    power_tip: Label = null;
+
     private levelConfig: LevelConfig | null = null;
     private starPrefab: Prefab = null;
     private spawnedStars: Node[] = [];
@@ -440,6 +443,23 @@ export class MenuManager extends Component {
         }
         if (this.node) {
             this.node.active = true;
+        }
+    }
+
+    update(): void {
+        const gameManager = GameManager.getInstance();
+        if (!gameManager || !this.power_tip) return;
+
+        if (gameManager.power >= 10) {
+            this.power_tip.node.active = false;
+        } else {
+            this.power_tip.node.active = true;
+            const remaining = gameManager.getPowerRegenRemaining();
+            const totalSec = Math.ceil(remaining / 1000);
+            const mins = Math.floor(totalSec / 60);
+            const secs = totalSec % 60;
+            const secsStr = secs < 10 ? `0${secs}` : `${secs}`;
+            this.power_tip.string = `距离下次更新：${mins}分${secsStr}秒`;
         }
     }
 
