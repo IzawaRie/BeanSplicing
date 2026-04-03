@@ -585,7 +585,7 @@ export class CircleController extends Component {
                 applyHighlight(block);
                 if (!triggeredLevels.has(0)) {
                     triggeredLevels.add(0);
-                    AudioManager.instance.playEffect('boop');
+                    AudioManager.instance.playEffect('boop', 1.5);
                     gameManager.vibrateShort();
                 }
             } else {
@@ -593,7 +593,7 @@ export class CircleController extends Component {
                     applyHighlight(block);
                     if (!triggeredLevels.has(level)) {
                         triggeredLevels.add(level);
-                        AudioManager.instance.playEffect('boop');
+                        AudioManager.instance.playEffect('boop', 1.5);
                         gameManager.vibrateShort();
                     }
                 }, delay * 1000);
