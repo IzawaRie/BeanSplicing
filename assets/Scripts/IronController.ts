@@ -60,7 +60,9 @@ export class IronController extends Component {
      */
     private onTouchStart(event: EventTouch) {
         if (!this.isGameActive()) return;
-
+        // 引导期间正确放置了 circle，结束引导
+        const gameManager = GameManager.getInstance();
+        gameManager.levelMode.tutorialController?.pauseTutorial();
         this.node.getChildByName('mask').active = false;
         this.isDragging = true;
         const pos = event.getUILocation();
@@ -173,7 +175,8 @@ export class IronController extends Component {
      */
     public onTouchEnd() {
         if (!this.isDragging) return;
-
+        const gameManager = GameManager.getInstance();
+        gameManager.levelMode.tutorialController?.setPauseTime();
         this.isDragging = false;
         this.node.getChildByName('mask').active = true;
         this.resetPosition();

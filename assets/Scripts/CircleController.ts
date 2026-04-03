@@ -2,6 +2,7 @@ import { _decorator, Component, Node, Sprite, Color, EventTouch, UITransform, La
 import { AudioManager } from './AudioManager';
 import { GameManager, GameState } from './GameManager';
 import { BlockController, BlockState } from './BlockController';
+import { TutorialController } from './TutorialController';
 const { ccclass, property } = _decorator;
 
 /**
@@ -188,7 +189,9 @@ export class CircleController extends Component {
         AudioManager.instance.playEffect('circle');
 
         this.isDragging = true;
-
+        // 引导期间正确放置了 circle，结束引导
+        const gameManager = GameManager.getInstance();
+        gameManager.levelMode.tutorialController?.pauseTutorial();
         // 显示 circleNode，隐藏主节点
         if (this.circleNode) {
             this.circleNode.active = true;
@@ -263,6 +266,8 @@ export class CircleController extends Component {
     private onTouchEnd(_event: EventTouch) {
         this.isDragging = false;
 
+        const gameManager = GameManager.getInstance();
+        gameManager.levelMode.tutorialController?.setPauseTime();
         // 恢复原始 scale 和 rotation
         this.node.setScale(this.originalScale.x, this.originalScale.y, this.originalScale.z);
         this.node.setRotationFromEuler(this.originalRotation.x, this.originalRotation.y, this.originalRotation.z);

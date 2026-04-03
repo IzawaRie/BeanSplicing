@@ -1,4 +1,4 @@
-import { _decorator, Component, Label, Node, Sprite, tween, UIOpacity, Color } from 'cc';
+import { _decorator, Component, Label, Node, Sprite, tween, UIOpacity, Color, resources, Prefab, instantiate } from 'cc';
 import { GameMode, GameModeType} from './GameMode';
 import { GridDrawer } from './GridDrawer';
 import { IronController } from './IronController';
@@ -11,6 +11,8 @@ import { ResultPanel } from './ResultPanel';
 import { LevelConfig } from './LevelConfig';
 import { AudioManager } from './AudioManager';
 import { SkillController } from './SkillController';
+import { TutorialController } from './TutorialController';
+import { CircleController } from './CircleController';
 
 const { ccclass, property } = _decorator;
 
@@ -103,6 +105,8 @@ export class LevelMode extends GameMode {
     private _isIdleFlashing: boolean = false;  // 是否正在闪烁
     private readonly _IDLE_FLASH_THRESHOLD: number = 10; // 10 秒阈值
     private readonly _IDLE_FLASH_PROGRESS: number = 0.8; // 80% 进度阈值
+
+    public tutorialController: TutorialController = null;
 
     get modeType(): GameModeType { return GameModeType.LEVEL; }
 
@@ -630,8 +634,14 @@ export class LevelMode extends GameMode {
      * 开始游戏
      */
     public startGame(): void {
-        GameManager.getInstance().gameState = GameState.PLAYING;
+        const gameManager = GameManager.getInstance();
+        gameManager.gameState = GameState.PLAYING;
         this.selectedColorIndex = 1;
+
+        // 第一关开启新手引导
+        if (gameManager.currentDifficulty == DifficultyMode.SIMPLE && gameManager.currentLevel === 1) {
+            this.startTutorial();
+        }
     }
 
     /**
@@ -986,5 +996,55 @@ export class LevelMode extends GameMode {
         if (!this.gridDrawer) return;
         this.gridDrawer.hideAllBlockSpritesInstant();
         this.gridDrawer.hideAllNumberNodes();
+    }
+
+
+    // ==================== 新手引导教程 ====================
+
+    /**
+     * 开始新手引导
+     */
+    public startTutorial(): void {
+        const blocks = this.gridDrawer.getAllBlocks();
+        if (!blocks) return;
+
+        const block = blocks[12]?.[7];
+        if (!block) return;
+
+        const controller = block.getComponent(BlockController);
+        if (!controller || controller.targetColorA <= 0) return;
+
+        // 根据 block 目标颜色，找到 circleList 中对应颜色的 circle 节点
+        const circleNodes = this.circleList?.colorNodes;
+        let targetCircle: Node = null;
+
+        if (circleNodes) {
+            for (const node of circleNodes) {
+                if (!node || !node.active) continue;
+                const cc = node.getComponent(CircleController);
+                if (!cc) continue;
+                const color = cc.getColor();
+                if (color.r === controller.targetColorR && color.g === controller.targetColorG &&
+                    color.b === controller.targetColorB && color.a === controller.targetColorA) {
+                    targetCircle = node;
+                    break;
+                }
+            }
+        }
+
+        if (!targetCircle) return;
+
+        // 加载手指预制体
+        resources.load('prefab/finger', Prefab, (err, prefab) => {
+            if (err || !prefab) {
+                console.error('加载 finger 预制体失败:', err);
+                return;
+            }
+            const finger = instantiate(prefab as Prefab);
+            this.node.addChild(finger);
+            this.tutorialController = finger.getComponent(TutorialController);
+            this.tutorialController.levelMode = this;
+            this.tutorialController.startTutorial(block, targetCircle, this.iron.node);
+        });
     }
 }
