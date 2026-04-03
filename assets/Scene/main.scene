@@ -13629,7 +13629,7 @@
     "__prefab": null,
     "_contentSize": {
       "__type__": "cc.Size",
-      "width": 950,
+      "width": 700,
       "height": 300
     },
     "_anchorPoint": {
@@ -13659,13 +13659,13 @@
       "b": 255,
       "a": 255
     },
-    "_string": "新手提示：需要在十秒内迅速记忆图案的颜色，可以\n\n点击按钮提前结束图案记忆环节欧",
+    "_string": " 新手提示：需要在十秒内迅速记忆图案的颜色，可以\n\n 点击按钮提前结束图案记忆环节欧",
     "_horizontalAlign": 0,
     "_verticalAlign": 1,
-    "_actualFontSize": 40,
-    "_fontSize": 40,
+    "_actualFontSize": 30,
+    "_fontSize": 30,
     "_fontFamily": "Arial",
-    "_lineHeight": 40,
+    "_lineHeight": 30,
     "_overflow": 2,
     "_enableWrapText": false,
     "_font": {
