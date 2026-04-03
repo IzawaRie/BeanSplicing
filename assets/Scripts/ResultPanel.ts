@@ -264,7 +264,6 @@ export class ResultPanel extends Component {
         const gameManager = GameManager.getInstance();
         gameManager.levelMode.node.active = false;
         gameManager.vibrateShort();
-        gameManager.menuManager.showProgressPanel();
         gameManager.menuManager.loadLevel(gameManager.currentLevel, gameManager.currentDifficulty);
     }
 

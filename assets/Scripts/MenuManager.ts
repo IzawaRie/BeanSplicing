@@ -31,7 +31,6 @@ export class MenuManager extends Component {
     @property({ type: Label })
     power_tip: Label = null;
 
-    private levelConfig: LevelConfig | null = null;
     private starPrefab: Prefab = null;
     private spawnedStars: Node[] = [];
     private spawnInterval: number = 12;  // 每秒刷新
@@ -39,6 +38,8 @@ export class MenuManager extends Component {
     private minStarSpacing: number = 150;  // 星星最小间隔
     private btn_color1: Color = new Color(255, 230, 166);
     private btn_color2: Color = new Color(255, 183, 197);
+
+    public levelConfig: LevelConfig | null = null;
     /**
      * 数字转中文
      */
@@ -130,40 +131,7 @@ export class MenuManager extends Component {
             gameManager.levelMode.node.active = false;
         }
 
-        // 加载星星预制体
-        resources.load('prefab/star_light', Prefab, (err, prefab) => {
-            if (err) {
-                console.error('加载 star_light 预制体失败:', err);
-                return;
-            }
-            this.starPrefab = prefab as Prefab;
-            // 初始化星星并显示
-            this.initStars();
-            this.showRandomStars();
-            console.log('star_light 预制体加载成功');
-        });
-    }
-
-    start() {
-        // 加载关卡配置
-        this.levelConfig = LevelConfig.getInstance();
-        this.levelConfig.loadConfig((success) => {
-            if (success) {
-                console.log('关卡配置加载完成');
-                // 配置加载完成后更新所有难度按钮文字
-                const gameManager = GameManager.getInstance();
-                const allDiffs = [DifficultyMode.SIMPLE, DifficultyMode.MEDIUM, DifficultyMode.HARD];
-                for (const diff of allDiffs) {
-                    gameManager.currentDifficulty = diff;
-                    this.updateLevelButtonText(gameManager.currentLevel, diff);
-                }
-                // 恢复默认难度
-                gameManager.currentDifficulty = DifficultyMode.SIMPLE;
-            } else {
-                console.error('关卡配置加载失败');
-            }
-        });
-
+        // 注册按钮事件（即使节点不激活也执行，确保 GameManager 能调用 loadLevel）
         if (this.simple_btn) {
             this.simple_btn.on(Node.EventType.TOUCH_END, this.onSimpleClick, this);
         }
@@ -180,6 +148,23 @@ export class MenuManager extends Component {
         if (this.power_btn) {
             this.power_btn.on(Node.EventType.TOUCH_END, this.onPowerBtnClick, this);
         }
+
+        // 加载星星预制体
+        resources.load('prefab/star_light', Prefab, (err, prefab) => {
+            if (err) {
+                console.error('加载 star_light 预制体失败:', err);
+                return;
+            }
+            this.starPrefab = prefab as Prefab;
+            // 初始化星星并显示
+            this.initStars();
+            this.showRandomStars();
+            console.log('star_light 预制体加载成功');
+        });
+    }
+
+    start() {
+        // onLoad 已完成所有初始化，start 仅用于需要节点激活后执行的逻辑
     }
 
     /**
@@ -325,7 +310,6 @@ export class MenuManager extends Component {
         gameManager.power--;
 
         console.log(`开始游戏 - ${difficulty} - 第${this.toChineseNum(currentLevel)}关`);
-        this.showProgressPanel();
         this.loadLevel(currentLevel, difficulty);
     }
 
@@ -423,6 +407,8 @@ export class MenuManager extends Component {
             console.error('LevelMode 或 GridDrawer 未找到');
             return;
         }
+
+        this.showProgressPanel();
 
         // 开启原始画布
         const drawerOpacity = gameManager.levelMode.drawer_opacity;

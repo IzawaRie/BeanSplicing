@@ -85,6 +85,9 @@ export class GameManager extends Component {
         return this._storageLoaded;
     }
 
+    // 关卡配置是否加载完成
+    private _levelConfigLoaded: boolean = false;
+
     // 体力值
     private _power: number = 10;
 
@@ -176,6 +179,7 @@ export class GameManager extends Component {
         }
         GameManager._instance = this;
 
+        this.menuManager.levelConfig = LevelConfig.getInstance();
         this.initStorage();
         //this.loadSavedLevel();
     }
@@ -405,6 +409,36 @@ export class GameManager extends Component {
             // 没有存档，默认10
             this.power = 10;
         }
+
+        // 等待关卡配置加载完成
+        await new Promise<void>((resolve) => {
+            LevelConfig.getInstance().loadConfig(() => {
+                this._levelConfigLoaded = true;
+                resolve();
+            });
+        });
+
         this._storageLoaded = true;
+
+        this.checkNewbieGuide();
+    }
+
+    /**
+     * 新手引导检查：未通过第一关则进入新手教程
+     */
+    private checkNewbieGuide(): void {
+        // 更新所有难度按钮文字
+        const allDiffs = [DifficultyMode.SIMPLE, DifficultyMode.MEDIUM, DifficultyMode.HARD];
+        for (const diff of allDiffs) {
+            this.currentDifficulty = diff;
+            this.menuManager?.updateLevelButtonText(this.currentLevel, diff);
+        }
+        this.currentDifficulty = DifficultyMode.SIMPLE;
+
+        if (this.currentLevel === 1) {
+            this.menuManager.loadLevel(1, DifficultyMode.SIMPLE);
+        }else{
+            this.menuManager.node.active = true;
+        }
     }
 }
