@@ -94,7 +94,7 @@ export class GameManager extends Component {
     // 体力恢复间隔（30分钟，毫秒）
     private readonly POWER_REGEN_INTERVAL: number = 30 * 60 * 1000;
     // 每次恢复体力值
-    private readonly POWER_REGEN_AMOUNT: number = 3;
+    private readonly POWER_REGEN_AMOUNT: number = 1;
     // 体力上限
     private readonly POWER_MAX: number = 10;
     // 下次恢复时间（时间戳，毫秒）
