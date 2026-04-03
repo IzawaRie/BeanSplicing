@@ -111,9 +111,10 @@ export class GameManager extends Component {
         // 体力满了，清除倒计时
         if (value >= this.POWER_MAX) {
             this._powerNextRegenTime = 0;
+            this.wxManager.setPowerNextRegenTime(0);
             return;
         }
-        // 没有倒计时时，设置下次恢复时间（无论增减）
+        // 体力不足时，如果还没有倒计时，启动新的倒计时
         if (this._powerNextRegenTime <= 0) {
             this._powerNextRegenTime = Date.now() + this.POWER_REGEN_INTERVAL;
             this.wxManager.setPowerNextRegenTime(this._powerNextRegenTime);
@@ -135,8 +136,7 @@ export class GameManager extends Component {
         const now = Date.now();
         if (now >= this._powerNextRegenTime) {
             // 倒计时到期，恢复体力并设置下一轮倒计时
-            this._power = Math.min(this._power + this.POWER_REGEN_AMOUNT, this.POWER_MAX);
-            this.wxManager.setPower(this._power);
+            this.power = Math.min(this._power + this.POWER_REGEN_AMOUNT, this.POWER_MAX);
             if (this._power >= this.POWER_MAX) {
                 this._powerNextRegenTime = 0;
                 this.wxManager.setPowerNextRegenTime(0);
@@ -370,19 +370,17 @@ export class GameManager extends Component {
             // 有待恢复的倒计时
             if (this._power < this.POWER_MAX && savedNextRegen != null && savedNextRegen > 0) {
                 if (now >= savedNextRegen) {
-                    // 离线过去了多少分钟（从 savedNextRegen 算起）
+                    // 离线过去了多少毫秒（从 savedNextRegen 算起，>= 0）
                     const elapsed = now - savedNextRegen;
-                    // 过去了多少个 30 分钟 + savedNextRegen 那次 = floor(elapsed/30) + 1
-                    const regenCount = Math.floor(elapsed / this.POWER_REGEN_INTERVAL) + 1;
+                    const regenCount = elapsed < this.POWER_REGEN_INTERVAL ? 1 : Math.floor(elapsed / this.POWER_REGEN_INTERVAL);
                     // 离线恢复
                     this._power = Math.min(this._power + regenCount * this.POWER_REGEN_AMOUNT, this.POWER_MAX);
-                    this.wxManager.setPower(this._power);
-                    // 下一轮倒计时：当前轮已过的部分（passed 分钟后下一轮到期）
+                    // 下一轮倒计时：距下一个 interval 到期还剩多少时间
                     const passed = elapsed % this.POWER_REGEN_INTERVAL;
                     if (this._power >= this.POWER_MAX) {
                         this._powerNextRegenTime = 0;
                     } else {
-                        this._powerNextRegenTime = now + passed;
+                        this._powerNextRegenTime = now + (this.POWER_REGEN_INTERVAL - passed);
                     }
                     this.wxManager.setPowerNextRegenTime(this._powerNextRegenTime);
                 } else {
