@@ -5,5 +5,8 @@
   "uuid": "b3e067b7-f85b-467a-bb7b-8bfa6f423226",
   "files": [],
   "subMetas": {},
-  "userData": {}
+  "userData": {
+    "isBundle": true,
+    "bundleConfigID": "34h9qZCq1KdIThWrjVwFaz"
+  }
 }

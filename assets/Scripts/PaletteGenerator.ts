@@ -1,4 +1,5 @@
-import { _decorator, Component, Sprite, JsonAsset, Texture2D, SpriteFrame, ImageAsset, UITransform } from 'cc';
+import { _decorator, Component, Sprite, Texture2D, SpriteFrame, ImageAsset, UITransform } from 'cc';
+import { PatternBundle } from './PatternBundle';
 const { ccclass } = _decorator;
 
 /**
@@ -35,20 +36,17 @@ export class PaletteGenerator extends Component {
 
     /**
      * 从 JSON 文件加载并生成调色板
-     * @param jsonPath resources 目录下的 JSON 路径，如 'pixel_patterns/apple'
+     * @param jsonPath bundle 中的资源路径，如 'apple'
      */
-    public loadFromJson(jsonPath: string, callback?: () => void): void {
-        (window as any).cc?.resources?.load(jsonPath, JsonAsset, (err: any, jsonAsset: any) => {
-            if (err) {
-                console.error('加载 JSON 失败:', err);
-                callback?.();
-                return;
-            }
-
-            const patternData = (jsonAsset as JsonAsset).json as PixelPatternJson;
-            this.generatePalette(patternData);
+    public async loadFromJson(jsonPath: string, callback?: () => void): Promise<void> {
+        const jsonAsset = await PatternBundle.getInstance().loadJson(jsonPath);
+        if (!jsonAsset) {
             callback?.();
-        });
+            return;
+        }
+        const patternData = jsonAsset.json as PixelPatternJson;
+        this.generatePalette(patternData);
+        callback?.();
     }
 
     /**

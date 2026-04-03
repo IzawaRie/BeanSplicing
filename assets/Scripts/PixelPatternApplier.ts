@@ -1,6 +1,7 @@
-import { _decorator, Component, Node, Sprite, Color, resources, JsonAsset } from 'cc';
+import { _decorator, Component, Node, Sprite, Color } from 'cc';
 import { GridDrawer } from './GridDrawer';
 import { BlockController } from './BlockController';
+import { PatternBundle } from './PatternBundle';
 const { ccclass } = _decorator;
 
 /**
@@ -31,24 +32,21 @@ export class PixelPatternApplier extends Component {
     /**
      * 从 JSON 文件加载并应用到 blocks
      */
-    public applyFromJson(jsonPath: string, callback?: () => void): void {
-        resources.load(jsonPath, JsonAsset, (err, jsonAsset) => {
-            if (err) {
-                console.error('加载 JSON 失败:', err);
-                callback?.();
-                return;
-            }
-
-            const patternData = (jsonAsset as JsonAsset).json as PixelPatternJson;
-            this.applyPattern(patternData);
-
-            // 图案应用完成后，绘制有效 block 的网格线
-            if (this.gridDrawer) {
-                this.gridDrawer.drawInnerGridsWithPattern(patternData.gridHeight, patternData.gridWidth);
-            }
-
+    public async applyFromJson(jsonPath: string, callback?: () => void): Promise<void> {
+        const jsonAsset = await PatternBundle.getInstance().loadJson(jsonPath);
+        if (!jsonAsset) {
             callback?.();
-        });
+            return;
+        }
+        const patternData = jsonAsset.json as PixelPatternJson;
+        this.applyPattern(patternData);
+
+        // 图案应用完成后，绘制有效 block 的网格线
+        if (this.gridDrawer) {
+            this.gridDrawer.drawInnerGridsWithPattern(patternData.gridHeight, patternData.gridWidth);
+        }
+
+        callback?.();
     }
 
     /**

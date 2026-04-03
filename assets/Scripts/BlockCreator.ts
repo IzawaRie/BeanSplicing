@@ -1,5 +1,6 @@
-import { Node, UITransform, instantiate, Prefab, resources, JsonAsset } from 'cc';
+import { Node, UITransform, instantiate, Prefab, resources } from 'cc';
 import { BlockController } from './BlockController';
+import { PatternBundle } from './PatternBundle';
 
 interface PixelBlock {
     r: number;
@@ -36,12 +37,12 @@ export class BlockCreator {
 
             if (patternPath) {
                 // 有 patternPath，只创建有效的 block
-                resources.load(patternPath, JsonAsset, (err2, jsonAsset) => {
-                    if (err2 || !jsonAsset) {
-                        console.error('加载 pattern JSON 失败:', err2);
+                (async () => {
+                    const jsonAsset = await PatternBundle.getInstance().loadJson(patternPath);
+                    if (!jsonAsset) {
                         this.doCreateBlocks(parent, rows, columns, cellWidth, cellHeight, prefab as Prefab);
                     } else {
-                        const data = (jsonAsset as JsonAsset).json as { gridWidth: number; gridHeight: number; blocks: PixelBlock[] };
+                        const data = jsonAsset.json as { gridWidth: number; gridHeight: number; blocks: PixelBlock[] };
                         const validPositions = new Set<string>();
                         for (let i = 0; i < data.blocks.length; i++) {
                             if (data.blocks[i].a > 0) {
@@ -53,7 +54,7 @@ export class BlockCreator {
                         this.doCreateBlocks(parent, rows, columns, cellWidth, cellHeight, prefab as Prefab, validPositions);
                     }
                     callback?.();
-                });
+                })();
             } else {
                 // 无 patternPath，创建所有 block
                 this.doCreateBlocks(parent, rows, columns, cellWidth, cellHeight, prefab as Prefab);

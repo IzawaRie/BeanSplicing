@@ -1,4 +1,5 @@
 import { _decorator, Component, Node } from 'cc';
+import { PatternBundle } from './PatternBundle';
 import { GameMode, GameModeType} from './GameMode';
 import { LevelMode } from './LevelMode';
 import { MenuManager } from './MenuManager';
@@ -180,6 +181,7 @@ export class GameManager extends Component {
         GameManager._instance = this;
 
         this.menuManager.levelConfig = LevelConfig.getInstance();
+        PatternBundle.getInstance().loadBundle();
         this.initStorage();
         //this.loadSavedLevel();
     }
