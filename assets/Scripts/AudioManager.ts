@@ -8,6 +8,7 @@ export class AudioManager extends Component {
     private music: AudioSource = null;
 
     private bgmClip: AudioClip = null;
+    private gameBgmClip: AudioClip = null;
     private musicTween: Tween<AudioSource> | null = null;
     private musicBundle: any = null;
     private static _instance: AudioManager | null = null;
@@ -48,53 +49,80 @@ export class AudioManager extends Component {
                 return;
             }
             this.musicBundle = bundle;
-
-            bundle.load('bgm', AudioClip, (err, clip) => {
-                if (err) {
-                    console.error('加载 bgm.mp3 失败:', err);
-                    return;
-                }
-
-                this.bgmClip = clip;
-                if (this.music) {
-                    this.music.clip = clip;
-                    this.music.loop = true;
-                    this.music.play();
-                }
-            });
         });
     }
 
     /**
-     * 播放背景音乐
+     * 播放菜单背景音乐（bgm）
      */
-    public playBgm(): void {
-        if (this.music && this.bgmClip) {
-            this.music.volume = this._isMusicEnabled ? 1 : 0;
-            this.music.clip = this.bgmClip;
-            this.music.loop = true;
-            this.music.play();
+    public playMenuBgm(): void {
+        if (!this.music || !this.musicBundle) return;
+
+        if (this.bgmClip) {
+            this.playBgmClip(this.bgmClip);
+            return;
         }
+
+        this.musicBundle.load('bgm', AudioClip, (err, clip) => {
+            if (err) {
+                console.error('加载 bgm 失败:', err);
+                return;
+            }
+            this.bgmClip = clip;
+            this.playBgmClip(clip);
+        });
     }
 
     /**
-     * 停止背景音乐（逐渐减小音量后停止）
+     * 播放游戏背景音乐（game_bgm）
+     */
+    public playGameBgm(): void {
+        if (!this.music || !this.musicBundle) return;
+
+        if (this.gameBgmClip) {
+            this.playBgmClip(this.gameBgmClip);
+            return;
+        }
+
+        this.musicBundle.load('game_bgm', AudioClip, (err, clip) => {
+            if (err) {
+                console.error('加载 game_bgm 失败:', err);
+                return;
+            }
+            this.gameBgmClip = clip;
+            this.playBgmClip(clip);
+        });
+    }
+
+    /**
+     * 内部方法：播放音频片段
+     */
+    private playBgmClip(clip: AudioClip): void {
+        if (this.music.playing) {
+            this.music.stop();
+        }
+        this.music.clip = clip;
+        this.music.loop = true;
+        this.music.volume = this._isMusicEnabled ? 1 : 0;
+        this.music.play();
+    }
+
+    /**
+     * 停止背景音乐
      */
     public stopBgm(): void {
         if (!this.music) return;
 
-        // 停止之前的 tween
         if (this.musicTween) {
             this.musicTween.stop();
             this.musicTween = null;
         }
 
-        // 逐渐减小音量后停止
         this.musicTween = tween(this.music)
             .to(0.5, { volume: 0 }, { easing: 'sineIn' })
             .call(() => {
                 this.music.stop();
-                this.music.volume = 1;
+                this.music.volume = this._isMusicEnabled ? 1 : 0;
                 this.musicTween = null;
             })
             .start();
@@ -115,79 +143,6 @@ export class AudioManager extends Component {
     public resumeBgm(): void {
         if (this.music && !this.music.playing) {
             this.music.play();
-        }
-    }
-
-    /**
-     * 停止游戏背景音乐（逐渐减小音量后停止）
-     */
-    public stopGameBgm(): void {
-        if (!this.music) return;
-
-        if (this.musicTween) {
-            this.musicTween.stop();
-            this.musicTween = null;
-        }
-
-        this.musicTween = tween(this.music)
-            .to(0.5, { volume: 0 }, { easing: 'sineIn' })
-            .call(() => {
-                this.music.stop();
-                this.music.volume = 1;
-                this.musicTween = null;
-            })
-            .start();
-    }
-
-    /**
-     * 暂停游戏背景音乐
-     */
-    public pauseGameBgm(): void {
-        if (this.music && this.music.playing) {
-            this.music.pause();
-        }
-    }
-
-    /**
-     * 继续播放游戏背景音乐（从暂停处继续）
-     */
-    public resumeGameBgm(): void {
-        if (this.music && !this.music.playing) {
-            this.music.play();
-        }
-    }
-
-    /**
-     * 播放游戏背景音乐（game_bgm）
-     */
-    public playGameBgm(): void {
-        if (!this.music) return;
-
-        const loadAndPlay = (bundle: any) => {
-            bundle.load('game_bgm', AudioClip, (err: any, clip: AudioClip) => {
-                if (err) {
-                    console.error('加载 game_bgm 失败:', err);
-                    return;
-                }
-
-                this.music.clip = clip;
-                this.music.loop = true;
-                this.music.volume = this._isMusicEnabled ? 1 : 0;
-                this.music.play();
-            });
-        };
-
-        if (this.musicBundle) {
-            loadAndPlay(this.musicBundle);
-        } else {
-            assetManager.loadBundle('Music', (err: any, bundle: any) => {
-                if (err) {
-                    console.error('加载 Music bundle 失败:', err);
-                    return;
-                }
-                this.musicBundle = bundle;
-                loadAndPlay(bundle);
-            });
         }
     }
 

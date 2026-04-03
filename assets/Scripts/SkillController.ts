@@ -143,7 +143,7 @@ export class SkillController extends Component {
         this.playPressAnim(this.palette_skill);
 
         // 暂停 BGM 和游戏
-        AudioManager.instance.pauseGameBgm();
+        AudioManager.instance.pauseBgm();
         const gameManager = GameManager.getInstance();
         const prevState = gameManager.gameState;
         gameManager.gameState = GameState.PAUSED;
@@ -151,7 +151,7 @@ export class SkillController extends Component {
         // 播放激励视频广告，看完后才激活技能
         WXManager.instance.showRewardedVideoAd((success) => {
             // 恢复 BGM 和游戏状态
-            AudioManager.instance.resumeGameBgm();
+            AudioManager.instance.resumeBgm();
             gameManager.gameState = prevState;
             if (!success) return; // 中途退出，不执行技能
             levelMode.activatePaletteSkill();
@@ -183,7 +183,7 @@ export class SkillController extends Component {
         this.playPressAnim(this.time_skill);
 
         // 暂停 BGM 和游戏
-        AudioManager.instance.pauseGameBgm();
+        AudioManager.instance.pauseBgm();
         const gameManager = GameManager.getInstance();
         const prevState = gameManager.gameState;
         gameManager.gameState = GameState.PAUSED;
@@ -191,7 +191,7 @@ export class SkillController extends Component {
         // 播放激励视频广告，看完后才激活技能
         WXManager.instance.showRewardedVideoAd((success) => {
             // 恢复 BGM 和游戏状态
-            AudioManager.instance.resumeGameBgm();
+            AudioManager.instance.resumeBgm();
             gameManager.gameState = prevState;
             if (!success) return; // 中途退出，不执行技能
             levelMode.activateTimeFreeze();
@@ -223,7 +223,7 @@ export class SkillController extends Component {
         this.playPressAnim(this.fix_skill);
 
         // 暂停 BGM 和游戏
-        AudioManager.instance.pauseGameBgm();
+        AudioManager.instance.pauseBgm();
         const gameManager = GameManager.getInstance();
         const prevState = gameManager.gameState;
         gameManager.gameState = GameState.PAUSED;
@@ -231,7 +231,7 @@ export class SkillController extends Component {
         // 播放激励视频广告，看完后才激活技能
         WXManager.instance.showRewardedVideoAd((success) => {
             // 恢复 BGM 和游戏状态
-            AudioManager.instance.resumeGameBgm();
+            AudioManager.instance.resumeBgm();
             gameManager.gameState = prevState;
             if (!success) return; // 中途退出，不执行技能
             levelMode.activateFixSkill();

@@ -408,6 +408,11 @@ export class LevelMode extends GameMode {
             this.gridDrawer.showAllBlockSprites();
         }
 
+        const gameManager = GameManager.getInstance();
+        if (gameManager.currentDifficulty == DifficultyMode.SIMPLE && gameManager.currentLevel === 1) {
+            this.tutorial_tip.active = true;
+        }
+
         AudioManager.instance.playGameBgm();
     }
 
@@ -480,11 +485,6 @@ export class LevelMode extends GameMode {
             const secs = displaySec % 60;
             this.time_label.string = mins > 0 ? `${mins}:${secs < 10 ? '0' + secs : secs}` : `${secs}`;
         }
-
-        const gameManager = GameManager.getInstance();
-        if (gameManager.currentDifficulty == DifficultyMode.SIMPLE && gameManager.currentLevel === 1) {
-            this.tutorial_tip.active = true;
-        }
     }
 
     /**
@@ -525,7 +525,7 @@ export class LevelMode extends GameMode {
 
         // 检查所有可用 block 的目标颜色与当前颜色是否一致
         const isSuccess = this.checkAllBlocksColorMatch();
-        if(!isSuccess) AudioManager.instance.stopGameBgm();
+        if(!isSuccess) AudioManager.instance.stopBgm();
         if (this.resultPanel?.node) {
             this.resultPanel.setResult(isSuccess);
             this.resultPanel.node.active = true;
@@ -543,7 +543,7 @@ export class LevelMode extends GameMode {
         const colorMatch = this.checkAllBlocksColorMatch();
         const isSuccess = allIroned && colorMatch;
 
-        if(!isSuccess) AudioManager.instance.stopGameBgm();
+        if(!isSuccess) AudioManager.instance.stopBgm();
         if (this.resultPanel?.node) {
             this.resultPanel.setResult(isSuccess);
             this.resultPanel.node.active = true;

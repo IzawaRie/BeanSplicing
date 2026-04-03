@@ -277,6 +277,6 @@ export class ResultPanel extends Component {
         gameManager.gameState = GameState.WAITING;
         gameManager.levelMode.node.active = false;
         gameManager.menuManager.node.active = true;
-        AudioManager.instance.playBgm();
+        AudioManager.instance.playMenuBgm();
     }
 }

@@ -164,7 +164,7 @@ export class MenuManager extends Component {
     }
 
     start() {
-        // onLoad 已完成所有初始化，start 仅用于需要节点激活后执行的逻辑
+        AudioManager.instance.playMenuBgm();
     }
 
     /**
