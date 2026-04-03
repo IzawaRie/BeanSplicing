@@ -78,6 +78,9 @@ export class LevelMode extends GameMode {
     @property({ type: Label })
     progress_label: Label = null;
 
+    @property({ type: Node })
+    tutorial_tip: Node = null;
+
     private currentScore: number = 0;
     private _patternPath: string = '';
     // 当前选中的颜色序号
@@ -477,6 +480,11 @@ export class LevelMode extends GameMode {
             const secs = displaySec % 60;
             this.time_label.string = mins > 0 ? `${mins}:${secs < 10 ? '0' + secs : secs}` : `${secs}`;
         }
+
+        const gameManager = GameManager.getInstance();
+        if (gameManager.currentDifficulty == DifficultyMode.SIMPLE && gameManager.currentLevel === 1) {
+            this.tutorial_tip.active = true;
+        }
     }
 
     /**
@@ -640,6 +648,7 @@ export class LevelMode extends GameMode {
 
         // 第一关开启新手引导
         if (gameManager.currentDifficulty == DifficultyMode.SIMPLE && gameManager.currentLevel === 1) {
+            this.tutorial_tip.active = false;
             this.startTutorial();
         }
     }

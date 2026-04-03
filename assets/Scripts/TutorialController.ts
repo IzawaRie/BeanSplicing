@@ -47,24 +47,25 @@ export class TutorialController extends Component {
         if (this._pauseTime <= 0) return;
 
         const controller = this._targetBlock?.getComponent(BlockController);
+        // 阶段1：检测 circle 是否已高亮
+        if (this._phase === 1 && controller?.state === BlockState.HAS_CIRCLE) {
+            // 进入熨斗引导阶段
+            this._phase = 2;
+            this._isActive = true;
+            this._pauseTime = 0;
+            this.playStepToCircle();
+            return;
+        }
+
+        // 阶段2：检测 block 是否熨烫
+        if(this._phase === 2 && controller?.state === BlockState.IRONED){
+            this.endTutorial();
+            return;
+        }
 
         // 超时恢复
         if (Date.now() - this._pauseTime > this._TIMEOUT) {
             this._pauseTime = 0;
-            // 阶段1：检测 circle 是否已高亮
-            if (this._phase === 1 && controller?.state === BlockState.HAS_CIRCLE) {
-                // 进入熨斗引导阶段
-                this._phase = 2;
-                this._isActive = true;
-                this._pauseTime = 0;
-                this.playStepToCircle();
-                return;
-            }
-            // 阶段2：检测 block 是否熨烫
-            if(this._phase === 2 && controller?.state === BlockState.IRONED){
-                this.endTutorial();
-                return;
-            }
             this._isActive = true;
             this.playStepToCircle(); 
         }
@@ -111,6 +112,11 @@ export class TutorialController extends Component {
     }
 
     public setPauseTime(): void {
+        const controller = this._targetBlock?.getComponent(BlockController);
+        if(this._phase === 2 && controller?.state === BlockState.IRONED){
+            this.endTutorial();
+            return;
+        }
         this._pauseTime = Date.now();
     }
 
