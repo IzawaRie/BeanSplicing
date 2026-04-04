@@ -37,6 +37,40 @@ export class WXManager extends Component {
     }
 
     /**
+     * 设置截屏/录屏时隐藏画面
+     */
+    public setCaptureRestricted(): void {
+        if (typeof (wx) === 'undefined') return;
+
+        try {
+            wx.setVisualEffectOnCapture?.({
+                visualEffect: 'hidden',
+                success: () => console.log('截屏限制已开启'),
+                fail: (err: any) => console.warn('设置截屏限制失败:', err)
+            });
+        } catch (e) {
+            console.warn('设置截屏限制失败:', e);
+        }
+    }
+
+    /**
+     * 恢复截屏/录屏正常显示
+     */
+    public setCaptureNone(): void {
+        if (typeof (wx) === 'undefined') return;
+
+        try {
+            wx.setVisualEffectOnCapture?.({
+                visualEffect: 'none',
+                success: () => console.log('截屏限制已恢复'),
+                fail: (err: any) => console.warn('恢复截屏限制失败:', err)
+            });
+        } catch (e) {
+            console.warn('恢复截屏限制失败:', e);
+        }
+    }
+
+    /**
      * 检查运行环境：开发版/体验版/正式版
      */
     private checkEnvironment(): void {

@@ -8,6 +8,7 @@ import { PixelPatternApplier } from './PixelPatternApplier';
 import { GameManager, GameState, DifficultyMode } from './GameManager';
 import { BlockController, BlockState } from './BlockController';
 import { ResultPanel } from './ResultPanel';
+import { WXManager } from './WXManager';
 import { LevelConfig } from './LevelConfig';
 import { AudioManager } from './AudioManager';
 import { SkillController } from './SkillController';
@@ -345,6 +346,7 @@ export class LevelMode extends GameMode {
      * 开始指定关卡
      */
     startLevel(levelId: number, patternPath: string = ''): void {
+        WXManager.instance?.setCaptureRestricted();
         this.currentScore = 0;
         this._patternPath = patternPath;
         // 重置时间冻结状态

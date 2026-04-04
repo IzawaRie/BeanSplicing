@@ -2,6 +2,7 @@ import { _decorator, Component, Node, Label, resources, Prefab, instantiate, UIT
 import { GameManager, GameState, DifficultyMode } from './GameManager';
 import { LevelConfig } from './LevelConfig';
 import { AudioManager } from './AudioManager';
+import { WXManager } from './WXManager';
 
 const { ccclass, property } = _decorator;
 
@@ -453,6 +454,7 @@ export class MenuManager extends Component {
         if (this.node) {
             this.node.active = true;
         }
+        WXManager.instance?.setCaptureNone();
     }
 
     update(): void {
