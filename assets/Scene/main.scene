@@ -19757,7 +19757,7 @@
     "_lpos": {
       "__type__": "cc.Vec3",
       "x": 0,
-      "y": -194.8,
+      "y": -212.959,
       "z": 0
     },
     "_lrot": {
@@ -19795,8 +19795,8 @@
     "__prefab": null,
     "_contentSize": {
       "__type__": "cc.Size",
-      "width": 530,
-      "height": 60.4
+      "width": 400,
+      "height": 47.8
     },
     "_anchorPoint": {
       "__type__": "cc.Vec2",
@@ -19828,10 +19828,10 @@
     "_string": "点击边框外任意区域关闭面板",
     "_horizontalAlign": 1,
     "_verticalAlign": 1,
-    "_actualFontSize": 40,
-    "_fontSize": 40,
+    "_actualFontSize": 30,
+    "_fontSize": 30,
     "_fontFamily": "Arial",
-    "_lineHeight": 40,
+    "_lineHeight": 30,
     "_overflow": 0,
     "_enableWrapText": true,
     "_font": {
@@ -19882,7 +19882,7 @@
     "_left": 0,
     "_right": 0,
     "_top": 0,
-    "_bottom": 100,
+    "_bottom": 88.14099999999999,
     "_horizontalCenter": 0,
     "_verticalCenter": 0,
     "_isAbsLeft": true,
