@@ -4,6 +4,7 @@ import { BlockController, BlockState } from './BlockController';
 import { AudioManager } from './AudioManager';
 import { LevelConfig } from './LevelConfig';
 import { WXManager } from './WXManager';
+import { TutorialController } from './TutorialController';
 const { ccclass, property } = _decorator;
 
 @ccclass('ResultPanel')
@@ -43,6 +44,12 @@ export class ResultPanel extends Component {
         this._isSuccess = isSuccess;
         const gameManager = GameManager.getInstance();
         const difficulty = gameManager.currentDifficulty;
+
+        // 结束可能正在进行的新手引导
+        const tutorialController = gameManager.levelMode?.tutorialController;
+        if (tutorialController) {
+            tutorialController.endTutorial();
+        }
 
         this.successNode.active = isSuccess ? true : false;
         this.failNode.active = (!isSuccess) ? true : false;

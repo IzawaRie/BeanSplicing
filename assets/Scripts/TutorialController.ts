@@ -76,6 +76,10 @@ export class TutorialController extends Component {
      * 手指移到 block 位置并淡出
      */
     private playStepToBlock(): void {
+        if (!this._targetBlock || !this._targetBlock.isValid) {
+            this.endTutorial();
+            return;
+        }
         const blockPos = this._targetBlock.getWorldPosition();
         const uiOpacity = this.node.getComponent(UIOpacity);
         tween(this.node)
