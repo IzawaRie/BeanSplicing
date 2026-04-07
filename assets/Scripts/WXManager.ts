@@ -608,6 +608,75 @@ export class WXManager extends Component {
     }
 
     /**
+     * 将像素数据保存到系统相册
+     * @param width 纹理宽度
+     * @param height 纹理高度
+     * @param byteArray 像素数据（RGBA）
+     */
+    public saveImageToPhotosAlbum(
+        width: number,
+        height: number,
+        byteArray: Uint8Array
+    ): void {
+        if (typeof (wx) === 'undefined') {
+            console.warn('不在微信小游戏环境中');
+            return;
+        }
+
+        // 创建离屏 canvas
+        const canvas = wx.createCanvas();
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext('2d') as any;
+        if (!ctx) {
+            console.warn('获取 canvas 2d context 失败');
+            return;
+        }
+
+        // 创建 ImageData 并填充像素数据
+        const imageData = ctx.createImageData(width, height);
+        imageData.data.set(byteArray);
+        ctx.putImageData(imageData, 0, 0);
+
+        // 将 canvas 导出为临时文件路径
+        canvas.toTempFilePath({
+            x: 0,
+            y: 0,
+            width,
+            height,
+            destWidth: width,
+            destHeight: height,
+            fileType: 'png',
+            quality: 1,
+            success: (res: any) => {
+                console.log('临时图片路径:', res.tempFilePath);
+                // 保存到系统相册
+                wx.saveImageToPhotosAlbum({
+                    filePath: res.tempFilePath,
+                    success: () => {
+                        console.log('图片已保存到相册');
+                    },
+                    fail: (err: any) => {
+                        console.warn('保存到相册失败:', err);
+                        // 用户可能未授权，提示授权
+                        if (err.errMsg && err.errMsg.includes('auth deny')) {
+                            wx.showModal({
+                                title: '提示',
+                                content: '需要您授权保存图片到相册，请在设置中开启权限',
+                                showCancel: false
+                            });
+                        }
+                    }
+                });
+            },
+            fail: (err: any) => {
+                console.warn('导出临时图片失败:', err);
+            }
+        });
+    }
+
+    /**
      * 设置体力值
      */
     public setPower(power: number): void {

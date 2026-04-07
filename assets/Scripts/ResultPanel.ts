@@ -175,11 +175,11 @@ export class ResultPanel extends Component {
                             byteArray[pixelIndex + 2] = b;
                             byteArray[pixelIndex + 3] = a;
                         } else {
-                            // 默认透明
-                            byteArray[pixelIndex] = 0;
-                            byteArray[pixelIndex + 1] = 0;
-                            byteArray[pixelIndex + 2] = 0;
-                            byteArray[pixelIndex + 3] = 0;
+                            // 默认填充白色背景
+                            byteArray[pixelIndex] = 255;
+                            byteArray[pixelIndex + 1] = 255;
+                            byteArray[pixelIndex + 2] = 255;
+                            byteArray[pixelIndex + 3] = 255;
                         }
                     }
                 }
@@ -218,6 +218,10 @@ export class ResultPanel extends Component {
         // 动画填充范围从 0 到 1
         tween(this.result_img)
             .to(0.5, { fillRange: 1 }, { easing: 'sineInOut' })
+            .call(() => {
+                // 图片展示完成后，保存到相册
+                WXManager.instance?.saveImageToPhotosAlbum(textureWidth, textureHeight, byteArray);
+            })
             .start();
 
         console.log(`结果图片已生成: ${textureWidth}x${textureHeight}`);
