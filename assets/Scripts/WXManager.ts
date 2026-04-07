@@ -29,11 +29,82 @@ export class WXManager extends Component {
     // 是否为调试模式（正式版但广告位为 test123 时启用）
     private isDebugMode: boolean = false;
 
+    // 分享图片 ID（在微信公众平台「增长入口」→「小程序分享图」上传获取）
+    private _imageUrlId: string = '0';
+    // 分享图片 URL（必须 HTTPS）
+    private _imageUrl: string = 'https://mmocgame.qpic.cn/wechatgame/f4uuDhnRAxMTJF1dLAUnqlLAKiaIMZfsk7uHGIUribuCc8ibicOmTxAVDvvG6LMQLTMb/0';
+
     onLoad() {
         this.checkEnvironment();
+        this.showShareMenu();
+        // imageUrlId、imageUrl：在微信公众平台「增长入口」→「小程序分享图」上传后获得的图片 ID 和图片 URL
+        this.onShareAppMessage('快来和我一起拼豆！');
         if (!this.isDebugMode) {
             this.createRewardedVideoAd();
         }
+    }
+
+    /**
+     * 显示分享菜单
+     * @param withShareTicket 是否使用 shareTicket，默认为 false
+     * @param menus 分享功能菜单，默认为 ['shareAppMessage', 'shareTimeline']
+     */
+    public showShareMenu(
+        withShareTicket: boolean = false,
+        menus: string[] = ['shareAppMessage', 'shareTimeline']
+    ): void {
+        if (typeof (wx) === 'undefined') return;
+
+        try {
+            wx.showShareMenu?.({
+                withShareTicket,
+                menus,
+                success: () => console.log('分享菜单已显示'),
+                fail: (err: any) => console.warn('显示分享菜单失败:', err)
+            });
+        } catch (e) {
+            console.warn('显示分享菜单失败:', e);
+        }
+    }
+
+    /**
+     * 隐藏分享菜单
+     */
+    public hideShareMenu(): void {
+        if (typeof (wx) === 'undefined') return;
+
+        try {
+            wx.hideShareMenu?.({
+                success: () => console.log('分享菜单已隐藏'),
+                fail: (err: any) => console.warn('隐藏分享菜单失败:', err)
+            });
+        } catch (e) {
+            console.warn('隐藏分享菜单失败:', e);
+        }
+    }
+
+    /**
+     * 自定义分享内容
+     * @param title 分享标题，默认使用小程序名称
+     */
+    public onShareAppMessage(title?: string): void {
+        if (typeof (wx) === 'undefined') return;
+
+        wx.onShareAppMessage(() => ({
+            title: title ?? '',
+            imageUrlId: this._imageUrlId,
+            imageUrl: this._imageUrl,
+        }));
+    }
+
+    /**
+     * 设置分享图片（需在 onLoad 之前或在编辑器面板中配置）
+     * @param imageUrlId 素材图片 ID
+     * @param imageUrl 分享图片 URL
+     */
+    public setShareImage(imageUrlId: string, imageUrl: string): void {
+        this._imageUrlId = imageUrlId;
+        this._imageUrl = imageUrl;
     }
 
     /**
