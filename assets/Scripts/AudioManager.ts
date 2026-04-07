@@ -56,10 +56,23 @@ export class AudioManager extends Component {
      * 播放菜单背景音乐（bgm）
      */
     public playMenuBgm(): void {
-        if (!this.music || !this.musicBundle) return;
+        if (!this.music) return;
 
         if (this.bgmClip) {
             this.playBgmClip(this.bgmClip);
+            return;
+        }
+
+        // bundle 还没加载完，先加载 bundle 再播放
+        if (!this.musicBundle) {
+            assetManager.loadBundle('Music', (err, bundle) => {
+                if (err) {
+                    console.error('加载 Music bundle 失败:', err);
+                    return;
+                }
+                this.musicBundle = bundle;
+                this.playMenuBgm(); // 重新调用，这次 bundle 已就绪
+            });
             return;
         }
 
@@ -77,10 +90,23 @@ export class AudioManager extends Component {
      * 播放游戏背景音乐（game_bgm）
      */
     public playGameBgm(): void {
-        if (!this.music || !this.musicBundle) return;
+        if (!this.music) return;
 
         if (this.gameBgmClip) {
             this.playBgmClip(this.gameBgmClip);
+            return;
+        }
+
+        // bundle 还没加载完，先加载 bundle 再播放
+        if (!this.musicBundle) {
+            assetManager.loadBundle('Music', (err, bundle) => {
+                if (err) {
+                    console.error('加载 Music bundle 失败:', err);
+                    return;
+                }
+                this.musicBundle = bundle;
+                this.playGameBgm(); // 重新调用，这次 bundle 已就绪
+            });
             return;
         }
 
