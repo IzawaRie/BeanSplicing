@@ -147,6 +147,14 @@ export class ResultPanel extends Component {
         const buffer = new ArrayBuffer(byteCount);
         const byteArray = new Uint8Array(buffer, 0, byteCount);
 
+        // 初始化为白色背景
+        for (let i = 0; i < byteCount; i += 4) {
+            byteArray[i] = 255;     // R
+            byteArray[i + 1] = 255; // G
+            byteArray[i + 2] = 255; // B
+            byteArray[i + 3] = 255; // A
+        }
+
         // 填充像素数据
         for (let row = 0; row < rows; row++) {
             for (let col = 0; col < cols; col++) {
