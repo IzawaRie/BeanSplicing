@@ -30,7 +30,7 @@ export class WXManager extends Component {
     private isDebugMode: boolean = false;
 
     // 分享图片 ID（在微信公众平台「增长入口」→「小程序分享图」上传获取）
-    private _imageUrlId: string = '0';
+    private _imageUrlId: string = 'qGwwwryFRtmUgxcDjf2p3w==';
     // 分享图片 URL（必须 HTTPS）
     private _imageUrl: string = 'https://mmocgame.qpic.cn/wechatgame/f4uuDhnRAxMTJF1dLAUnqlLAKiaIMZfsk7uHGIUribuCc8ibicOmTxAVDvvG6LMQLTMb/0';
 
@@ -105,6 +105,39 @@ export class WXManager extends Component {
     public setShareImage(imageUrlId: string, imageUrl: string): void {
         this._imageUrlId = imageUrlId;
         this._imageUrl = imageUrl;
+    }
+
+    /**
+     * 主动分享（调用后显示分享面板，用户选择好友/群后完成分享）
+     * @param title 分享标题
+     * @param query 分享链接后的参数，格式 'key1=value1&key2=value2'
+     * @param withShareTicket 是否使用 shareTicket，默认 false
+     */
+    public shareAppMessage(
+        title: string,
+        withShareTicket: boolean = false
+    ): Promise<void> {
+        return new Promise((resolve, reject) => {
+            if (typeof (wx) === 'undefined') {
+                reject(new Error('不在微信小游戏环境中'));
+                return;
+            }
+
+            wx.shareAppMessage({
+                title: title,
+                imageUrl: this._imageUrl,
+                imageUrlId: this._imageUrlId,
+                withShareTicket,
+                success: () => {
+                    console.log('主动分享成功');
+                    resolve();
+                },
+                fail: (err: any) => {
+                    console.warn('主动分享失败:', err);
+                    reject(err);
+                }
+            });
+        });
     }
 
     /**
