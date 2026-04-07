@@ -1,4 +1,4 @@
-import { _decorator, Component, Label, Node, Sprite, SpriteFrame, Texture2D, ImageAsset, UITransform, tween, Vec3 } from 'cc';
+import { _decorator, Component, Label, Node, Sprite, SpriteFrame, Texture2D, ImageAsset, UITransform, tween, Vec3, UIOpacity } from 'cc';
 import { GameManager, GameState, DifficultyMode } from './GameManager';
 import { BlockController, BlockState } from './BlockController';
 import { AudioManager } from './AudioManager';
@@ -31,11 +31,20 @@ export class ResultPanel extends Component {
     @property(Node)
     homelBtn2: Node = null;
 
+    @property(Node)
+    camera_btn: Node = null;
+
+    @property(Node)
+    flashNode: Node = null;
+
     @property(Sprite)
     result_img: Sprite = null;
 
     /** 标记当前结果是否为成功 */
     private _isSuccess: boolean = false;
+
+    /** 保存的截图数据 */
+    private _screenshotData: { width: number; height: number; byteArray: Uint8Array } | null = null;
 
     /**
      * 设置成功状态，并更新界面文字
@@ -218,13 +227,59 @@ export class ResultPanel extends Component {
         // 动画填充范围从 0 到 1
         tween(this.result_img)
             .to(0.5, { fillRange: 1 }, { easing: 'sineInOut' })
-            .call(() => {
-                // 图片展示完成后，保存到相册
-                WXManager.instance?.saveImageToPhotosAlbum(textureWidth, textureHeight, byteArray);
-            })
             .start();
 
+        // 保存截图数据，供拍照按钮使用
+        this._screenshotData = { width: textureWidth, height: textureHeight, byteArray };
+
         console.log(`结果图片已生成: ${textureWidth}x${textureHeight}`);
+    }
+
+    /**
+     * 点击拍照按钮
+     */
+    private onCameraBtnClick(): void {
+        // 播放音效
+        AudioManager.instance.playEffect('camera_shutter');
+
+        // 闪白效果
+        this.playFlashEffect(() => {
+            // 闪白结束后，保存图片
+            if (this._screenshotData) {
+                WXManager.instance?.saveImageToPhotosAlbum(
+                    this._screenshotData.width,
+                    this._screenshotData.height,
+                    this._screenshotData.byteArray
+                );
+            }
+        });
+    }
+
+    /**
+     * 模拟快门闪白效果
+     */
+    private playFlashEffect(callback?: () => void): void {
+        if (!this.flashNode) {
+            callback?.();
+            return;
+        }
+
+        const uiOpacity = this.flashNode.getComponent(UIOpacity);
+        if (!uiOpacity) {
+            callback?.();
+            return;
+        }
+
+        // 先设置为完全白色不透明
+        uiOpacity.opacity = 255;
+
+        // 快速淡出
+        tween(uiOpacity)
+            .to(0.3, { opacity: 0 })
+            .call(() => {
+                callback?.();
+            })
+            .start();
     }
 
     start() {
@@ -232,13 +287,14 @@ export class ResultPanel extends Component {
         this.restartBtn?.on(Node.EventType.TOUCH_END, this.onRestartLevelBtnClick, this);
         this.homelBtn?.on(Node.EventType.TOUCH_END, this.onShowHomePanel, this);
         this.homelBtn2?.on(Node.EventType.TOUCH_END, this.onShowHomePanel, this);
-
+        this.camera_btn?.on(Node.EventType.TOUCH_END, this.onCameraBtnClick, this);
     }
 
     onDestroy() {
         this.nextLevelBtn?.off(Node.EventType.TOUCH_END, this.onNextLevelBtnClick, this);
         this.restartBtn?.off(Node.EventType.TOUCH_END, this.onRestartLevelBtnClick, this);
         this.homelBtn2?.off(Node.EventType.TOUCH_END, this.onShowHomePanel, this);
+        this.camera_btn?.off(Node.EventType.TOUCH_END, this.onCameraBtnClick, this);
     }
 
     /**
