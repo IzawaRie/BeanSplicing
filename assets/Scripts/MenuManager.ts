@@ -26,6 +26,9 @@ export class MenuManager extends Component {
     @property({ type: Node })
     power_btn: Node = null;
 
+    @property({ type: Node })
+    pyq_btn: Node = null;
+
     @property({ type: Label })
     power_label: Label = null;
 
@@ -148,6 +151,9 @@ export class MenuManager extends Component {
         }
         if (this.power_btn) {
             this.power_btn.on(Node.EventType.TOUCH_END, this.onPowerBtnClick, this);
+        }
+        if (this.pyq_btn) {
+            this.pyq_btn.on(Node.EventType.TOUCH_END, this.onPyqBtnClick, this);
         }
 
         // 加载星星预制体
@@ -368,6 +374,18 @@ export class MenuManager extends Component {
         gameManager.vibrateShort();
         gameManager.window.showWithMessage(' 看视频获得更多能量！');
         AudioManager.instance.playEffect('click_btn');
+    }
+
+    /**
+     * 点击游戏圈按钮，打开游戏圈
+     */
+    private onPyqBtnClick(): void {
+        const gameManager = GameManager.getInstance();
+        if (gameManager?.isWindowBlocking()) return;
+
+        gameManager.vibrateShort();
+        AudioManager.instance.playEffect('click_btn');
+        WXManager.instance?.openGameClub();
     }
 
     /**

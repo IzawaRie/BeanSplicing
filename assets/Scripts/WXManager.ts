@@ -189,6 +189,38 @@ export class WXManager extends Component {
         });
     }
 
+    // ========== 游戏圈 ==========
+    private gameClubOpenLink: string = 'TWFRCqV5WeM2AkMXhKwJ03MhfPOieJfAsvXKUbWvQFQtLyyA5etMPabBehga950uzfZcH3Vi3QeEh41xRGEVFw';
+
+    /**
+     * 设置游戏圈 openLink（需在微信公众平台获取）
+     * @param openLink 活动或功能的 openLink
+     */
+    public setGameClubOpenLink(openLink: string): void {
+        this.gameClubOpenLink = openLink;
+    }
+
+    /**
+     * 打开游戏圈
+     */
+    public openGameClub(): void {
+        if (typeof (wx) === 'undefined') return;
+        if (!this.gameClubOpenLink) {
+            console.warn('游戏圈 openLink 未设置，请先调用 setGameClubOpenLink 设置');
+            return;
+        }
+
+        const pageManager = wx.createPageManager();
+        pageManager.load({
+            openlink: this.gameClubOpenLink
+        }).then((res: any) => {
+            console.log('游戏圈加载成功:', res);
+            pageManager.show();
+        }).catch((err: any) => {
+            console.warn('游戏圈加载失败:', err);
+        });
+    }
+
     /**
      * 创建激励视频广告（兼容旧调用）
      */
