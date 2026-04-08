@@ -89,12 +89,12 @@ export class GameManager extends Component {
     // 关卡配置是否加载完成
     private _levelConfigLoaded: boolean = false;
 
-    // 体力值
+    // 能量
     private _power: number = 10;
 
     // 体力恢复间隔（30分钟，毫秒）
     private readonly POWER_REGEN_INTERVAL: number = 30 * 60 * 1000;
-    // 每次恢复体力值
+    // 每次恢复能量
     private readonly POWER_REGEN_AMOUNT: number = 1;
     // 体力上限
     private readonly POWER_MAX: number = 10;
@@ -367,7 +367,7 @@ export class GameManager extends Component {
         this.audioManager.setAudioEnabled(isAudioOn);
         this.setting.audio_toggle.isChecked = isAudioOn;
 
-        // 加载体力值
+        // 加载能量
         const savedPower = await this.wxManager.getPower();
         const savedNextRegen = await this.wxManager.getPowerNextRegenTime();
         if (savedPower != null) {

@@ -288,7 +288,7 @@ export class MenuManager extends Component {
         if (gameManager.power <= 0) {
             // 体力不足，打开窗口提示
             if (gameManager.window) {
-                gameManager.window.showWithMessage('体力值不足，请等待下次体力值\n\n更新或观看视频获取体力值！');
+                gameManager.window.showWithMessage('能量不足，请等待下次能量\n\n更新或观看视频获取能量！');
             }
             return;
         }

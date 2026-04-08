@@ -345,7 +345,7 @@ export class ResultPanel extends Component {
         const gameManager = GameManager.getInstance();
         if (gameManager?.isWindowBlocking()) return;
         if (gameManager.power <= 0) {
-            gameManager.window.showWithMessage('体力值不足，请等待下次体力值\n\n更新或观看视频获取体力值！');
+            gameManager.window.showWithMessage('能量不足，请等待下次能量\n\n更新或观看视频获取能量！');
             return;
         }
         gameManager.power--;
@@ -360,7 +360,7 @@ export class ResultPanel extends Component {
         const gameManager = GameManager.getInstance();
         if (gameManager?.isWindowBlocking()) return;
         if (gameManager.power <= 0) {
-            gameManager.window.showWithMessage('体力值不足，请等待下次体力值\n\n更新或观看视频获取体力值！');
+            gameManager.window.showWithMessage('能量不足，请等待下次能量\n\n更新或观看视频获取能量！');
             return;
         }
         gameManager.power--;

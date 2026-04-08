@@ -677,7 +677,7 @@ export class WXManager extends Component {
     }
 
     /**
-     * 设置体力值
+     * 设置能量
      */
     public setPower(power: number): void {
         if (typeof (wx) === 'undefined') return;
@@ -685,7 +685,7 @@ export class WXManager extends Component {
     }
 
     /**
-     * 获取体力值
+     * 获取能量
      */
     public getPower(): Promise<number | null> {
         if (typeof (wx) === 'undefined') return Promise.resolve(null);

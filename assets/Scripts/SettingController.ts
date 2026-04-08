@@ -182,6 +182,7 @@ export class SettingController extends Component {
             const currentLevel = gameManager.currentLevel;
             const config = LevelConfig.getInstance().getCurrentLevel();
             if (config) {
+                gameManager.power--;
                 // 重置所有 block 状态
                 levelMode.resetAllBlocks();
                 levelMode.startLevel(currentLevel, config.patternPath);
