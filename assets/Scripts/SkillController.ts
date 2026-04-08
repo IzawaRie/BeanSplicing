@@ -149,7 +149,7 @@ export class SkillController extends Component {
         gameManager.gameState = GameState.PAUSED;
 
         // 播放激励视频广告，看完后才激活技能
-        WXManager.instance.showRewardedVideoAd((success) => {
+        WXManager.instance.showSkillRewardedVideoAd((success) => {
             // 恢复 BGM 和游戏状态
             AudioManager.instance.resumeBgm();
             gameManager.gameState = prevState;
@@ -189,7 +189,7 @@ export class SkillController extends Component {
         gameManager.gameState = GameState.PAUSED;
 
         // 播放激励视频广告，看完后才激活技能
-        WXManager.instance.showRewardedVideoAd((success) => {
+        WXManager.instance.showSkillRewardedVideoAd((success) => {
             // 恢复 BGM 和游戏状态
             AudioManager.instance.resumeBgm();
             gameManager.gameState = prevState;
@@ -229,7 +229,7 @@ export class SkillController extends Component {
         gameManager.gameState = GameState.PAUSED;
 
         // 播放激励视频广告，看完后才激活技能
-        WXManager.instance.showRewardedVideoAd((success) => {
+        WXManager.instance.showSkillRewardedVideoAd((success) => {
             // 恢复 BGM 和游戏状态
             AudioManager.instance.resumeBgm();
             gameManager.gameState = prevState;
