@@ -29,6 +29,9 @@ export class MenuManager extends Component {
     @property({ type: Node })
     pyq_btn: Node = null;
 
+    @property({ type: Node })
+    recommend_btn: Node = null;
+
     @property({ type: Label })
     power_label: Label = null;
 
@@ -154,6 +157,9 @@ export class MenuManager extends Component {
         }
         if (this.pyq_btn) {
             this.pyq_btn.on(Node.EventType.TOUCH_END, this.onPyqBtnClick, this);
+        }
+        if (this.recommend_btn) {
+            this.recommend_btn.on(Node.EventType.TOUCH_END, this.onRecommendBtnClick, this);
         }
 
         // 加载星星预制体
@@ -386,6 +392,18 @@ export class MenuManager extends Component {
         gameManager.vibrateShort();
         AudioManager.instance.playEffect('click_btn');
         WXManager.instance?.openGameClub();
+    }
+
+    /**
+     * 点击推荐按钮，打开推荐位
+     */
+    private onRecommendBtnClick(): void {
+        const gameManager = GameManager.getInstance();
+        if (gameManager?.isWindowBlocking()) return;
+
+        gameManager.vibrateShort();
+        AudioManager.instance.playEffect('click_btn');
+        WXManager.instance?.openRecommend();
     }
 
     /**

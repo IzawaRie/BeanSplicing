@@ -190,8 +190,8 @@ export class WXManager extends Component {
     }
 
     // ========== 游戏圈 ==========
-    private gameClubOpenLink: string = 'TWFRCqV5WeM2AkMXhKwJ03MhfPOieJfAsvXKUbWvQFQtLyyA5etMPabBehga950uzfZcH3Vi3QeEh41xRGEVFw';
-
+    private gameClubOpenLink: string = '-SSEykJvFV3pORt5kTNpS_6DPrRDfozxCy2jEFL07zx4R-MPpU1tST5hbtFc_HIAj2wCkd5SAVv3YF0b64mCaSig10g5_N-0VSt13L2-6XHYTPxYuYHrwKWDWcpLZH54HOsgGoyYRB8BRKGj2OmqcX0cBZgDOBWwBNIHZuH3cxSpsLFkmn6DZ4vYzCND_U8NGLS3k-FzDYC6WmFvxUXNRonP7Vw17RgTuj0vJWDeXQJOZUkmujqMLLjnh1ZICLPLhOX0zLLntMnnS8U2jrhN74hPjDwO1ibU1ilk6z6Q37J1P2K_USQMxVSmEQ071HbS5w_PKiVKTmNb2zkBGKRMoA';
+    private gameClubOpenLink_Recommend: string = 'FM09ILkjlQxM0OIigsWiuGIdFe7FV0HoNKXS8V9PYREEYfFyUYW8l60mFmyI6DFMUFslSKzrqX1aQkxGqUPSPfOr65rBAZfQcI936dkW2d43YKa3xHDvgKRQtEpwy7cyfybIZpj7ZYRQ2JKuyfv_VSUXicFhZ4KZki3DfCNednhmOUd_HVgd2DKnPoc0r4gUDpc_qbnW25Ki5R4wyqbWRbX_TACzPcYGYD8opptw4SVlN-M2yWX7BxO-I4CFGsm0Qd2-lxh47Njg7FB1vzaFDOT4FRjTyIpLF7cSHbcYIfE2givsB-alDWE2gIf1iBXdWc0ZTrpSOm2TeA1G_hHE3-6B4VAmNc8VOrhFD3zcp3D5lMmSqO6NZreR30CRSJg_kKisDgvsvt_v1ssABrr46A';
     /**
      * 设置游戏圈 openLink（需在微信公众平台获取）
      * @param openLink 活动或功能的 openLink
@@ -218,6 +218,26 @@ export class WXManager extends Component {
             pageManager.show();
         }).catch((err: any) => {
             console.warn('游戏圈加载失败:', err);
+        });
+    }
+
+    // 推荐位 openLink
+    private readonly RECOMMEND_OPENLINK: string = 'TWFRCqV5WeM2AkMXhKwJ03MhfPOieJfAsvXKUbWvQFQtLyyA5etMPabBehga950uzfZcH3Vi3QeEh41xRGEVFw';
+
+    /**
+     * 打开推荐位
+     */
+    public openRecommend(): void {
+        if (typeof (wx) === 'undefined') return;
+
+        const pageManager = wx.createPageManager();
+        pageManager.load({
+            openlink: this.RECOMMEND_OPENLINK
+        }).then((res: any) => {
+            console.log('推荐位加载成功:', res);
+            pageManager.show();
+        }).catch((err: any) => {
+            console.warn('推荐位加载失败:', err);
         });
     }
 
