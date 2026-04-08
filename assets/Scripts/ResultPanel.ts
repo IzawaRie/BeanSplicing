@@ -35,6 +35,9 @@ export class ResultPanel extends Component {
     camera_btn: Node = null;
 
     @property(Node)
+    share_btn: Node = null;
+
+    @property(Node)
     flashNode: Node = null;
 
     @property(Sprite)
@@ -73,12 +76,10 @@ export class ResultPanel extends Component {
                 // 有下一关，显示下一关按钮，隐藏返回按钮
                 this.nextLevelBtn.active = true;
                 this.homelBtn2.active = true;
-                this.homelBtn2.setPosition(180, this.homelBtn2.position.y, 0);
             } else {
                 // 没有下一关，隐藏下一关按钮，居中返回按钮
                 this.nextLevelBtn.active = false;
                 this.homelBtn2.active = true;
-                this.homelBtn2.setPosition(0, this.homelBtn2.position.y, 0);
             }
         } else {
             AudioManager.instance.playEffect('game-fail', 0.7);
@@ -264,6 +265,21 @@ export class ResultPanel extends Component {
     }
 
     /**
+     * 点击分享按钮
+     */
+    private onShareBtnClick(): void {
+        const gameManager = GameManager.getInstance();
+        if (gameManager?.isWindowBlocking()) return;
+
+        AudioManager.instance.playEffect('click_btn');
+        const currentLevel = gameManager.currentLevel;
+        const difficulty = this._isSuccess ? '已通关' : '挑战中';
+
+        WXManager.instance?.shareAppMessage(`拼豆高手·第${currentLevel}关,${difficulty}!`)
+            .catch(() => console.log('分享失败或取消'));
+    }
+
+    /**
      * 模拟快门闪白效果
      */
     private playFlashEffect(callback?: () => void): void {
@@ -296,6 +312,7 @@ export class ResultPanel extends Component {
         this.homelBtn?.on(Node.EventType.TOUCH_END, this.onShowHomePanel, this);
         this.homelBtn2?.on(Node.EventType.TOUCH_END, this.onShowHomePanel, this);
         this.camera_btn?.on(Node.EventType.TOUCH_END, this.onCameraBtnClick, this);
+        this.share_btn?.on(Node.EventType.TOUCH_END, this.onShareBtnClick, this);
     }
 
     onDestroy() {
@@ -303,6 +320,7 @@ export class ResultPanel extends Component {
         this.restartBtn?.off(Node.EventType.TOUCH_END, this.onRestartLevelBtnClick, this);
         this.homelBtn2?.off(Node.EventType.TOUCH_END, this.onShowHomePanel, this);
         this.camera_btn?.off(Node.EventType.TOUCH_END, this.onCameraBtnClick, this);
+        this.share_btn?.off(Node.EventType.TOUCH_END, this.onShareBtnClick, this);
     }
 
     /**
