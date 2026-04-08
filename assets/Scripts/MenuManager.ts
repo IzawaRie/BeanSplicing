@@ -288,7 +288,7 @@ export class MenuManager extends Component {
         if (gameManager.power <= 0) {
             // 体力不足，打开窗口提示
             if (gameManager.window) {
-                gameManager.window.showWithMessage('能量不足，请等待下次能量\n\n更新或观看视频获取能量！');
+                gameManager.window.showWithMessage(' 能量不足，请等待下次能量更新\n\n 或观看视频获取能量！');
             }
             return;
         }
@@ -366,7 +366,7 @@ export class MenuManager extends Component {
         if (gameManager.isWindowBlocking()) return;
 
         gameManager.vibrateShort();
-        gameManager.window.showWithMessage('看视频获得更多能量！');
+        gameManager.window.showWithMessage(' 看视频获得更多能量！');
         AudioManager.instance.playEffect('click_btn');
     }
 
