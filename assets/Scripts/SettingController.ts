@@ -158,6 +158,10 @@ export class SettingController extends Component {
         const gameManager = GameManager.getInstance();
         if (!gameManager) return;
 
+        if (gameManager.power <= 0) {
+            gameManager.window.showWithMessage(' 能量不足，请等待下次能量更新\n\n 或观看视频获取能量！');
+            return;
+        }
         // 结束可能正在进行的新手引导
         const tutorialController = gameManager.levelMode?.tutorialController;
         if (tutorialController) {
