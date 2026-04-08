@@ -366,10 +366,29 @@ export class LevelMode extends GameMode {
         // 隐藏 palette 预览
         if (this.gridDrawer) {
             this.gridDrawer.hideAllBlockSpritesInstant();
+            this.gridDrawer.hideAllBlockCircles();
             this.gridDrawer.hideAllNumberNodes();
         }
         this.startDaojishi();
         console.log(`闯关模式: 关卡 ${levelId}, 图案: ${patternPath}`);
+    }
+
+    /**
+     * 重置所有 block 到初始状态
+     */
+    public resetAllBlocks(): void {
+        if (!this.gridDrawer) return;
+        const blocks = this.gridDrawer.getAllBlocks();
+        for (let row = 0; row < blocks.length; row++) {
+            for (let col = 0; col < blocks[row].length; col++) {
+                const block = blocks[row][col];
+                if (!block) continue;
+                const controller = block.getComponent(BlockController);
+                if (controller) {
+                    controller.resetBlock();
+                }
+            }
+        }
     }
 
     /**
@@ -809,6 +828,8 @@ export class LevelMode extends GameMode {
         this._isDaojiCounting = false; // 暂停读秒倒计时
         gameManager.setting.lastState = gameManager.gameState; // 保存当前状态
         gameManager.gameState = GameState.PAUSED;
+        gameManager.setting.restart_btn.active = true;
+        gameManager.setting.home_btn.active = true;
         gameManager.setting.node.active = true;
         AudioManager.instance.playEffect('setting_btn');
     }

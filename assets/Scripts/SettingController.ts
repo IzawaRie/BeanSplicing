@@ -1,5 +1,7 @@
 import { _decorator, Component, Node, input, Input, EventTouch, UITransform, Toggle } from 'cc';
 import { GameManager, GameState } from './GameManager';
+import { AudioManager } from './AudioManager';
+import { LevelConfig } from './LevelConfig';
 const { ccclass, property } = _decorator;
 
 @ccclass('SettingController')
@@ -17,6 +19,10 @@ export class SettingController extends Component {
     music_toggle: Toggle = null;
     @property({ type: Toggle })
     audio_toggle: Toggle = null;
+    @property({ type: Node })
+    restart_btn: Node = null;
+    @property({ type: Node })
+    home_btn: Node = null;
 
     public lastState: GameState = null;
 
@@ -26,6 +32,8 @@ export class SettingController extends Component {
         this.shake_toggle?.node.on(Toggle.EventType.TOGGLE, this.onShakeToggleChanged, this);
         this.music_toggle?.node.on(Toggle.EventType.TOGGLE, this.onMusicToggleChanged, this);
         this.audio_toggle?.node.on(Toggle.EventType.TOGGLE, this.onAudioToggleChanged, this);
+        this.restart_btn?.on(Node.EventType.TOUCH_END, this.onRestartBtnClick, this);
+        this.home_btn?.on(Node.EventType.TOUCH_END, this.onHomeBtnClick, this);
     }
 
     onEnable() {
@@ -141,6 +149,79 @@ export class SettingController extends Component {
             gameManager.wxManager.setAudio(toggle.isChecked);
             gameManager.audioManager.setAudioEnabled(toggle.isChecked);
         }
+    }
+
+    /**
+     * 点击重新开始按钮
+     */
+    private onRestartBtnClick(): void {
+        const gameManager = GameManager.getInstance();
+        if (!gameManager) return;
+
+        // 结束可能正在进行的新手引导
+        const tutorialController = gameManager.levelMode?.tutorialController;
+        if (tutorialController) {
+            tutorialController.endTutorial();
+        }
+
+        // 播放音效
+        AudioManager.instance.playEffect('click_btn');
+        gameManager.vibrateShort();
+
+        // 关闭设置面板
+        this.node.active = false;
+
+        // 恢复游戏状态
+        gameManager.gameState = this.lastState;
+
+        // 重新开始当前关卡
+        const levelMode = gameManager.levelMode;
+        if (levelMode) {
+            levelMode.resumeFromPause();
+            // 获取当前关卡配置重新开始
+            const currentLevel = gameManager.currentLevel;
+            const config = LevelConfig.getInstance().getCurrentLevel();
+            if (config) {
+                // 重置所有 block 状态
+                levelMode.resetAllBlocks();
+                levelMode.startLevel(currentLevel, config.patternPath);
+            }
+        }
+    }
+
+    /**
+     * 点击回到主页按钮
+     */
+    private onHomeBtnClick(): void {
+        const gameManager = GameManager.getInstance();
+        if (!gameManager) return;
+
+        // 结束可能正在进行的新手引导
+        const tutorialController = gameManager.levelMode?.tutorialController;
+        if (tutorialController) {
+            tutorialController.endTutorial();
+        }
+
+        // 播放音效
+        AudioManager.instance.playEffect('click_btn');
+        gameManager.vibrateShort();
+
+        // 关闭设置面板
+        this.node.active = false;
+
+        // 回到主页
+        const menuManager = gameManager.menuManager;
+        if (menuManager) {
+            menuManager.node.active = true;
+            menuManager.backToMenu();
+        }
+
+        // 关闭游戏界面
+        gameManager.levelMode.node.active = false;
+        gameManager.gameState = GameState.WAITING;
+
+        // 恢复背景音乐
+        AudioManager.instance.playMenuBgm();
     }
 }
 

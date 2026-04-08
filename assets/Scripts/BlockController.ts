@@ -1,4 +1,4 @@
-import { _decorator, Component, Node, Sprite } from 'cc';
+import { _decorator, Color, Component, Node, Sprite } from 'cc';
 const { ccclass } = _decorator;
 
 /**
@@ -99,20 +99,16 @@ export class BlockController extends Component {
         this._currentColorB = -1;
         this._currentColorA = -1;
 
-        // 隐藏 circle 节点
-        const circleNode = this.node.getChildByName('circle');
-        if (circleNode) {
-            const sprite = circleNode.getComponent(Sprite);
-            if (sprite) {
-                sprite.enabled = false;
-            }
-        }
-
-        // 隐藏 block_sp sprite（如果已显示）
         const blockSp = this.node.getChildByName('block_sp');
         const sprite = blockSp?.getComponent(Sprite);
         if (sprite) {
-            sprite.enabled = false;
+            sprite.color = new Color(
+                this.targetColorR,
+                this.targetColorG,
+                this.targetColorB,
+                this.targetColorA
+            );
+            sprite.enabled = true;
         }
     }
 

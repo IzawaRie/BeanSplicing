@@ -346,6 +346,8 @@ export class MenuManager extends Component {
         gameManager.vibrateShort();
         gameManager.gameState = GameState.PAUSED;
         gameManager.setting.lastState = GameState.WAITING;
+        gameManager.setting.restart_btn.active = false;
+        gameManager.setting.home_btn.active = false;
         gameManager.setting.node.active = true;
         AudioManager.instance.playEffect('setting_btn');
     }
@@ -445,12 +447,6 @@ export class MenuManager extends Component {
      * 返回菜单界面
      */
     public backToMenu(): void {
-        const gameManager = GameManager.getInstance();
-        if (!gameManager) return;
-
-        if (gameManager.levelMode?.node) {
-            gameManager.levelMode.node.active = false;
-        }
         if (this.node) {
             this.node.active = true;
         }
