@@ -160,6 +160,8 @@ export class SettingController extends Component {
 
         if (gameManager.power <= 0) {
             gameManager.window.showWithMessage(' 能量不足，请等待下次能量更新\n\n 或观看视频获取能量！');
+            // 关闭设置面板前先恢复游戏状态
+            gameManager.gameState = this.lastState;
             this.node.active = false;
             return;
         }
