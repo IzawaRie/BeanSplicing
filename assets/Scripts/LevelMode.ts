@@ -1,4 +1,4 @@
-import { _decorator, Component, Label, Node, Sprite, tween, UIOpacity, Color, resources, Prefab, instantiate } from 'cc';
+import { _decorator, Component, Label, Node, Sprite, tween, UIOpacity, Color, resources, Prefab, instantiate, UITransform, Widget } from 'cc';
 import { GameMode, GameModeType} from './GameMode';
 import { GridDrawer } from './GridDrawer';
 import { IronController } from './IronController';
@@ -828,6 +828,11 @@ export class LevelMode extends GameMode {
         this._isDaojiCounting = false; // 暂停读秒倒计时
         gameManager.setting.lastState = gameManager.gameState; // 保存当前状态
         gameManager.gameState = GameState.PAUSED;
+        const borderBg = gameManager.setting.border_bg;
+        borderBg.getComponent(UITransform).setContentSize(600, 900);
+        for (const child of borderBg.children) {
+            child.getComponent(Widget)?.updateAlignment();
+        }
         gameManager.setting.restart_btn.active = true;
         gameManager.setting.home_btn.active = true;
         gameManager.setting.node.active = true;

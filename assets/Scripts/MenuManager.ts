@@ -1,4 +1,4 @@
-import { _decorator, Component, Node, Label, resources, Prefab, instantiate, UITransform, tween, Tween, Vec3, UIOpacity, random, Sprite, Color } from 'cc';
+import { _decorator, Component, Node, Label, resources, Prefab, instantiate, UITransform, tween, Tween, Vec3, UIOpacity, random, Sprite, Color, Widget } from 'cc';
 import { GameManager, GameState, DifficultyMode } from './GameManager';
 import { LevelConfig } from './LevelConfig';
 import { AudioManager } from './AudioManager';
@@ -346,6 +346,11 @@ export class MenuManager extends Component {
         gameManager.vibrateShort();
         gameManager.gameState = GameState.PAUSED;
         gameManager.setting.lastState = GameState.WAITING;
+        const borderBg = gameManager.setting.border_bg;
+        borderBg.getComponent(UITransform).setContentSize(600, 750);
+        for (const child of borderBg.children) {
+            child.getComponent(Widget)?.updateAlignment();
+        }
         gameManager.setting.restart_btn.active = false;
         gameManager.setting.home_btn.active = false;
         gameManager.setting.node.active = true;
