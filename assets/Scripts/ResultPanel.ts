@@ -38,6 +38,9 @@ export class ResultPanel extends Component {
     share_btn: Node = null;
 
     @property(Node)
+    share_btn2: Node = null;
+
+    @property(Node)
     flashNode: Node = null;
 
     @property(Sprite)
@@ -273,9 +276,19 @@ export class ResultPanel extends Component {
 
         AudioManager.instance.playEffect('click_btn');
         const currentLevel = gameManager.currentLevel;
-        const difficulty = this._isSuccess ? '已通关' : '挑战中';
+        const difficulty = gameManager.currentDifficulty;
 
-        WXManager.instance?.shareAppMessage(`拼豆高手·第${currentLevel}关,${difficulty}!`)
+        let difficultyText = '';
+        switch (difficulty) {
+            case 'simple': difficultyText = '简单难度'; break;
+            case 'medium': difficultyText = '进阶难度'; break;
+            case 'hard': difficultyText = '高手难度'; break;
+            default: difficultyText = difficulty;
+        }
+
+        const content = this._isSuccess ? '太简单了，你也来试试' : '好难，快来帮我通关';
+
+        WXManager.instance?.shareAppMessage(`${difficultyText}第${currentLevel}关${content}!`)
             .catch(() => console.log('分享失败或取消'));
     }
 
@@ -313,6 +326,7 @@ export class ResultPanel extends Component {
         this.homelBtn2?.on(Node.EventType.TOUCH_END, this.onShowHomePanel, this);
         this.camera_btn?.on(Node.EventType.TOUCH_END, this.onCameraBtnClick, this);
         this.share_btn?.on(Node.EventType.TOUCH_END, this.onShareBtnClick, this);
+        this.share_btn2?.on(Node.EventType.TOUCH_END, this.onShareBtnClick, this);
     }
 
     onDestroy() {
@@ -321,6 +335,7 @@ export class ResultPanel extends Component {
         this.homelBtn2?.off(Node.EventType.TOUCH_END, this.onShowHomePanel, this);
         this.camera_btn?.off(Node.EventType.TOUCH_END, this.onCameraBtnClick, this);
         this.share_btn?.off(Node.EventType.TOUCH_END, this.onShareBtnClick, this);
+        this.share_btn2?.off(Node.EventType.TOUCH_END, this.onShareBtnClick, this);
     }
 
     /**
