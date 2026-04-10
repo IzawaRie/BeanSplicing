@@ -25,9 +25,11 @@ export class WXManager extends Component {
     // 激励视频广告实例
     private skillRewardedVideoAd: any = null;
     private powerRewardedVideoAd: any = null;
+    private interstitialAd: any = null;
     // 激励视频广告位 id（在微信公众平台广告位配置获取）
     private readonly SKILL_VIDEO_AD_UNIT_ID: string = 'adunit-f7349bec4122701f';
     private readonly POWER_VIDEO_AD_UNIT_ID: string = 'adunit-cdd79ed40eb8ec5f';
+    private readonly INTERSTITIAL_AD_UNIT_ID: string = 'adunit-613709c057d35ead';
     // 是否为调试模式（正式版但广告位为 test123 时启用）
     private isDebugMode: boolean = false;
 
@@ -42,6 +44,7 @@ export class WXManager extends Component {
         this.onShareAppMessage('快来和我一起拼豆！');
         if (!this.isDebugMode) {
             this.createRewardedVideoAd();
+            this.createInterstitialAd();
         }
     }
 
@@ -247,6 +250,54 @@ export class WXManager extends Component {
     private createRewardedVideoAd(): void {
         this.createSkillRewardedVideoAd();
         this.createPowerRewardedVideoAd();
+    }
+
+    /**
+     * 创建插屏广告
+     */
+    private createInterstitialAd(): void {
+        if (typeof (wx) === 'undefined') return;
+        if (typeof wx.createInterstitialAd !== 'function') return;
+
+        try {
+            this.interstitialAd = wx.createInterstitialAd({
+                adUnitId: this.INTERSTITIAL_AD_UNIT_ID
+            });
+
+            this.interstitialAd.onLoad(() => {
+                console.log('插屏广告加载完成');
+            });
+
+            this.interstitialAd.onError((err: any) => {
+                console.warn('插屏广告错误:', err);
+            });
+
+            this.interstitialAd.onClose(() => {
+                console.log('插屏广告已关闭');
+            });
+        } catch (e) {
+            console.warn('创建插屏广告失败:', e);
+        }
+    }
+
+    /**
+     * 显示插屏广告
+     */
+    public showInterstitialAd(): void {
+        if (typeof (wx) === 'undefined') return;
+        if (this.isDebugMode) return;
+        if (!this.interstitialAd) {
+            console.warn('插屏广告未创建');
+            return;
+        }
+
+        this.interstitialAd.show().catch(() => {
+            this.interstitialAd.load().then(() => {
+                return this.interstitialAd.show();
+            }).catch((err: any) => {
+                console.warn('插屏广告显示失败:', err);
+            });
+        });
     }
 
     /**
