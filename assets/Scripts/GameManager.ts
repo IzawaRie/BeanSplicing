@@ -390,7 +390,7 @@ export class GameManager extends Component {
                     }
                     this.wxManager.setPowerNextRegenTime(this._powerNextRegenTime);
                     // 通过 setter 保存更新后的体力值到 storage
-                    this.power = this._power;
+                    this.wxManager.setPower(this._power);
                 } else {
                     // 倒计时未过期，使用保存的倒计时
                     this._powerNextRegenTime = savedNextRegen;
