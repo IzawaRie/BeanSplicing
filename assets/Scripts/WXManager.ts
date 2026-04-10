@@ -826,4 +826,107 @@ export class WXManager extends Component {
             });
         });
     }
+
+    // ========== 原生模板广告 ==========
+    private customAd: any = null;
+    private nativeAdStyle = { left: 0, top: 0, width: 0 };
+    // 原生模板广告位 id
+    private readonly NATIVE_AD_UNIT_ID: string = 'adunit-e0eab827ac9fbb10'; // 替换为实际的广告位 id
+
+    private applyNativeAdStyle(): void {
+        if (!this.customAd?.style) return;
+        this.customAd.style.left = this.nativeAdStyle.left;
+        this.customAd.style.top = this.nativeAdStyle.top;
+        this.customAd.style.width = this.nativeAdStyle.width;
+        this.customAd.style.fixed = true;
+    }
+
+    private getWindowSize(): { width: number; height: number } | null {
+        if (typeof (wx) === 'undefined') return null;
+        const windowInfo = wx.getWindowInfo?.();
+        const width = windowInfo?.windowWidth;
+        const height = windowInfo?.windowHeight;
+        if (!width || !height) return null;
+        return { width, height };
+    }
+
+    /**
+     * 创建原生模板广告
+     * @param left 距离屏幕左侧像素（左上角为原点）
+     * @param top 距离屏幕顶部像素（左上角为原点）
+     * @param width 广告宽度
+     */
+    public createNativeAd(left: number, top: number, width: number): void {
+        if (typeof (wx) === 'undefined') return;
+
+        this.nativeAdStyle.left = Math.max(0, Math.floor(left));
+        this.nativeAdStyle.top = Math.max(0, Math.floor(top));
+        this.nativeAdStyle.width = Math.max(1, Math.floor(width));
+
+        try {
+            if (!this.customAd) {
+                this.customAd = wx.createCustomAd({
+                    adUnitId: this.NATIVE_AD_UNIT_ID,
+                    style: {
+                        left: this.nativeAdStyle.left,
+                        top: this.nativeAdStyle.top,
+                        width: this.nativeAdStyle.width,
+                        fixed: true
+                    }
+                });
+
+                this.customAd.onLoad(() => {
+                    console.log('原生广告加载成功', this.nativeAdStyle);
+                    this.applyNativeAdStyle();
+                    this.customAd.show().catch((err: any) => {
+                        console.warn('原生广告显示失败:', err);
+                    });
+                });
+
+                this.customAd.onError((err: any) => {
+                    console.warn('原生广告加载失败:', err);
+                });
+
+                this.customAd.onClose(() => {
+                    console.log('原生广告关闭');
+                });
+                return;
+            }
+
+            this.applyNativeAdStyle();
+            this.customAd.show().catch(() => {
+                this.customAd.destroy();
+                this.customAd = null;
+                this.createNativeAd(this.nativeAdStyle.left, this.nativeAdStyle.top, this.nativeAdStyle.width);
+            });
+        } catch (e) {
+            console.warn('创建原生广告失败:', e);
+        }
+    }
+
+    /**
+     * 在屏幕底部创建原生模板广告
+     * @param width 广告宽度，默认铺满窗口宽度
+     * @param bottomMargin 距离底部的边距
+     * @param estimatedHeight 预估广告高度，用于计算 top
+     */
+    public createNativeAdAtBottom(bottomMargin: number = 0, estimatedHeight: number = 120): void {
+        const windowSize = this.getWindowSize();
+        if (!windowSize) return;
+
+        const adWidth = Math.max(1, windowSize.width);
+        const left = 0;
+        const top = Math.max(0, Math.floor(windowSize.height - estimatedHeight - bottomMargin));
+        this.createNativeAd(left, top, adWidth);
+    }
+
+    /**
+     * 销毁原生广告
+     */
+    public destroyNativeAd(): void {
+        if (this.customAd) {
+            this.customAd.destroy();
+            this.customAd = null;
+        }
+    }
 }

@@ -1,4 +1,4 @@
-import { _decorator, Component, Node, Label, resources, Prefab, instantiate, UITransform, tween, Tween, Vec3, UIOpacity, random, Sprite, Color, Widget } from 'cc';
+import { _decorator, Component, Node, Label, resources, Prefab, instantiate, UITransform, tween, Tween, Vec3, UIOpacity, random, Sprite, Color, Widget, view } from 'cc';
 import { GameManager, GameState, DifficultyMode } from './GameManager';
 import { LevelConfig } from './LevelConfig';
 import { AudioManager } from './AudioManager';
@@ -178,6 +178,9 @@ export class MenuManager extends Component {
 
     start() {
         AudioManager.instance.playMenuBgm();
+
+        // 在页面最下边创建原生模板广告
+        WXManager.instance?.createNativeAdAtBottom();
     }
 
     /**
