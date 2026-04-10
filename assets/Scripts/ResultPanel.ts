@@ -4,7 +4,6 @@ import { BlockController, BlockState } from './BlockController';
 import { AudioManager } from './AudioManager';
 import { LevelConfig } from './LevelConfig';
 import { WXManager } from './WXManager';
-import { TutorialController } from './TutorialController';
 const { ccclass, property } = _decorator;
 
 @ccclass('ResultPanel')
@@ -387,6 +386,7 @@ export class ResultPanel extends Component {
         gameManager.gameState = GameState.WAITING;
         gameManager.levelMode.node.active = false;
         gameManager.menuManager.node.active = true;
+        WXManager.instance?.showNativeAd();
         AudioManager.instance.playMenuBgm();
     }
 }

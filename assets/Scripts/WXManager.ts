@@ -841,6 +841,13 @@ export class WXManager extends Component {
         this.customAd.style.fixed = true;
     }
 
+    private showNativeAdInternal(): void {
+        if (!this.customAd) return;
+        this.customAd.show().catch((err: any) => {
+            console.warn('原生广告显示失败:', err);
+        });
+    }
+
     private getWindowSize(): { width: number; height: number } | null {
         if (typeof (wx) === 'undefined') return null;
         const windowInfo = wx.getWindowInfo?.();
@@ -878,9 +885,7 @@ export class WXManager extends Component {
                 this.customAd.onLoad(() => {
                     console.log('原生广告加载成功', this.nativeAdStyle);
                     this.applyNativeAdStyle();
-                    this.customAd.show().catch((err: any) => {
-                        console.warn('原生广告显示失败:', err);
-                    });
+                    this.showNativeAdInternal();
                 });
 
                 this.customAd.onError((err: any) => {
@@ -918,6 +923,22 @@ export class WXManager extends Component {
         const left = 0;
         const top = Math.max(0, Math.floor(windowSize.height - estimatedHeight - bottomMargin));
         this.createNativeAd(left, top, adWidth);
+    }
+
+    /**
+     * 隐藏原生广告
+     */
+    public hideNativeAd(): void {
+        if (!this.customAd) return;
+        this.customAd.hide?.();
+    }
+
+    /**
+     * 显示原生广告
+     */
+    public showNativeAd(): void {
+        if (!this.customAd) return;
+        this.showNativeAdInternal();
     }
 
     /**

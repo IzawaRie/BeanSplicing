@@ -179,7 +179,7 @@ export class MenuManager extends Component {
     start() {
         AudioManager.instance.playMenuBgm();
 
-        // 在页面最下边创建原生模板广告
+        // 在主页面显示原生模板广告
         WXManager.instance?.createNativeAdAtBottom();
     }
 
@@ -438,6 +438,8 @@ export class MenuManager extends Component {
             return;
         }
 
+        WXManager.instance?.hideNativeAd();
+
         // 设置难度并获取关卡数据
         this.levelConfig?.setDifficulty(difficulty);
         // 同步 currentLevelIndex 与 levelId，保持一致
@@ -495,6 +497,7 @@ export class MenuManager extends Component {
             this.node.active = true;
         }
         WXManager.instance?.setCaptureNone();
+        WXManager.instance?.showNativeAd();
     }
 
     update(): void {
