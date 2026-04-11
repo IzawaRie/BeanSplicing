@@ -406,6 +406,10 @@ export class LevelMode extends GameMode {
      */
     startLevel(levelId: number, patternPath: string = ''): void {
         WXManager.instance?.setCaptureRestricted();
+        // 隐藏设置按钮
+        if (this.settingBtn) {
+            this.settingBtn.active = false;
+        }
         this.currentScore = 0;
         this._patternPath = patternPath;
         // 重置时间冻结状态
@@ -504,6 +508,11 @@ export class LevelMode extends GameMode {
      */
     private onDaojishiEnd(): void {
         this._isDaojiCounting = false;
+
+        // 显示设置按钮
+        if (this.settingBtn) {
+            this.settingBtn.active = true;
+        }
 
         // 隐藏 daojishi_label 和 start_btn
         if (this.daojishi_label) {
