@@ -99,6 +99,11 @@ export class LevelMode extends GameMode {
     private _isTimeFrozen: boolean = false; // 是否冻结时间
     private _timeFreezeTimer: number = 0;     // 冻结剩余时间
 
+    // 30秒警告相关
+    private _is30SecondWarning: boolean = false; // 是否已触发30秒警告
+    private _isFlashingRed: boolean = false;  // 是否正在红色闪烁
+    private _warningTimerId: any = null;    // 闪烁定时器ID
+
     // 进度相关
     private _totalBlockCount: number = 0;    // 有效 block 总数
     private _highlightedCount: number = 0;   // 已高亮的 block 数
@@ -149,6 +154,12 @@ export class LevelMode extends GameMode {
 
         this._remainingTime -= _deltaTime;
 
+        // 30秒警告：开始红色闪烁并播放didi音效
+        if (this._remainingTime <= 30 && !this._is30SecondWarning) {
+            this._is30SecondWarning = true;
+            this.start30SecondWarning();
+        }
+
         // 更新 time_label
         if (this.time_label) {
             const displaySec = Math.max(0, Math.ceil(this._remainingTime));
@@ -174,6 +185,54 @@ export class LevelMode extends GameMode {
         }
         if (this.start_btn) {
             this.start_btn.on(Node.EventType.TOUCH_END, this.onStartBtnClick, this);
+        }
+    }
+
+    // ==================== 30秒警告系统 ====================
+
+    /**
+     * 开始30秒警告：时间文字红色闪烁 + didi音效（循环播放）
+     */
+    private start30SecondWarning(): void {
+        if (!this.time_label) return;
+
+        this._isFlashingRed = true;
+
+        // 每隔0.3秒闪烁一次
+        const flashAndPlay = () => {
+            if (!this._isFlashingRed) return;
+
+            // 变红色
+            this.time_label.color = new Color(255, 0, 0, 255);
+
+            // 0.5秒后恢复白色
+            this._warningTimerId = setTimeout(() => {
+                if (!this._isFlashingRed) return;
+                this.time_label.color = new Color(255, 255, 255, 255);
+                // 0.3秒后再次闪烁（总共间隔0.6秒）
+                this._warningTimerId = setTimeout(() => {
+                    if (this._isFlashingRed) {
+                        flashAndPlay();
+                    }
+                }, 500);
+            }, 500);
+        };
+        flashAndPlay();
+    }
+
+    /**
+     * 停止30秒警告
+     */
+    stop30SecondWarning(): void {
+        this._isFlashingRed = false;
+        this._is30SecondWarning = false;
+
+        if (this._warningTimerId) {
+            clearTimeout(this._warningTimerId);
+            this._warningTimerId = null;
+        }
+        if (this.time_label) {
+            this.time_label.color = new Color(255, 255, 255, 255);
         }
     }
 
@@ -355,6 +414,9 @@ export class LevelMode extends GameMode {
         // 重置空闲闪烁状态
         this._idleFlashTimer = 0;
         this._isIdleFlashing = false;
+        // 重置30秒警告状态
+        this._is30SecondWarning = false;
+        this._isFlashingRed = false;
         if (this.time_label) {
             tween(this.time_label).stop();
             this.time_label.color = new Color(255, 255, 255, 255);
@@ -859,6 +921,8 @@ export class LevelMode extends GameMode {
         }
         this._isTimeFrozen = true;
         this._timeFreezeTimer = 30;
+        // 先停止30秒警告的红色闪烁
+        this.stop30SecondWarning();
         // 改变时间标签颜色表示冻结状态
         if (this.time_label) {
             this.time_label.color = new Color(100, 200, 255, 255);

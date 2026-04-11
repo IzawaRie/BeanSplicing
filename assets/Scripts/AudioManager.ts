@@ -22,6 +22,9 @@ export class AudioManager extends Component {
     private poolIndex: number = 0;
     private readonly POOL_SIZE: number = 5;
 
+    // 循环播放的 AudioSource（用于警告音效）
+    private loopSource: AudioSource | null = null;
+
     onLoad() {
         if (AudioManager._instance) {
             this.node.destroy();
@@ -223,6 +226,54 @@ export class AudioManager extends Component {
                 this.musicBundle = bundle;
                 loadAndPlay(bundle);
             });
+        }
+    }
+
+    /**
+     * 开始循环播放音效（用于警告提示）
+     * @param name 音效文件名（不含扩展名）
+     * @param volume 音量，0-1，默认 1
+     */
+    public startLoopEffect(name: string, volume: number = 1): void {
+        if (!this._isAudioEnabled) return;
+        this.stopLoopEffect();
+
+        const loadAndPlay = (bundle: any) => {
+            bundle.load(name, AudioClip, (err: any, clip: AudioClip) => {
+                if (err) {
+                    console.error(`加载循环音效 ${name} 失败:`, err);
+                    return;
+                }
+                this.loopSource = this.addComponent(AudioSource);
+                this.loopSource.clip = clip;
+                this.loopSource.volume = volume;
+                this.loopSource.loop = true;
+                this.loopSource.play();
+            });
+        };
+
+        if (this.musicBundle) {
+            loadAndPlay(this.musicBundle);
+        } else {
+            assetManager.loadBundle('Music', (err: any, bundle: any) => {
+                if (err) {
+                    console.error('加载 Music bundle 失败:', err);
+                    return;
+                }
+                this.musicBundle = bundle;
+                loadAndPlay(bundle);
+            });
+        }
+    }
+
+    /**
+     * 停止循环播放音效
+     */
+    public stopLoopEffect(): void {
+        if (this.loopSource) {
+            this.loopSource.stop();
+            this.loopSource.destroy();
+            this.loopSource = null;
         }
     }
 

@@ -58,7 +58,7 @@ export class ResultPanel extends Component {
         this._isSuccess = isSuccess;
         const gameManager = GameManager.getInstance();
         const difficulty = gameManager.currentDifficulty;
-
+        gameManager.levelMode.stop30SecondWarning();
         // 结束可能正在进行的新手引导
         const tutorialController = gameManager.levelMode?.tutorialController;
         if (tutorialController) {
