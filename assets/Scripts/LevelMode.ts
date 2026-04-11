@@ -406,6 +406,8 @@ export class LevelMode extends GameMode {
      */
     startLevel(levelId: number, patternPath: string = ''): void {
         WXManager.instance?.setCaptureRestricted();
+        // 显示原生模板广告
+        WXManager.instance?.createNativeAdAtBottom();
         // 隐藏设置按钮
         if (this.settingBtn) {
             this.settingBtn.active = false;
@@ -508,6 +510,9 @@ export class LevelMode extends GameMode {
      */
     private onDaojishiEnd(): void {
         this._isDaojiCounting = false;
+        this.tutorial_tip.active = false;
+        // 隐藏原生模板广告
+        WXManager.instance?.hideNativeAd();
 
         // 显示设置按钮
         if (this.settingBtn) {
@@ -740,7 +745,6 @@ export class LevelMode extends GameMode {
 
         // 第一关开启新手引导
         if (gameManager.currentDifficulty == DifficultyMode.SIMPLE && gameManager.currentLevel === 1) {
-            this.tutorial_tip.active = false;
             this.startTutorial();
         }
     }
