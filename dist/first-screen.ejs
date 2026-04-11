@@ -223,11 +223,17 @@ function updateSloganVertexBuffer() {
 }
 
 function updateBgVertexBuffer() {
+    // 按照高度适配：高度铺满，宽度按图片原始宽高比
+    // NDC 坐标范围是 [-1, 1]，高度铺满即 displayHeight = 1
+    const displayHeight = 1;
+    // 宽度需要根据图片宽高比和画布宽高比的比值来计算
+    const displayWidth = (bg.width / bg.height) / (canvas.width / canvas.height);
+    
     const vertices = new Float32Array([
-        1.0, 1.0, 1.0, 1.0,
-        1.0, -1.0, 1.0, 0.0,
-        -1.0, 1.0, 0.0, 1.0,
-        -1.0, -1.0, 0.0, 0.0,
+        displayWidth, displayHeight, 1.0, 1.0,
+        displayWidth, -displayHeight, 1.0, 0.0,
+        -displayWidth, displayHeight, 0.0, 1.0,
+        -displayWidth, -displayHeight, 0.0, 0.0,
     ]);
     gl.bindBuffer(gl.ARRAY_BUFFER, bgVertexBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
