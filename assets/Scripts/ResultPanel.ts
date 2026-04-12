@@ -73,8 +73,14 @@ export class ResultPanel extends Component {
     /** 保存的截图数据 */
     private _screenshotData: { width: number; height: number; byteArray: Uint8Array } | null = null;
 
-    /** 游戏开始时间（秒） */
+    /** 游戏开始时间（毫秒） */
     private _gameStartTime: number = 0;
+
+    /** 累计暂停时间（毫秒）- 不计算结果显示页面的时间 */
+    private _pausedTime: number = 0;
+
+    /** 暂停开始时间（毫秒）- 记录结果页面开始显示的时间 */
+    private _pauseStartTime: number = 0;
 
     /**
      * 设置成功状态，并更新界面文字
@@ -89,6 +95,9 @@ export class ResultPanel extends Component {
         if (tutorialController) {
             tutorialController.endTutorial();
         }
+
+        // 记录结果页面开始显示的时间（用于排除结果显示页面的时间）
+        this._pauseStartTime = Date.now();
 
         // 统计正确/错误/正确率
         this.updateResultStats();
@@ -188,10 +197,12 @@ export class ResultPanel extends Component {
         // 计算熨烫率
         const ironPercent = totalCount > 0 ? Math.round((ironedCount / totalCount) * 100) : 0;
 
-        // 计算用时
+        // 计算用时（减去所有结果页面的暂停时间）
         let timeUsed = 0;
         if (this._gameStartTime > 0) {
-            timeUsed = Math.round((Date.now() - this._gameStartTime) / 1000);
+            const totalTime = Date.now() - this._gameStartTime;
+            const actualTime = totalTime - this._pausedTime;
+            timeUsed = Math.round(actualTime / 1000);
         }
 
         // 更新 Label 显示
@@ -591,6 +602,12 @@ export class ResultPanel extends Component {
         }
         gameManager.power--;
         AudioManager.instance.playEffect('click_btn');
+        
+        // 累加本次结果页面的暂停时间
+        if (this._pauseStartTime > 0) {
+            this._pausedTime += Date.now() - this._pauseStartTime;
+            this._pauseStartTime = 0;
+        }
         
         // 隐藏结果面板
         this.result_img.spriteFrame = null;
