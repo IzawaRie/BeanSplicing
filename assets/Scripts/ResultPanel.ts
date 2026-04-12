@@ -196,10 +196,10 @@ export class ResultPanel extends Component {
 
         // 更新 Label 显示
         if (this.right_number) {
-            this.right_number.string = `${rightCount} / ${totalCount}`;
+            this.right_number.string = `${rightCount}/${totalCount}`;
         }
         if (this.wrong_number) {
-            this.wrong_number.string = `${wrongCount} / ${totalCount}`;
+            this.wrong_number.string = `${wrongCount}/${totalCount}`;
         }
         if (this.percent_number) {
             this.percent_number.string = `${percent}%`;
@@ -580,7 +580,7 @@ export class ResultPanel extends Component {
     }
 
     /**
-     * continue_btn 点击事件 - 继续游戏，倒计时重置为60秒
+     * continue_btn 点击事件 - 继续游戏
      */
     private onContinueBtnClick(): void {
         const gameManager = GameManager.getInstance();
@@ -601,13 +601,8 @@ export class ResultPanel extends Component {
         if (levelMode) {
             // 恢复画布透明度
             levelMode.drawer_opacity.opacity = 255;
-            // 重置倒计时为60秒
-            levelMode['_remainingTime'] = 60;
             // 重置30秒警告状态
             levelMode.stop30SecondWarning();
-            levelMode['_is30SecondWarning'] = false;
-            // 重置30秒警告计时器
-            levelMode['_30SecondWarningTimer'] = 0;
             
             // 重置格子状态：已熨烫的格子退回高亮状态，显示圆圈，隐藏熨烫图片
             const gridDrawer = levelMode.gridDrawer;
@@ -624,8 +619,6 @@ export class ResultPanel extends Component {
             levelMode.startCountdown();
             // 恢复游戏状态
             gameManager.gameState = GameState.PLAYING;
-            // 重置游戏开始时间
-            this.recordGameStartTime();
         }
         
         AudioManager.instance.playGameBgm();
