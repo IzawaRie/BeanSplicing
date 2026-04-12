@@ -54,7 +54,7 @@ export class WindowController extends Component {
         WXManager.instance.showPowerRewardedVideoAd((success) => {
             if (success) {
                 // 观看成功后增加体力
-                gameManager.power++;
+                gameManager.power += 3;
                 // 关闭窗口
                 this.closeWindow();
             }
