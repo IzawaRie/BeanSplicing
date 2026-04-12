@@ -695,8 +695,6 @@ export class GridDrawer extends Component {
                         const sprite = circleNode.getComponent(Sprite);
                         if (sprite) {
                             sprite.enabled = true;
-                            // 设置为 block 自己的目标颜色
-                            sprite.color = new Color(controller.targetColorR, controller.targetColorG, controller.targetColorB, controller.targetColorA);
                         }
                     }
                 }

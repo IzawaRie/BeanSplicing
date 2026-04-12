@@ -33651,7 +33651,7 @@
     "_prefab": null,
     "_lpos": {
       "__type__": "cc.Vec3",
-      "x": 110,
+      "x": 160,
       "y": -2.454,
       "z": 0
     },
@@ -33690,7 +33690,7 @@
     "__prefab": null,
     "_contentSize": {
       "__type__": "cc.Size",
-      "width": 100,
+      "width": 200,
       "height": 50.4
     },
     "_anchorPoint": {
@@ -34123,7 +34123,7 @@
     "_prefab": null,
     "_lpos": {
       "__type__": "cc.Vec3",
-      "x": 110,
+      "x": 160,
       "y": -2.454,
       "z": 0
     },
@@ -34162,7 +34162,7 @@
     "__prefab": null,
     "_contentSize": {
       "__type__": "cc.Size",
-      "width": 100,
+      "width": 200,
       "height": 50.4
     },
     "_anchorPoint": {

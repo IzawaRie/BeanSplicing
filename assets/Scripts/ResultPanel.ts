@@ -196,10 +196,10 @@ export class ResultPanel extends Component {
 
         // 更新 Label 显示
         if (this.right_number) {
-            this.right_number.string = `${rightCount}/${totalCount}`;
+            this.right_number.string = `${rightCount} / ${totalCount}`;
         }
         if (this.wrong_number) {
-            this.wrong_number.string = `${wrongCount}/${totalCount}`;
+            this.wrong_number.string = `${wrongCount} / ${totalCount}`;
         }
         if (this.percent_number) {
             this.percent_number.string = `${percent}%`;
@@ -212,7 +212,7 @@ export class ResultPanel extends Component {
         }
         if (this.time_number) {
             // 格式化为 "XXs"
-            this.time_number.string = `${timeUsed}s`;
+            this.time_number.string = `${timeUsed} s`;
         }
 
         console.log(`结果统计: 正确=${rightCount}, 错误=${wrongCount}, 正确率=${percent}%, 高亮率=${highlightPercent}%, 熨烫率=${ironPercent}%, 用时=${timeUsed}秒`);
