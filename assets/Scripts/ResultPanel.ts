@@ -628,6 +628,7 @@ export class ResultPanel extends Component {
             this.recordGameStartTime();
         }
         
+        AudioManager.instance.playGameBgm();
         gameManager.vibrateShort();
     }
 }
