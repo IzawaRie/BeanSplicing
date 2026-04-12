@@ -83,9 +83,11 @@ let vertexBuffer = null;
 let sloganVertexBuffer = null;
 let bgVertexBuffer = null;
 let vertexBufferProgress = null;
+let vertexBufferProgressBg = null;
 let progress = 0.0;
-let progressBarColor = [0, 0, 0, 1];
-let progressBackground = [100 / 255, 111 / 255, 118 / 255, 1];
+let progressBarColor = [253 / 255, 193 / 255, 132 / 255, 1]; // 进度条颜色 FDC184
+let progressBackground = [255 / 255, 249 / 255, 242 / 255, 1]; // 填充色 FFF9F2
+let progressBarBgColor = [88 / 255, 64 / 255, 24 / 255, 1]; // 进度条背景色 FDC184
 let afterTick = null;
 let backgroundFilp = 1.0; // set 0 to not flip
 let displayRatio = <%= displayRatio%>;
@@ -177,8 +179,8 @@ function initBgVertexBuffer() {
 function initProgressVertexBuffer() {
     // the ratio value may be adjusted according to the image pixels
     const widthRatio = 0.65;
-    const heightRatio = (window.devicePixelRatio >= 2 ? 20 : 3) / canvas.height * 1.35;
-    const heightOffset = -0.85;
+    const heightRatio = (window.devicePixelRatio >= 2 ? 15 : 3) / canvas.height * 1.35;
+    const heightOffset = -0.5;
     const vertices = new Float32Array([
         widthRatio, heightOffset - heightRatio, 1,
         widthRatio, heightOffset + heightRatio, 1,
@@ -188,6 +190,19 @@ function initProgressVertexBuffer() {
     vertexBufferProgress = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, vertexBufferProgress);
     gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+    
+    // 进度条背景 - 宽度为0.7，高度为前景的1.5倍
+    const bgWidthRatio = 0.67;
+    const bgHeightRatio = heightRatio * 2;
+    const bgVertices = new Float32Array([
+        bgWidthRatio, heightOffset - bgHeightRatio, 1,
+        bgWidthRatio, heightOffset + bgHeightRatio, 1,
+        -bgWidthRatio, heightOffset - bgHeightRatio, 0,
+        -bgWidthRatio, heightOffset + bgHeightRatio, 0,
+    ]);
+    vertexBufferProgressBg = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, vertexBufferProgressBg);
+    gl.bufferData(gl.ARRAY_BUFFER, bgVertices, gl.STATIC_DRAW);
 }
 
 function updateVertexBuffer() {
@@ -393,7 +408,9 @@ function draw() {
     useLogo && drawTexture(gl, program, logoTexture, vertexBuffer, 4);
     // draw slogan
     useLogo && useDefaultLogo && drawTexture(gl, program, sloganTexture, sloganVertexBuffer, 4);
-    // draw progress bar
+    // draw progress bar background (先绘制背景)
+    drawProgressBar(gl, programProgress, vertexBufferProgressBg, 3, 1, progressBarBgColor, progressBarBgColor);
+    // draw progress bar (再绘制前景)
     drawProgressBar(gl, programProgress, vertexBufferProgress, 3, progress, progressBarColor, progressBackground);
 }
 
@@ -421,6 +438,7 @@ function end() {
         useCustomBg && gl.deleteBuffer(bgVertexBuffer);
         useLogo && useDefaultLogo && gl.deleteBuffer(sloganVertexBuffer);
         gl.deleteBuffer(vertexBufferProgress);
+        gl.deleteBuffer(vertexBufferProgressBg);
         gl.deleteProgram(program);
         gl.deleteProgram(programBg);
         gl.deleteProgram(programProgress);
