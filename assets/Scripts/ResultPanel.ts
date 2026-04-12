@@ -4,6 +4,7 @@ import { BlockController, BlockState } from './BlockController';
 import { AudioManager } from './AudioManager';
 import { LevelConfig } from './LevelConfig';
 import { WXManager } from './WXManager';
+import { GridDrawer } from './GridDrawer';
 const { ccclass, property } = _decorator;
 
 @ccclass('ResultPanel')
@@ -41,6 +42,9 @@ export class ResultPanel extends Component {
 
     @property(Node)
     flashNode: Node = null;
+
+    @property(Node)
+    continue_btn: Node = null;
 
     @property(Sprite)
     result_img: Sprite = null;
@@ -98,6 +102,11 @@ export class ResultPanel extends Component {
     private playContentEnterAnimation(): void {
         if (!this.content) return;
 
+        const gameManager = GameManager.getInstance();
+        if (!gameManager?.levelMode?.gridDrawer) return;
+        // 隐藏原始画布
+        const drawerOpacity = gameManager.levelMode.drawer_opacity;
+        drawerOpacity.opacity = 0;
         // 先设置为 0
         this.content.setScale(0, 0, 1);
 
@@ -117,12 +126,6 @@ export class ResultPanel extends Component {
         if (!this.result_img) return;
 
         const gameManager = GameManager.getInstance();
-        if (!gameManager?.levelMode?.gridDrawer) return;
-
-        // 隐藏原始画布
-        const drawerOpacity = gameManager.levelMode.drawer_opacity;
-        drawerOpacity.opacity = 0;
-
         const gridDrawer = gameManager.levelMode.gridDrawer;
         const blocks = gridDrawer.getAllBlocks();
         if (!blocks || blocks.length === 0) return;
@@ -331,6 +334,7 @@ export class ResultPanel extends Component {
         this.camera_btn?.on(Node.EventType.TOUCH_END, this.onCameraBtnClick, this);
         this.share_btn?.on(Node.EventType.TOUCH_END, this.onShareBtnClick, this);
         this.share_btn2?.on(Node.EventType.TOUCH_END, this.onShareBtnClick, this);
+        this.continue_btn?.on(Node.EventType.TOUCH_END, this.onContinueBtnClick, this);
     }
 
     onDestroy() {
@@ -340,6 +344,7 @@ export class ResultPanel extends Component {
         this.camera_btn?.off(Node.EventType.TOUCH_END, this.onCameraBtnClick, this);
         this.share_btn?.off(Node.EventType.TOUCH_END, this.onShareBtnClick, this);
         this.share_btn2?.off(Node.EventType.TOUCH_END, this.onShareBtnClick, this);
+        this.continue_btn?.off(Node.EventType.TOUCH_END, this.onContinueBtnClick, this);
     }
 
     /**
@@ -393,5 +398,70 @@ export class ResultPanel extends Component {
         gameManager.menuManager.node.active = true;
         WXManager.instance?.showNativeAd();
         AudioManager.instance.playMenuBgm();
+    }
+
+    /**
+     * continue_btn 点击事件 - 继续游戏，倒计时重置为60秒
+     */
+    private onContinueBtnClick(): void {
+        const gameManager = GameManager.getInstance();
+        if (gameManager?.isWindowBlocking()) return;
+        if (gameManager.power <= 0) {
+            gameManager.window.showWithMessage(' 能量不足，请等待下次能量更新\n\n 或观看视频获取能量！');
+            return;
+        }
+        gameManager.power--;
+        AudioManager.instance.playEffect('click_btn');
+        
+        // 隐藏结果面板
+        this.result_img.spriteFrame = null;
+        this.node.active = false;
+        
+        // 获取 LevelMode
+        const levelMode = gameManager.levelMode;
+        if (levelMode) {
+            // 恢复画布透明度
+            levelMode.drawer_opacity.opacity = 255;
+            // 重置倒计时为60秒
+            levelMode['_remainingTime'] = 60;
+            // 重置30秒警告状态
+            levelMode.stop30SecondWarning();
+            levelMode['_is30SecondWarning'] = false;
+            // 重置30秒警告计时器
+            levelMode['_30SecondWarningTimer'] = 0;
+            
+            // 重置所有格子状态：改成高亮状态，显示圆圈，隐藏熨烫图片
+            const gridDrawer = levelMode.gridDrawer;
+            if (gridDrawer) {
+                const blocks = gridDrawer.getAllBlocks();
+                if (blocks) {
+                    for (let row = 0; row < blocks.length; row++) {
+                        for (let col = 0; col < blocks[row].length; col++) {
+                            const block = blocks[row][col];
+                            if (!block) continue;
+                            const controller = block.getComponent(BlockController);
+                            if (!controller) continue;
+                            // 只处理有效 block（目标颜色不透明）
+                            if (controller.targetColorA <= 0) continue;
+                            // 重置为 HAS_CIRCLE 状态
+                            controller.state = BlockState.HAS_CIRCLE;
+                        }
+                    }
+                    // 显示所有圆圈
+                    gridDrawer.showAllBlockCircles();
+                    // 隐藏所有熨烫图片（通过隐藏 block sprites）
+                    gridDrawer.hideAllBlockSpritesInstant();
+                }
+            }
+            
+            // 重置进度到初始高亮状态（所有格子都是高亮，所以进度为50%）
+            levelMode.resetProgressToHighlighted();
+            // 重启倒计时
+            levelMode.startCountdown();
+            // 恢复游戏状态
+            gameManager.gameState = GameState.PLAYING;
+        }
+        
+        gameManager.vibrateShort();
     }
 }

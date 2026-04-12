@@ -666,6 +666,32 @@ export class GridDrawer extends Component {
     }
 
     /**
+     * 显示所有 block 上的 circle（用于 continue_btn 重置后显示 circle）
+     */
+    public showAllBlockCircles(): void {
+        const blocks = this.blockCreator.getAllBlocks();
+        if (!blocks) return;
+        for (let row = 0; row < blocks.length; row++) {
+            for (let col = 0; col < blocks[row].length; col++) {
+                const block = blocks[row][col];
+                if (!block) continue;
+                const controller = block.getComponent(BlockController);
+                if (!controller) continue;
+                // 只处理有效 block（目标颜色不透明）
+                if (controller.targetColorA <= 0) continue;
+                const circleNode = block.getChildByName('circle');
+                if (circleNode) {
+                    circleNode.active = true;
+                    const sprite = circleNode.getComponent(Sprite);
+                    if (sprite) {
+                        sprite.enabled = true;
+                    }
+                }
+            }
+        }
+    }
+
+    /**
      * 隐藏所有 block 上的 circle（用于 fix_skill 重置后隐藏 circle）
      */
     public hideAllBlockCircles(): void {

@@ -402,6 +402,35 @@ export class LevelMode extends GameMode {
     }
 
     /**
+     * 重置进度到初始高亮状态（continue_btn 使用）
+     * 所有格子都是高亮状态，所以高亮数 = 总数，熨烫数 = 0
+     * 进度 = (总数 * 0.5 + 0) / 总数 = 50%
+     */
+    public resetProgressToHighlighted(): void {
+        // 统计有效 block 总数
+        const blocks = this.gridDrawer?.getAllBlocks();
+        if (!blocks) return;
+
+        this._totalBlockCount = 0;
+        for (let row = 0; row < blocks.length; row++) {
+            for (let col = 0; col < blocks[row].length; col++) {
+                const block = blocks[row][col];
+                if (!block) continue;
+                const bc = block.getComponent(BlockController);
+                if (!bc || bc.targetColorA === 0) continue;
+                this._totalBlockCount++;
+            }
+        }
+
+        // 所有格子都是高亮状态
+        this._highlightedCount = this._totalBlockCount;
+        this._ironedCount = 0;
+
+        console.log(`进度重置为高亮状态: 总数=${this._totalBlockCount}, 高亮数=${this._highlightedCount}`);
+        this.updateProgressUI();
+    }
+
+    /**
      * 开始指定关卡
      */
     startLevel(levelId: number, patternPath: string = ''): void {
@@ -572,7 +601,7 @@ export class LevelMode extends GameMode {
     /**
      * 启动倒计时
      */
-    private startCountdown(): void {
+    public startCountdown(): void {
         this._remainingTime = LevelConfig.getInstance().getCurrentLevelTime();
 
         // 立即更新一次 label
