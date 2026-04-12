@@ -238,6 +238,11 @@ export class ResultPanel extends Component {
         // 动画填充范围从 0 到 1
         tween(this.result_img)
             .to(0.5, { fillRange: 1 }, { easing: 'sineInOut' })
+            .call(() => {
+                this.scheduleOnce(() => {
+                    WXManager.instance.showInterstitialAd();
+                }, 0.5);
+            })
             .start();
 
         // 保存截图数据，供拍照按钮使用
