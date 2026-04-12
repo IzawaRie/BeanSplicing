@@ -772,6 +772,11 @@ export class LevelMode extends GameMode {
         gameManager.gameState = GameState.PLAYING;
         this.selectedColorIndex = 1;
 
+        // 记录游戏开始时间
+        if (this.resultPanel) {
+            this.resultPanel.recordGameStartTime();
+        }
+
         // 第一关开启新手引导
         if (gameManager.currentDifficulty == DifficultyMode.SIMPLE && gameManager.currentLevel === 1) {
             this.startTutorial();

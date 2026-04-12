@@ -666,11 +666,14 @@ export class GridDrawer extends Component {
     }
 
     /**
-     * 显示所有 block 上的 circle（用于 continue_btn 重置后显示 circle）
+     * 显示所有已熨烫 block 上的 circle（用于 continue_btn 重置后显示 circle）
+     * - 如果格子是 IRONED 状态 → 退回为 HAS_CIRCLE 状态，显示 circle
+     * - 如果格子是 HAS_CIRCLE 或 NONE 状态 → 保持不变，不处理
      */
     public showAllBlockCircles(): void {
         const blocks = this.blockCreator.getAllBlocks();
         if (!blocks) return;
+        
         for (let row = 0; row < blocks.length; row++) {
             for (let col = 0; col < blocks[row].length; col++) {
                 const block = blocks[row][col];
@@ -679,14 +682,25 @@ export class GridDrawer extends Component {
                 if (!controller) continue;
                 // 只处理有效 block（目标颜色不透明）
                 if (controller.targetColorA <= 0) continue;
-                const circleNode = block.getChildByName('circle');
-                if (circleNode) {
-                    circleNode.active = true;
-                    const sprite = circleNode.getComponent(Sprite);
-                    if (sprite) {
-                        sprite.enabled = true;
+                
+                // 只处理已熨烫（IRONED）状态的格子，退回为高亮（HAS_CIRCLE）状态
+                if (controller.state === BlockState.IRONED) {
+                    // 重置为 HAS_CIRCLE 状态
+                    controller.state = BlockState.HAS_CIRCLE;
+                    
+                    // 显示 circle 并设置颜色
+                    const circleNode = block.getChildByName('circle');
+                    if (circleNode) {
+                        circleNode.active = true;
+                        const sprite = circleNode.getComponent(Sprite);
+                        if (sprite) {
+                            sprite.enabled = true;
+                            // 设置为 block 自己的目标颜色
+                            sprite.color = new Color(controller.targetColorR, controller.targetColorG, controller.targetColorB, controller.targetColorA);
+                        }
                     }
                 }
+                // HAS_CIRCLE 或 NONE 状态不处理，保持原状
             }
         }
     }

@@ -49,11 +49,32 @@ export class ResultPanel extends Component {
     @property(Sprite)
     result_img: Sprite = null;
 
+    @property(Label)
+    right_number: Label = null;
+
+    @property(Label)
+    wrong_number: Label = null;
+
+    @property(Label)
+    percent_number: Label = null;
+
+    @property(Label)
+    highlight_percent: Label = null;
+
+    @property(Label)
+    iron_percent: Label = null;
+
+    @property(Label)
+    time_number: Label = null;
+
     /** 标记当前结果是否为成功 */
     private _isSuccess: boolean = false;
 
     /** 保存的截图数据 */
     private _screenshotData: { width: number; height: number; byteArray: Uint8Array } | null = null;
+
+    /** 游戏开始时间（秒） */
+    private _gameStartTime: number = 0;
 
     /**
      * 设置成功状态，并更新界面文字
@@ -68,6 +89,12 @@ export class ResultPanel extends Component {
         if (tutorialController) {
             tutorialController.endTutorial();
         }
+
+        // 统计正确/错误/正确率
+        this.updateResultStats();
+
+        // 隐藏六个数据 label 的父节点
+        this.hideResultLabelParents();
 
         this.successNode.active = isSuccess ? true : false;
         this.failNode.active = (!isSuccess) ? true : false;
@@ -97,6 +124,156 @@ export class ResultPanel extends Component {
     }
 
     /**
+     * 记录游戏开始时间（在游戏开始时调用）
+     */
+    public recordGameStartTime(): void {
+        this._gameStartTime = Date.now();
+    }
+
+    /**
+     * 统计正确/错误格子和正确率
+     */
+    private updateResultStats(): void {
+        const gameManager = GameManager.getInstance();
+        const gridDrawer = gameManager.levelMode?.gridDrawer;
+        if (!gridDrawer) return;
+
+        const blocks = gridDrawer.getAllBlocks();
+        if (!blocks) return;
+
+        let rightCount = 0;
+        let wrongCount = 0;
+        let totalCount = 0;
+        let highlightedCount = 0;  // 高亮数（HAS_CIRCLE状态）
+        let ironedCount = 0;       // 熨烫数（IRONED状态）
+
+        for (let row = 0; row < blocks.length; row++) {
+            for (let col = 0; col < blocks[row].length; col++) {
+                const block = blocks[row][col];
+                if (!block) continue;
+
+                const controller = block.getComponent(BlockController);
+                if (!controller) continue;
+
+                // 只统计有效 block（目标颜色不透明）
+                if (controller.targetColorA <= 0) continue;
+
+                totalCount++;
+
+                // 统计高亮和熨烫状态
+                if (controller.state === BlockState.HAS_CIRCLE) {
+                    highlightedCount++;
+                } else if (controller.state === BlockState.IRONED) {
+                    ironedCount++;
+                    highlightedCount++; // 已熨烫的也算入高亮数
+                    // 检查是否已熨烫且颜色正确
+                    if (controller.isColorMatch()) {
+                        rightCount++;
+                    } else {
+                        wrongCount++;
+                    }
+                } else {
+                    // 其他状态（NONE或未匹配）也算错误
+                    wrongCount++;
+                }
+            }
+        }
+
+        // 计算正确率
+        const percent = totalCount > 0 ? Math.round((rightCount / totalCount) * 100) : 0;
+
+        // 计算高亮率
+        const highlightPercent = totalCount > 0 ? Math.round((highlightedCount / totalCount) * 100) : 0;
+
+        // 计算熨烫率
+        const ironPercent = totalCount > 0 ? Math.round((ironedCount / totalCount) * 100) : 0;
+
+        // 计算用时
+        let timeUsed = 0;
+        if (this._gameStartTime > 0) {
+            timeUsed = Math.round((Date.now() - this._gameStartTime) / 1000);
+        }
+
+        // 更新 Label 显示
+        if (this.right_number) {
+            this.right_number.string = `${rightCount}/${totalCount}`;
+        }
+        if (this.wrong_number) {
+            this.wrong_number.string = `${wrongCount}/${totalCount}`;
+        }
+        if (this.percent_number) {
+            this.percent_number.string = `${percent}%`;
+        }
+        if (this.highlight_percent) {
+            this.highlight_percent.string = `${highlightPercent}%`;
+        }
+        if (this.iron_percent) {
+            this.iron_percent.string = `${ironPercent}%`;
+        }
+        if (this.time_number) {
+            // 格式化为 "XXs"
+            this.time_number.string = `${timeUsed}s`;
+        }
+
+        console.log(`结果统计: 正确=${rightCount}, 错误=${wrongCount}, 正确率=${percent}%, 高亮率=${highlightPercent}%, 熨烫率=${ironPercent}%, 用时=${timeUsed}秒`);
+    }
+
+    /**
+     * 隐藏六个数据 label 的父节点（将 opacity 设为 0）
+     */
+    private hideResultLabelParents(): void {
+        const labels = [
+            this.highlight_percent,
+            this.iron_percent,
+            this.time_number,
+            this.right_number,
+            this.wrong_number,
+            this.percent_number
+        ];
+
+        for (const label of labels) {
+            if (label && label.node.parent) {
+                let uiOpacity = label.node.parent.getComponent(UIOpacity);
+                if (!uiOpacity) {
+                    uiOpacity = label.node.parent.addComponent(UIOpacity);
+                }
+                uiOpacity.opacity = 0;
+            }
+        }
+    }
+
+    /**
+     * 依次显示六个数据 Label（每个间隔 0.1 秒）
+     * 顺序：highlight_percent, iron_percent, time_number, right_number, wrong_number, percent_number
+     */
+    private showResultLabelsSequentially(): void {
+        const labels: { item: Node, index: number }[] = [
+            { item: this.highlight_percent.node.parent, index: 0 },
+            { item: this.iron_percent.node.parent, index: 1 },
+            { item: this.time_number.node.parent, index: 2 },
+            { item: this.right_number.node.parent, index: 0 },
+            { item: this.wrong_number.node.parent, index: 1 },
+            { item: this.percent_number.node.parent, index: 2 }
+        ];
+
+        const delay = 0.15; // 间隔 0.1 秒
+        
+        for (const item of labels) {
+            if (item.item) {
+                // 获取或添加 UIOpacity 组件
+                let uiOpacity = item.item.getComponent(UIOpacity);
+                
+                // 延迟显示
+                this.scheduleOnce(() => {
+                    tween(uiOpacity)
+                        .to(0.3, { opacity: 255 })
+                        .start();
+                }, item.index * delay);
+            }
+        }
+    }
+
+    /**
      * content 缩放入场动画：从 0 到 1
      */
     private playContentEnterAnimation(): void {
@@ -110,11 +287,13 @@ export class ResultPanel extends Component {
         // 先设置为 0
         this.content.setScale(0, 0, 1);
 
-        // 动画到 1，动画完成后生成结果图片
+        // 动画到 1，动画完成后生成结果图片，然后依次显示 Label
         tween(this.content)
             .to(0.3, { scale: Vec3.ONE }, { easing: 'backOut' })
             .call(() => {
                 this.generateResultImage();
+                // tween 完成后，依次显示六个数据 Label
+                this.showResultLabelsSequentially();
             })
             .start();
     }
@@ -430,28 +609,13 @@ export class ResultPanel extends Component {
             // 重置30秒警告计时器
             levelMode['_30SecondWarningTimer'] = 0;
             
-            // 重置所有格子状态：改成高亮状态，显示圆圈，隐藏熨烫图片
+            // 重置格子状态：已熨烫的格子退回高亮状态，显示圆圈，隐藏熨烫图片
             const gridDrawer = levelMode.gridDrawer;
             if (gridDrawer) {
-                const blocks = gridDrawer.getAllBlocks();
-                if (blocks) {
-                    for (let row = 0; row < blocks.length; row++) {
-                        for (let col = 0; col < blocks[row].length; col++) {
-                            const block = blocks[row][col];
-                            if (!block) continue;
-                            const controller = block.getComponent(BlockController);
-                            if (!controller) continue;
-                            // 只处理有效 block（目标颜色不透明）
-                            if (controller.targetColorA <= 0) continue;
-                            // 重置为 HAS_CIRCLE 状态
-                            controller.state = BlockState.HAS_CIRCLE;
-                        }
-                    }
-                    // 显示所有圆圈
-                    gridDrawer.showAllBlockCircles();
-                    // 隐藏所有熨烫图片（通过隐藏 block sprites）
-                    gridDrawer.hideAllBlockSpritesInstant();
-                }
+                // 显示所有圆圈（已熨烫的格子退回高亮状态）
+                gridDrawer.showAllBlockCircles();
+                // 隐藏所有熨烫图片（通过隐藏 block sprites）
+                gridDrawer.hideAllBlockSpritesInstant();
             }
             
             // 重置进度到初始高亮状态（所有格子都是高亮，所以进度为50%）
@@ -460,6 +624,8 @@ export class ResultPanel extends Component {
             levelMode.startCountdown();
             // 恢复游戏状态
             gameManager.gameState = GameState.PLAYING;
+            // 重置游戏开始时间
+            this.recordGameStartTime();
         }
         
         gameManager.vibrateShort();
