@@ -3,5 +3,9 @@
   "uuid": "a87d0d20-1580-4f94-86d0-4a5ea231ee5b",
   "creator": {
     "version": "3.8.1"
+  },
+  "dependencies": {
+    "@cloudbase/adapter-cocos_native": "^1.0.0",
+    "@cloudbase/js-sdk": "^2.27.3"
   }
 }
