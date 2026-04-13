@@ -778,7 +778,7 @@ export class LevelMode extends GameMode {
         }
 
         // 显示原生格子广告（距离屏幕顶部 10% 位置）
-        WXManager.instance?.showNativeGridAd(0.145);
+        WXManager.instance?.showNativeGridAd(0.14);
 
         // 第一关开启新手引导
         if (gameManager.currentDifficulty == DifficultyMode.SIMPLE && gameManager.currentLevel === 1) {

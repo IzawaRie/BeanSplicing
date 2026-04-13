@@ -439,6 +439,7 @@ export class MenuManager extends Component {
         }
 
         WXManager.instance?.hideNativeAd();
+        WXManager.instance?.hideNativeGridAd();
 
         // 设置难度并获取关卡数据
         this.levelConfig?.setDifficulty(difficulty);

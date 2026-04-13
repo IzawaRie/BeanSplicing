@@ -588,6 +588,7 @@ export class ResultPanel extends Component {
         gameManager.levelMode.node.active = false;
         gameManager.menuManager.node.active = true;
         WXManager.instance?.showNativeAd();
+        WXManager.instance?.showNativeGridAd(0.14);
         AudioManager.instance.playMenuBgm();
     }
 
@@ -640,6 +641,7 @@ export class ResultPanel extends Component {
         }
         
         AudioManager.instance.playGameBgm();
+        WXManager.instance?.showNativeGridAd(0.14);
         gameManager.vibrateShort();
     }
 }
