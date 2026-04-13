@@ -436,7 +436,7 @@ export class LevelMode extends GameMode {
     startLevel(levelId: number, patternPath: string = ''): void {
         WXManager.instance?.setCaptureRestricted();
         // 显示原生模板广告
-        WXManager.instance?.createNativeAdAtBottom();
+        WXManager.instance?.showNativeAd();
         // 隐藏设置按钮
         if (this.settingBtn) {
             this.settingBtn.active = false;
@@ -776,6 +776,9 @@ export class LevelMode extends GameMode {
         if (this.resultPanel) {
             this.resultPanel.recordGameStartTime();
         }
+
+        // 显示原生格子广告（距离屏幕顶部 10% 位置）
+        WXManager.instance?.showNativeGridAd(0.16);
 
         // 第一关开启新手引导
         if (gameManager.currentDifficulty == DifficultyMode.SIMPLE && gameManager.currentLevel === 1) {

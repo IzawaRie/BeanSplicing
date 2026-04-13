@@ -180,7 +180,7 @@ export class MenuManager extends Component {
         AudioManager.instance.playMenuBgm();
 
         // 在主页面显示原生模板广告
-        WXManager.instance?.createNativeAdAtBottom();
+        WXManager.instance?.showNativeAd();
     }
 
     /**

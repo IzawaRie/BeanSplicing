@@ -441,101 +441,6 @@ export class WXManager extends Component {
         this.clearStorageLevel();
     }
 
-    /**
-     * 获取用户 openid 并保存
-     */
-    // private async getOpenid(): Promise<void> {
-    //     if (typeof (wx) === 'undefined') return;
-
-    //     try {
-    //         // wx.login 获取 code
-    //         const loginRes: any = await wx.login();
-    //         if (!loginRes.code) {
-    //             console.warn('wx.login 未返回 code');
-    //             return;
-    //         }
-
-    //         console.log('code:', loginRes.code);
-    //         // 发送 code 到云函数换取 openid
-    //         const res: any = await wx.cloud.callFunction({
-    //             name: 'login',
-    //             data: { code: loginRes.code }
-    //         });
-
-    //         this.openid = res?.openid ?? '';
-    //         if (this.openid) {
-    //             console.log('获取到 openid:', this.openid);
-    //         } else {
-    //             console.warn('未获取到 openid');
-    //         }
-    //     } catch (e) {
-    //         console.warn('获取 openid 失败:', e);
-    //     }
-    // }
-
-    /**
-     * 提交关卡进度
-     * @param level 当前关卡数
-     */
-    // public async submitLevel(level: number): Promise<void> {
-    //     if (typeof (wx) === 'undefined') {
-    //         console.warn('不在微信小游戏环境中');
-    //         return null;
-    //     }
-
-    //     return new Promise((resolve) => {
-    //         const db = wx.cloud.database();
-
-    //         db.collection('BeanSplicing').get().then(res => {
-    //             const data = res.data;
-    //             if(data.length > 0){
-    //                 db.collection("BeanSplicing").doc(data[0]._id).update({
-    //                     data: {
-    //                         level: level
-    //                     }
-    //                 });
-    //             }else{
-    //                 db.collection("BeanSplicing").add({
-    //                     data: {
-    //                         level: level
-    //                     }
-    //                 });
-    //             }
-    //             wx.setStorageSync('level', level);
-    //         });
-
-    //         resolve(null);
-    //     });
-    // }
-
-    /**
-     * 从云端获取关卡数
-     * @returns 返回保存的关卡数，不存在则返回 null
-     */
-    // public async getLevel(): Promise<number | null> {
-    //     // 检查是否在微信环境
-    //     if (typeof (wx) === 'undefined') {
-    //         console.warn('不在微信小游戏环境中，返回默认关卡数');
-    //         return null;
-    //     }
-
-    //     return new Promise((resolve) => {
-    //         const db = wx.cloud.database()
-    //         db.collection('BeanSplicing').
-    //         field({
-    //             level: true,
-    //         })
-    //         .get().then(res => {
-    //             const data = res.data;
-    //             if(data.length <= 0){
-    //                 resolve(null);
-    //             }else{
-    //                 resolve(data[0].level);
-    //             }
-    //         });
-    //     });
-    // }
-
     public async getStorageLevel(): Promise<number | null> {
         if (typeof (wx) === 'undefined') {
             console.warn('不在微信小游戏环境中');
@@ -882,7 +787,7 @@ export class WXManager extends Component {
     private customAd: any = null;
     private nativeAdStyle = { left: 0, top: 0, width: 0 };
     // 原生模板广告位 id
-    private readonly NATIVE_AD_UNIT_ID: string = 'adunit-e0eab827ac9fbb10'; // 替换为实际的广告位 id
+    private readonly NATIVE_AD_UNIT_ID: string = 'adunit-e0eab827ac9fbb10';
 
     private applyNativeAdStyle(): void {
         if (!this.customAd?.style) return;
@@ -946,15 +851,7 @@ export class WXManager extends Component {
                 this.customAd.onClose(() => {
                     console.log('原生广告关闭');
                 });
-                return;
             }
-
-            this.applyNativeAdStyle();
-            this.customAd.show().catch(() => {
-                this.customAd.destroy();
-                this.customAd = null;
-                this.createNativeAd(this.nativeAdStyle.left, this.nativeAdStyle.top, this.nativeAdStyle.width);
-            });
         } catch (e) {
             console.warn('创建原生广告失败:', e);
         }
@@ -985,10 +882,15 @@ export class WXManager extends Component {
     }
 
     /**
-     * 显示原生广告
+     * 显示原生广告（如果未创建会自动创建并显示）
+     * @param bottomMargin 距离底部的边距，默认 0
+     * @param estimatedHeight 预估广告高度，默认 120
      */
-    public showNativeAd(): void {
-        if (!this.customAd) return;
+    public showNativeAd(bottomMargin: number = 0, estimatedHeight: number = 120): void {
+        if (!this.customAd) {
+            this.createNativeAdAtBottom(bottomMargin, estimatedHeight);
+            return;
+        }
         this.showNativeAdInternal();
     }
 
@@ -1004,64 +906,73 @@ export class WXManager extends Component {
 
     // ========== 原生格子广告 ==========
     private nativeGridAd: any = null;
+    private nativeGridAdStyle = { left: 0, top: 0 };
     private readonly NATIVE_GRID_AD_UNIT_ID: string = 'adunit-4873c091df5fa489';
 
+    private showNativeGridAdInternal(): void {
+        if (!this.nativeGridAd) return;
+        this.nativeGridAd.show().catch((err: any) => {
+            console.warn('原生格子广告显示失败:', err);
+        });
+    }
+
     /**
-     * 创建原生格子广告
-     * @param left 距离屏幕左侧像素（左上角为原点）
+     * 创建原生格子广告（贴近屏幕右边）
+     * @param right 距离屏幕右侧像素（左上角为原点）
      * @param top 距离屏幕顶部像素（左上角为原点）
      */
-    public createNativeGridAd(left: number, top: number): void {
+    public createNativeGridAd(right: number, top: number): void {
         if (typeof (wx) === 'undefined') return;
 
+        const windowSize = this.getWindowSize();
+        if (!windowSize) return;
+
+        // 计算 left 位置使广告贴近屏幕右边
+        const adWidth = 80; // 广告宽度
+        const left = Math.max(0, Math.floor(windowSize.width - adWidth - right));
+
+        this.nativeGridAdStyle.left = left;
+        this.nativeGridAdStyle.top = Math.max(0, Math.floor(top));
+
         try {
-            if (this.nativeGridAd) {
-                this.nativeGridAd.destroy();
-                this.nativeGridAd = null;
-            }
-
-            this.nativeGridAd = wx.createNativeAd({
-                adUnitId: this.NATIVE_GRID_AD_UNIT_ID
-            });
-
-            this.nativeGridAd.onLoad(() => {
-                console.log('原生格子广告加载成功');
-                this.nativeGridAd.show().then(() => {
-                    console.log('原生格子广告显示成功');
-                }).catch((err: any) => {
-                    console.warn('原生格子广告显示失败:', err);
+            if (!this.nativeGridAd) {
+                this.nativeGridAd = wx.createCustomAd({
+                    adUnitId: this.NATIVE_GRID_AD_UNIT_ID,
+                    style: {
+                        left: this.nativeGridAdStyle.left,
+                        top: this.nativeGridAdStyle.top,
+                        width: adWidth,
+                        fixed: true
+                    }
                 });
-            });
 
-            this.nativeGridAd.onError((err: any) => {
-                console.warn('原生格子广告加载失败:', err);
-            });
+                this.nativeGridAd.onLoad(() => {
+                    console.log('原生格子广告加载成功');
+                    this.showNativeGridAdInternal();
+                });
 
-            this.nativeGridAd.onClose(() => {
-                console.log('原生格子广告关闭');
-            });
+                this.nativeGridAd.onError((err: any) => {
+                    console.warn('原生格子广告加载失败:', err);
+                });
 
-            // 设置位置
-            if (this.nativeGridAd.style) {
-                this.nativeGridAd.style.left = Math.max(0, Math.floor(left));
-                this.nativeGridAd.style.top = Math.max(0, Math.floor(top));
+                this.nativeGridAd.onClose(() => {
+                    console.log('原生格子广告关闭');
+                });
             }
-
-            this.nativeGridAd.load();
         } catch (e) {
             console.warn('创建原生格子广告失败:', e);
         }
     }
 
     /**
-     * 在屏幕底部指定位置创建原生格子广告
-     * @param bottom 距离屏幕底部的像素
+     * 在指定位置创建原生格子广告
+     * @param topPercent 距离屏幕顶部的百分比
      */
-    public createNativeGridAdAtBottom(bottom: number): void {
+    public createNativeGridAdAtBottom(topPercent: number): void {
         const windowSize = this.getWindowSize();
         if (!windowSize) return;
 
-        const top = Math.max(0, Math.floor(windowSize.height - bottom));
+        const top = Math.floor(windowSize.height * topPercent);
         this.createNativeGridAd(0, top);
     }
 
@@ -1076,13 +987,15 @@ export class WXManager extends Component {
     }
 
     /**
-     * 显示原生格子广告
+     * 显示原生格子广告（如果未创建会自动创建并显示）
+     * @param topPercent 距离屏幕顶部的百分比
      */
-    public showNativeGridAd(): void {
-        if (!this.nativeGridAd) return;
-        this.nativeGridAd.show().catch((err: any) => {
-            console.warn('显示原生格子广告失败:', err);
-        });
+    public showNativeGridAd(topPercent: number): void {
+        if (!this.nativeGridAd) {
+            this.createNativeGridAdAtBottom(topPercent);
+            return;
+        }
+        this.showNativeGridAdInternal();
     }
 
     /**

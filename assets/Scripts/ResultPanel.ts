@@ -130,6 +130,7 @@ export class ResultPanel extends Component {
         // 播放缩放入场动画，动画完成后生成结果图片
         this.playContentEnterAnimation();
         WXManager.instance?.setCaptureNone();
+        WXManager.instance?.hideNativeGridAd();
     }
 
     /**
