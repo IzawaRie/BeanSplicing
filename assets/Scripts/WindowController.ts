@@ -51,7 +51,7 @@ export class WindowController extends Component {
         AudioManager.instance.playEffect('click_btn');
 
         // 播放激励视频广告
-        WXManager.instance.showPowerRewardedVideoAd((success) => {
+        WXManager.instance.showRewardedVideoAd((success) => {
             if (success) {
                 // 观看成功后增加体力
                 gameManager.power += 3;

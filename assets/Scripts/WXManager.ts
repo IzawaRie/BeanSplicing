@@ -23,12 +23,10 @@ export class WXManager extends Component {
     testBtn: Node = null;
 
     // 激励视频广告实例
-    private skillRewardedVideoAd: any = null;
-    private powerRewardedVideoAd: any = null;
+    private rewardedVideoAd: any = null;
     private interstitialAd: any = null;
     // 激励视频广告位 id（在微信公众平台广告位配置获取）
-    private readonly SKILL_VIDEO_AD_UNIT_ID: string = 'adunit-f7349bec4122701f';
-    private readonly POWER_VIDEO_AD_UNIT_ID: string = 'adunit-cdd79ed40eb8ec5f';
+    private readonly VIDEO_AD_UNIT_ID: string = 'adunit-f7349bec4122701f';
     private readonly INTERSTITIAL_AD_UNIT_ID: string = 'adunit-613709c057d35ead';
     // 是否为调试模式（正式版但广告位为 test123 时启用）
     private isDebugMode: boolean = false;
@@ -48,48 +46,48 @@ export class WXManager extends Component {
         }
     }
 
-    // ========== 激励视频广告（技能） ==========
+    // ========== 激励视频广告 ==========
     private skillRewardedVideoClosed: ((success: boolean) => void) | null = null;
 
     /**
-     * 创建技能激励视频广告
+     * 创建激励视频广告
      */
-    private createSkillRewardedVideoAd(): void {
+    private createRewardedVideoAd(): void {
         if (typeof (wx) === 'undefined') return;
 
         try {
-            this.skillRewardedVideoAd = wx.createRewardedVideoAd({
-                adUnitId: this.SKILL_VIDEO_AD_UNIT_ID
+            this.rewardedVideoAd = wx.createRewardedVideoAd({
+                adUnitId: this.VIDEO_AD_UNIT_ID
             });
 
-            this.skillRewardedVideoAd.onLoad(() => {
-                console.log('技能激励视频广告加载完成');
+            this.rewardedVideoAd.onLoad(() => {
+                console.log('激励视频广告加载完成');
             });
 
-            this.skillRewardedVideoAd.onError((err: any) => {
-                console.warn('技能激励视频广告错误:', err);
+            this.rewardedVideoAd.onError((err: any) => {
+                console.warn('激励视频广告错误:', err);
             });
 
-            this.skillRewardedVideoAd.onClose((res: any) => {
+            this.rewardedVideoAd.onClose((res: any) => {
                 if (res && res.isEnded) {
-                    console.log('技能激励视频广告播放完成，发放奖励');
+                    console.log('激励视频广告播放完成，发放奖励');
                     this.skillRewardedVideoClosed?.(true);
                 } else {
-                    console.log('技能激励视频广告未看完，不发放奖励');
+                    console.log('激励视频广告未看完，不发放奖励');
                     this.skillRewardedVideoClosed?.(false);
                 }
                 this.skillRewardedVideoClosed = null;
             });
         } catch (e) {
-            console.warn('创建技能激励视频广告失败:', e);
+            console.warn('创建激励视频广告失败:', e);
         }
     }
 
     /**
-     * 显示技能激励视频广告
+     * 显示激励视频广告
      * @param callback 播放结束后的回调，参数表示是否完整看完
      */
-    public showSkillRewardedVideoAd(callback: (success: boolean) => void): void {
+    public showRewardedVideoAd(callback: (success: boolean) => void): void {
         if (typeof (wx) === 'undefined') {
             callback?.(true);
             return;
@@ -100,94 +98,22 @@ export class WXManager extends Component {
             return;
         }
 
-        if (!this.skillRewardedVideoAd) {
-            console.warn('技能激励视频广告未创建');
+        if (!this.rewardedVideoAd) {
+            console.warn('激励视频广告未创建');
             callback?.(false);
             return;
         }
 
         this.skillRewardedVideoClosed = callback;
 
-        this.skillRewardedVideoAd.show().then(() => {
-            console.log('技能激励视频广告显示成功');
+        this.rewardedVideoAd.show().then(() => {
+            console.log('激励视频广告显示成功');
         }).catch((err: any) => {
-            this.skillRewardedVideoAd.load().then(() => {
-                return this.skillRewardedVideoAd.show();
+            this.rewardedVideoAd.load().then(() => {
+                return this.rewardedVideoAd.show();
             }).catch(() => {
                 this.skillRewardedVideoClosed?.(false);
                 this.skillRewardedVideoClosed = null;
-            });
-        });
-    }
-
-    // ========== 激励视频广告（体力） ==========
-    private powerRewardedVideoClosed: ((success: boolean) => void) | null = null;
-
-    /**
-     * 创建体力激励视频广告
-     */
-    private createPowerRewardedVideoAd(): void {
-        if (typeof (wx) === 'undefined') return;
-
-        try {
-            this.powerRewardedVideoAd = wx.createRewardedVideoAd({
-                adUnitId: this.POWER_VIDEO_AD_UNIT_ID
-            });
-
-            this.powerRewardedVideoAd.onLoad(() => {
-                console.log('体力激励视频广告加载完成');
-            });
-
-            this.powerRewardedVideoAd.onError((err: any) => {
-                console.warn('体力激励视频广告错误:', err);
-            });
-
-            this.powerRewardedVideoAd.onClose((res: any) => {
-                if (res && res.isEnded) {
-                    console.log('体力激励视频广告播放完成，发放奖励');
-                    this.powerRewardedVideoClosed?.(true);
-                } else {
-                    console.log('体力激励视频广告未看完，不发放奖励');
-                    this.powerRewardedVideoClosed?.(false);
-                }
-                this.powerRewardedVideoClosed = null;
-            });
-        } catch (e) {
-            console.warn('创建体力激励视频广告失败:', e);
-        }
-    }
-
-    /**
-     * 显示体力激励视频广告
-     * @param callback 播放结束后的回调，参数表示是否完整看完
-     */
-    public showPowerRewardedVideoAd(callback: (success: boolean) => void): void {
-        if (typeof (wx) === 'undefined') {
-            callback?.(true);
-            return;
-        }
-
-        if (this.isDebugMode) {
-            callback?.(true);
-            return;
-        }
-
-        if (!this.powerRewardedVideoAd) {
-            console.warn('体力激励视频广告未创建');
-            callback?.(false);
-            return;
-        }
-
-        this.powerRewardedVideoClosed = callback;
-
-        this.powerRewardedVideoAd.show().then(() => {
-            console.log('体力激励视频广告显示成功');
-        }).catch((err: any) => {
-            this.powerRewardedVideoAd.load().then(() => {
-                return this.powerRewardedVideoAd.show();
-            }).catch(() => {
-                this.powerRewardedVideoClosed?.(false);
-                this.powerRewardedVideoClosed = null;
             });
         });
     }
@@ -242,14 +168,6 @@ export class WXManager extends Component {
         }).catch((err: any) => {
             console.warn('推荐位加载失败:', err);
         });
-    }
-
-    /**
-     * 创建激励视频广告（兼容旧调用）
-     */
-    private createRewardedVideoAd(): void {
-        this.createSkillRewardedVideoAd();
-        this.createPowerRewardedVideoAd();
     }
 
     /**
