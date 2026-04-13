@@ -1001,4 +1001,95 @@ export class WXManager extends Component {
             this.customAd = null;
         }
     }
+
+    // ========== 原生格子广告 ==========
+    private nativeGridAd: any = null;
+    private readonly NATIVE_GRID_AD_UNIT_ID: string = 'adunit-4873c091df5fa489';
+
+    /**
+     * 创建原生格子广告
+     * @param left 距离屏幕左侧像素（左上角为原点）
+     * @param top 距离屏幕顶部像素（左上角为原点）
+     */
+    public createNativeGridAd(left: number, top: number): void {
+        if (typeof (wx) === 'undefined') return;
+
+        try {
+            if (this.nativeGridAd) {
+                this.nativeGridAd.destroy();
+                this.nativeGridAd = null;
+            }
+
+            this.nativeGridAd = wx.createNativeAd({
+                adUnitId: this.NATIVE_GRID_AD_UNIT_ID
+            });
+
+            this.nativeGridAd.onLoad(() => {
+                console.log('原生格子广告加载成功');
+                this.nativeGridAd.show().then(() => {
+                    console.log('原生格子广告显示成功');
+                }).catch((err: any) => {
+                    console.warn('原生格子广告显示失败:', err);
+                });
+            });
+
+            this.nativeGridAd.onError((err: any) => {
+                console.warn('原生格子广告加载失败:', err);
+            });
+
+            this.nativeGridAd.onClose(() => {
+                console.log('原生格子广告关闭');
+            });
+
+            // 设置位置
+            if (this.nativeGridAd.style) {
+                this.nativeGridAd.style.left = Math.max(0, Math.floor(left));
+                this.nativeGridAd.style.top = Math.max(0, Math.floor(top));
+            }
+
+            this.nativeGridAd.load();
+        } catch (e) {
+            console.warn('创建原生格子广告失败:', e);
+        }
+    }
+
+    /**
+     * 在屏幕底部指定位置创建原生格子广告
+     * @param bottom 距离屏幕底部的像素
+     */
+    public createNativeGridAdAtBottom(bottom: number): void {
+        const windowSize = this.getWindowSize();
+        if (!windowSize) return;
+
+        const top = Math.max(0, Math.floor(windowSize.height - bottom));
+        this.createNativeGridAd(0, top);
+    }
+
+    /**
+     * 销毁原生格子广告
+     */
+    public destroyNativeGridAd(): void {
+        if (this.nativeGridAd) {
+            this.nativeGridAd.destroy();
+            this.nativeGridAd = null;
+        }
+    }
+
+    /**
+     * 显示原生格子广告
+     */
+    public showNativeGridAd(): void {
+        if (!this.nativeGridAd) return;
+        this.nativeGridAd.show().catch((err: any) => {
+            console.warn('显示原生格子广告失败:', err);
+        });
+    }
+
+    /**
+     * 隐藏原生格子广告
+     */
+    public hideNativeGridAd(): void {
+        if (!this.nativeGridAd) return;
+        this.nativeGridAd.hide?.();
+    }
 }
