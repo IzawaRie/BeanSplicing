@@ -928,7 +928,7 @@ export class WXManager extends Component {
         if (!windowSize) return;
 
         // 计算 left 位置使广告贴近屏幕右边
-        const adWidth = 80; // 广告宽度
+        const adWidth = 56; // 广告宽度
         const left = Math.max(0, Math.floor(windowSize.width - adWidth - right));
 
         this.nativeGridAdStyle.left = left;
