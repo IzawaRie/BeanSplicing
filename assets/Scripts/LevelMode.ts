@@ -103,6 +103,12 @@ export class LevelMode extends GameMode {
     private _is30SecondWarning: boolean = false; // 是否已触发30秒警告
     private _isFlashingRed: boolean = false;  // 是否正在红色闪烁
     private _warningTimerId: any = null;    // 闪烁定时器ID
+    private _warningSecondColor: Color = new Color(255, 255, 255, 255); // 30秒警告闪烁的第二种颜色（默认白色）
+
+    // palette 技能相关
+    private _isPaletteActive: boolean = false; // palette 技能是否激活
+    private _paletteTimer: number = 0;     // palette 技能剩余时间
+    private readonly _PALETTE_DURATION: number = 10; // palette 技能持续时间（秒）
 
     // 进度相关
     private _totalBlockCount: number = 0;    // 有效 block 总数
@@ -137,6 +143,22 @@ export class LevelMode extends GameMode {
         }
 
         if (gameManager.gameState != GameState.PLAYING) return;
+
+        // palette 技能倒计时
+        if (this._isPaletteActive) {
+            this._paletteTimer -= _deltaTime;
+            if (this._paletteTimer <= 0) {
+                this._paletteTimer = 0;
+                this._isPaletteActive = false;
+                this.hidePalettePreview();
+                // 恢复时间标签颜色
+                if (this.time_label) {
+                    this.time_label.color = new Color(255, 255, 255, 255);
+                }
+                // 更新警告闪烁颜色为白色
+                this._warningSecondColor = new Color(255, 255, 255, 255);
+            }
+        }
 
         // 时间冻结期间不减少倒计时
         if (this._isTimeFrozen) {
@@ -191,7 +213,8 @@ export class LevelMode extends GameMode {
     // ==================== 30秒警告系统 ====================
 
     /**
-     * 开始30秒警告：时间文字红色闪烁 + didi音效（循环播放）
+     * 开始30秒警告：时间文字闪烁 + didi音效（循环播放）
+     * 使用全局变量 _warningSecondColor 决定闪烁的第二种颜色
      */
     private start30SecondWarning(): void {
         if (!this.time_label) return;
@@ -205,11 +228,11 @@ export class LevelMode extends GameMode {
             // 变红色
             this.time_label.color = new Color(255, 0, 0, 255);
 
-            // 0.5秒后恢复白色
+            // 0.5秒后恢复
             this._warningTimerId = setTimeout(() => {
                 if (!this._isFlashingRed) return;
-                this.time_label.color = new Color(255, 255, 255, 255);
-                // 0.3秒后再次闪烁（总共间隔0.6秒）
+                this.time_label.color = this._warningSecondColor;
+                // 0.5秒后再次闪烁（总共间隔1秒）
                 this._warningTimerId = setTimeout(() => {
                     if (this._isFlashingRed) {
                         flashAndPlay();
@@ -456,6 +479,9 @@ export class LevelMode extends GameMode {
             tween(this.time_label).stop();
             this.time_label.color = new Color(255, 255, 255, 255);
         }
+        // 重置 palette 技能状态
+        this._isPaletteActive = false;
+        this._paletteTimer = 0;
         // 重置技能按钮状态
         if (this.skillController) {
             this.skillController.resetSkills();
@@ -982,7 +1008,7 @@ export class LevelMode extends GameMode {
 
     /**
      * 修复技能（fix_skill）
-     * 修复所有颜色不匹配的 block，将其颜色改为正确的目标颜色
+     * 只修复同一个颜色中不匹配数量最多的格子的颜色
      */
     public activateFixSkill(): void {
         if (!this.gridDrawer) return;
@@ -990,7 +1016,11 @@ export class LevelMode extends GameMode {
         const blocks = this.gridDrawer.getAllBlocks();
         if (!blocks) return;
 
-        let fixedCount = 0;
+        // 第一步：统计每种颜色的不匹配格子数量
+        type ColorKey = string;
+        const colorMismatchCount: Map<ColorKey, number> = new Map();
+        const colorMismatchBlocks: Map<ColorKey, BlockController[]> = new Map();
+
         for (let row = 0; row < blocks.length; row++) {
             for (let col = 0; col < blocks[row].length; col++) {
                 const block = blocks[row][col];
@@ -1004,55 +1034,89 @@ export class LevelMode extends GameMode {
 
                 // 检查颜色是否与目标颜色匹配
                 if (!controller.isColorMatch()) {
-                    if (controller.state === BlockState.HAS_CIRCLE) {
-                        // 有 circle 状态：修复 circle 颜色
-                        const circleNode = block.getChildByName('circle');
-                        if (circleNode) {
-                            const sprite = circleNode.getComponent(Sprite);
-                            if (sprite) {
-                                sprite.color = new Color(
-                                    controller.targetColorR,
-                                    controller.targetColorG,
-                                    controller.targetColorB,
-                                    controller.targetColorA
-                                );
-                                sprite.enabled = true;
-                            }
-                        }
-                    } else if (controller.state === BlockState.IRONED) {
-                        // 已熨烫状态：修复 block_sp 颜色
-                        const blockSpNode = block.getChildByName('block_sp');
-                        if (blockSpNode) {
-                            const sprite = blockSpNode.getComponent(Sprite);
-                            if (sprite) {
-                                sprite.color = new Color(
-                                    controller.targetColorR,
-                                    controller.targetColorG,
-                                    controller.targetColorB,
-                                    controller.targetColorA
-                                );
-                                sprite.enabled = true;
-                            }
-                            // 恢复 opacity 为全不透明
-                            const uiOpacity = blockSpNode.getComponent(UIOpacity);
-                            if (uiOpacity) {
-                                uiOpacity.opacity = 255;
-                            }
-                        }
-                    }
-                    // 更新 block 当前颜色
-                    controller.setCurrentColor(
-                        controller.targetColorR,
-                        controller.targetColorG,
-                        controller.targetColorB,
-                        controller.targetColorA
-                    );
-                    fixedCount++;
+                    // 用 RGBA 创建一个唯一的颜色键
+                    const colorKey = `${controller.targetColorR},${controller.targetColorG},${controller.targetColorB},${controller.targetColorA}`;
+
+                    const count = colorMismatchCount.get(colorKey) || 0;
+                    colorMismatchCount.set(colorKey, count + 1);
+
+                    const blockList = colorMismatchBlocks.get(colorKey) || [];
+                    blockList.push(controller);
+                    colorMismatchBlocks.set(colorKey, blockList);
                 }
             }
         }
 
-        console.log(`fix_skill 激活：修复了 ${fixedCount} 个错误的 block`);
+        // 第二步：找出不匹配数量最多的颜色
+        let maxMismatchCount = 0;
+        let targetColorKey: ColorKey = null;
+
+        for (const [colorKey, count] of colorMismatchCount) {
+            if (count > maxMismatchCount) {
+                maxMismatchCount = count;
+                targetColorKey = colorKey;
+            }
+        }
+
+        if (!targetColorKey) {
+            console.log('fix_skill 激活：没有发现颜色不匹配的 block');
+            return;
+        }
+
+        // 第三步：只修复目标颜色的不匹配格子
+        const targetBlocks = colorMismatchBlocks.get(targetColorKey);
+        let fixedCount = 0;
+
+        for (const controller of targetBlocks) {
+            const block = controller.node;
+
+            if (controller.state === BlockState.HAS_CIRCLE) {
+                // 有 circle 状态：修复 circle 颜色
+                const circleNode = block.getChildByName('circle');
+                if (circleNode) {
+                    const sprite = circleNode.getComponent(Sprite);
+                    if (sprite) {
+                        sprite.color = new Color(
+                            controller.targetColorR,
+                            controller.targetColorG,
+                            controller.targetColorB,
+                            controller.targetColorA
+                        );
+                        sprite.enabled = true;
+                    }
+                }
+            } else if (controller.state === BlockState.IRONED) {
+                // 已熨烫状态：修复 block_sp 颜色
+                const blockSpNode = block.getChildByName('block_sp');
+                if (blockSpNode) {
+                    const sprite = blockSpNode.getComponent(Sprite);
+                    if (sprite) {
+                        sprite.color = new Color(
+                            controller.targetColorR,
+                            controller.targetColorG,
+                            controller.targetColorB,
+                            controller.targetColorA
+                        );
+                        sprite.enabled = true;
+                    }
+                    // 恢复 opacity 为全不透明
+                    const uiOpacity = blockSpNode.getComponent(UIOpacity);
+                    if (uiOpacity) {
+                        uiOpacity.opacity = 255;
+                    }
+                }
+            }
+            // 更新 block 当前颜色
+            controller.setCurrentColor(
+                controller.targetColorR,
+                controller.targetColorG,
+                controller.targetColorB,
+                controller.targetColorA
+            );
+            fixedCount++;
+        }
+
+        console.log(`fix_skill 激活：修复了 ${fixedCount} 个 "${targetColorKey}" 颜色的 block`);
     }
 
     /**
@@ -1137,7 +1201,18 @@ export class LevelMode extends GameMode {
 
         // 显示所有 number 节点
         this.gridDrawer.showAllNumberNodes();
-        console.log('palette_skill 激活：显示拼豆颜色预览');
+
+        // 启动 10 秒倒计时
+        this._isPaletteActive = true;
+        this._paletteTimer = this._PALETTE_DURATION;
+
+        // 改变时间标签颜色为绿色，并更新警告闪烁颜色
+        if (this.time_label) {
+            this.time_label.color = new Color(0, 255, 100, 255);
+        }
+        this._warningSecondColor = new Color(0, 255, 100, 255);
+
+        console.log('palette_skill 激活：显示拼豆颜色预览，10秒后自动隐藏');
     }
 
     /**
