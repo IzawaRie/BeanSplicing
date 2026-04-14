@@ -357,3 +357,23 @@ export class CloudbaseDBService {
 }
 
 export default CloudbaseDBService.getInstance();
+
+/**
+ * 调用云函数
+ * @param name 云函数名称
+ * @param data 传递给云函数的数据
+ * @returns 云函数返回结果
+ */
+export async function callFunction(name: string, data: Record<string, any> = {}): Promise<any> {
+    try {
+        const res = await (cloudbase as any).callFunction({
+            name: name,
+            data: data
+        });
+        console.log(`云函数 ${name} 返回:`, res);
+        return res;
+    } catch (error) {
+        console.error(`调用云函数 ${name} 失败:`, error);
+        return { result: { success: false, error: error.message } };
+    }
+}

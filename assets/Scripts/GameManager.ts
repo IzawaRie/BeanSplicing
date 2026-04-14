@@ -80,6 +80,12 @@ export class GameManager extends Component {
     // 窗口是否打开
     public isWindowOpen: boolean = false;
 
+    // 用户 openid
+    private _openid: string | null = null;
+    public get openid(): string | null {
+        return this._openid;
+    }
+
     // 存储是否加载完成
     private _storageLoaded: boolean = false;
     public get storageLoaded(): boolean {
@@ -189,6 +195,12 @@ export class GameManager extends Component {
     start() {
         this.levelMode.patternApplier.gridDrawer = this.levelMode.gridDrawer;
         this.levelMode.circleList.setAllNodes();
+
+        // 获取用户 openid 并保存到全局变量
+        this.wxManager.getOpenId().then((openid) => {
+            this._openid = openid;
+            console.log('GameManager openid:', this._openid);
+        });
     }
 
     /**

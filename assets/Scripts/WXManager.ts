@@ -1,5 +1,6 @@
 import { _decorator, Component, Node } from 'cc';
 import { GameManager, DifficultyMode } from './GameManager';
+import { callFunction } from './CloudbaseService';
 const { ccclass, property } = _decorator;
 
 // 微信小游戏全局对象类型声明
@@ -975,5 +976,41 @@ export class WXManager extends Component {
                 }
             });
         });
+    }
+
+    // ========== 云函数调用 ==========
+
+    /**
+     * 获取用户 openid
+     * 流程：wx.login -> 云函数 get_openid -> 保存到 storage
+     * @returns Promise<string | null> openid
+     */
+    public async getOpenId(): Promise<string | null> {
+        // 先检查本地是否已有缓存
+        const cachedOpenid = wx.getStorageSync('openid');
+        if (cachedOpenid) {
+            console.log('使用缓存的 openid:', cachedOpenid);
+            return cachedOpenid;
+        }
+
+        // 获取登录凭证
+        const loginResult = await this.login();
+        if (!loginResult.code) {
+            console.warn('获取登录凭证失败:', loginResult.errMsg);
+            return null;
+        }
+
+        // 调用云函数获取 openid
+        const res = await callFunction('get_openid', { js_code: loginResult.code });
+
+        if (res.result?.success && res.result.openid) {
+            // 保存到本地缓存
+            wx.setStorageSync('openid', res.result.openid);
+            console.log('获取 openid 成功:', res.result.openid);
+            return res.result.openid;
+        }
+
+        console.warn('获取 openid 失败:', res.result?.error);
+        return null;
     }
 }
