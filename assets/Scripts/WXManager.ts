@@ -5,13 +5,6 @@ const { ccclass, property } = _decorator;
 // 微信小游戏全局对象类型声明
 declare const wx: any;
 
-// ========== 静态初始化：模块加载时立即执行，比所有组件实例都早 ==========
-// if (typeof wx !== 'undefined' && wx.cloud) {
-//     wx.cloud.init({
-//         env: 'cloud1-2gltl8c72b1bc894'
-//     });
-// }
-
 /**
  * 云存储管理器
  * 接入微信小游戏 wx.setUserCloudStorage 接口
@@ -922,5 +915,65 @@ export class WXManager extends Component {
     public hideNativeGridAd(): void {
         if (!this.nativeGridAd) return;
         this.nativeGridAd.hide?.();
+    }
+
+    // ========== 登录凭证 ==========
+
+    /**
+     * 调用微信登录接口，获取登录凭证（code）
+     * 用于换取 openid、session_key 等用户标识
+     * @see https://developers.weixin.qq.com/miniprogram/dev/api/open-api/login/wx.login.html
+     * @returns Promise<{ code: string | null; errMsg: string }>
+     */
+    public login(): Promise<{ code: string | null; errMsg: string }> {
+        return new Promise((resolve) => {
+            if (typeof (wx) === 'undefined') {
+                console.warn('不在微信小游戏环境中');
+                resolve({ code: null, errMsg: 'not in wechat environment' });
+                return;
+            }
+
+            wx.login({
+                success: (res) => {
+                    if (res.code) {
+                        console.log('wx.login 成功，code:', res.code);
+                        resolve({ code: res.code, errMsg: 'ok' });
+                    } else {
+                        console.warn('wx.login 成功但未返回 code:', res);
+                        resolve({ code: null, errMsg: 'no code returned' });
+                    }
+                },
+                fail: (err) => {
+                    console.error('wx.login 失败:', err);
+                    resolve({ code: null, errMsg: err?.errMsg || 'login failed' });
+                }
+            });
+        });
+    }
+
+    /**
+     * 检查登录态是否过期
+     * 通过 wx.checkSession 检查小程序登录态是否过期
+     * @see https://developers.weixin.qq.com/miniprogram/dev/api/open-api/login/wx.checkSession.html
+     * @returns Promise<boolean> 是否有效
+     */
+    public checkSession(): Promise<boolean> {
+        return new Promise((resolve) => {
+            if (typeof (wx) === 'undefined') {
+                resolve(false);
+                return;
+            }
+
+            wx.checkSession({
+                success: () => {
+                    console.log('session 有效');
+                    resolve(true);
+                },
+                fail: () => {
+                    console.log('session 已过期，需要重新登录');
+                    resolve(false);
+                }
+            });
+        });
     }
 }
