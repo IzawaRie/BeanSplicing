@@ -38,6 +38,9 @@ export class WXManager extends Component {
             this.createRewardedVideoAd();
             this.createInterstitialAd();
         }
+        
+        // 初始化时获取用户信息（昵称和头像）
+        this.getUserInfo();
     }
 
     // ========== 激励视频广告 ==========
@@ -1012,5 +1015,57 @@ export class WXManager extends Component {
 
         console.warn('获取 openid 失败:', res.result?.error);
         return null;
+    }
+
+    // ========== 用户信息 ==========
+
+    // 用户昵称缓存
+    private _nickname: string = '';
+    public get nickname(): string {
+        return this._nickname;
+    }
+
+    // 用户头像 URL 缓存
+    private _avatarUrl: string = '';
+    public get avatarUrl(): string {
+        return this._avatarUrl;
+    }
+
+    /**
+     * 获取用户信息（昵称和头像）
+     * 每次都从微信获取最新数据，不使用缓存
+     * @returns Promise<{ nickname: string; avatarUrl: string }>
+     */
+    public getUserInfo(): Promise<{ nickname: string; avatarUrl: string }> {
+        return new Promise((resolve) => {
+            if (typeof (wx) === 'undefined') {
+                resolve({ nickname: '游客', avatarUrl: '' });
+                return;
+            }
+
+            // 直接调用 wx.getUserInfo 获取最新数据
+            wx.getUserInfo({
+                withCredentials: false,
+                lang: 'zh_CN',
+                success: (res) => {
+                    const userInfo = res.userInfo;
+                    if (userInfo) {
+                        this._nickname = userInfo.nickName || '玩家';
+                        this._avatarUrl = userInfo.avatarUrl || '';
+                        
+                        console.log('获取用户信息成功:', this._nickname, this._avatarUrl);
+                        resolve({ nickname: this._nickname, avatarUrl: this._avatarUrl });
+                    } else {
+                        resolve({ nickname: '玩家', avatarUrl: '' });
+                    }
+                },
+                fail: (err) => {
+                    console.warn('获取用户信息失败:', err);
+                    this._nickname = '玩家';
+                    this._avatarUrl = '';
+                    resolve({ nickname: this._nickname, avatarUrl: this._avatarUrl });
+                }
+            });
+        });
     }
 }
