@@ -136,7 +136,7 @@ export class PlayerService extends Component {
         if (regionName !== undefined) data.regionName = regionName;
 
         // 使用 upsert：存在则更新，不存在则新增
-        return await CloudbaseDBService.upsert(COLLECTION_DIFFICULTY_SUMMARY, { _id: docId }, data);
+        return await CloudbaseDBService.upsert(COLLECTION_DIFFICULTY_SUMMARY, docId, data);
     }
 
     /**
@@ -270,7 +270,7 @@ export class PlayerService extends Component {
                     console.log(`PlayerService: ${diffName} 云数据和本地缓存都为空`);
                 }
             } else {
-                if (cachedLevel == cloudData.highestLevel) return;
+                if (cachedLevel == cloudData.highestLevel) continue;
                 
                 console.log(`PlayerService: ${diffName} 本地缓存(${cachedLevel}) > 云数据(${cloudData.highestLevel})，更新云端`);
                 await this.saveDifficultySummary(difficulty, nickname, cachedLevel, avatarUrl);
