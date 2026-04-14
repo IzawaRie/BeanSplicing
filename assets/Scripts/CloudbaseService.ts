@@ -293,7 +293,7 @@ export function callFunction(name: string, data: Record<string, any> = {}): Prom
         name: name,
         data: data
     }).then(res => {
-        console.log(`云函数 ${name} 返回:`, res);
+        console.log(`云函数 ${name} 返回成功`);
         return res;
     }).catch(error => {
         console.error(`调用云函数 ${name} 失败:`, error);
