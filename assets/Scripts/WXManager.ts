@@ -38,9 +38,6 @@ export class WXManager extends Component {
             this.createRewardedVideoAd();
             this.createInterstitialAd();
         }
-        
-        // 初始化时获取用户信息（昵称和头像）
-        this.getUserInfo();
     }
 
     // ========== 激励视频广告 ==========

@@ -9,6 +9,7 @@ import { SettingController } from './SettingController';
 import { WXManager } from './WXManager';
 import { AudioManager } from './AudioManager';
 import { WindowController } from './WindowController';
+import { PlayerService } from './PlayerService';
 const { ccclass, property } = _decorator;
 
 /**
@@ -189,18 +190,23 @@ export class GameManager extends Component {
         this.menuManager.levelConfig = LevelConfig.getInstance();
         PatternBundle.getInstance().loadBundle();
         this.initStorage();
-        //this.loadSavedLevel();
+
+        // 获取用户 openid、用户信息，然后同步云数据
+        this.wxManager.getOpenId().then((openid) => {
+            this._openid = openid;
+            console.log('GameManager openid:', this._openid);
+            
+            // 获取用户信息
+            this.wxManager.getUserInfo().then(() => {
+                // 同步云数据
+                PlayerService.instance?.syncProgressWithCloud();
+            });
+        });
     }
 
     start() {
         this.levelMode.patternApplier.gridDrawer = this.levelMode.gridDrawer;
         this.levelMode.circleList.setAllNodes();
-
-        // 获取用户 openid 并保存到全局变量
-        this.wxManager.getOpenId().then((openid) => {
-            this._openid = openid;
-            console.log('GameManager openid:', this._openid);
-        });
     }
 
     /**
