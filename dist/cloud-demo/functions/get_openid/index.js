@@ -1,4 +1,5 @@
 const cloud = require('wx-server-sdk');
+const https = require('https');
 
 cloud.init({
   env: cloud.DYNAMIC_CURRENT_ENV
@@ -6,7 +7,7 @@ cloud.init({
 
 /**
  * 获取用户 openid
- * 参考：https://developers.weixin.qq.com/miniprogram/dev/server/API/user-login/api_code2session.html
+ * 使用微信 auth.code2Session 接口
  * 
  * @param {string} js_code - 从微信客户端 wx.login() 获取的登录凭证
  * @returns {object} - 包含 openid, session_key, unionid 等信息
@@ -23,56 +24,43 @@ exports.main = async (event, context) => {
   }
 
   try {
-    // 调用微信 auth.code2Session 接口
-    // 注意：微信云开发环境已经提供了 cloud.getWXContext()
-    // 其中包含 OPENID 和 APPID
-    const wxContext = cloud.getWXContext();
+    // 从环境变量获取 appid 和 appsecret
+    // 请在腾讯云云开发控制台设置环境变量
+    const appid = 'wx0420daba14f55793';
+    const appsecret = 'b431adcec5194e43bd7fed2a2c9864bf';
+
+    // 使用原生 https 模块请求微信 API
+    const url = `https://api.weixin.qq.com/sns/jscode2session?appid=${appid}&secret=${appsecret}&js_code=${js_code}&grant_type=authorization_code`;
     
-    // 如果在云函数中调用，直接返回 openid（云开发自动关联用户）
-    // 否则需要通过 code2session 接口换取
-    if (wxContext.OPENID) {
-      return {
-        success: true,
-        openid: wxContext.OPENID,
-        appid: wxContext.APPID,
-        unionid: wxContext.UNIONID || null,
-        message: 'success'
-      };
-    }
-
-    // 如果 OPENID 不存在，使用 code2session 接口
-    // 需要在微信公众平台获取 appid 和 appsecret
-    const appid = process.env.APPID || 'your_appid';
-    const appsecret = process.env.APPSECRET || 'your_appsecret';
-
-    const res = await cloud.request({
-      url: 'https://api.weixin.qq.com/sns/jscode2session',
-      method: 'GET',
-      data: {
-        appid: appid,
-        secret: appsecret,
-        js_code: js_code,
-        grant_type: 'authorization_code'
-      }
+    const result = await new Promise((resolve, reject) => {
+      https.get(url, (res) => {
+        let data = '';
+        res.on('data', (chunk) => data += chunk);
+        res.on('end', () => {
+          try {
+            resolve(JSON.parse(data));
+          } catch (e) {
+            reject(new Error('Failed to parse response'));
+          }
+        });
+      }).on('error', reject);
     });
 
-    const data = res.data;
-
     // 检查微信返回的错误
-    if (data.errcode) {
-      console.error('code2session error:', data);
+    if (result.errcode) {
+      console.error('code2session error:', result);
       return {
         success: false,
-        error: data.errmsg || 'code2session failed',
-        errcode: data.errcode
+        error: result.errmsg || 'code2session failed',
+        errcode: result.errcode
       };
     }
 
     return {
       success: true,
-      openid: data.openid,
-      session_key: data.session_key,
-      unionid: data.unionid || null,
+      openid: result.openid,
+      session_key: result.session_key,
+      unionid: result.unionid || null,
       message: 'success'
     };
 
