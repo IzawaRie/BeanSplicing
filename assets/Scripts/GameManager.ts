@@ -187,10 +187,6 @@ export class GameManager extends Component {
         }
         GameManager._instance = this;
 
-        this.menuManager.levelConfig = LevelConfig.getInstance();
-        PatternBundle.getInstance().loadBundle();
-        this.initStorage();
-
         // 获取用户 openid、用户信息，然后同步云数据
         this.wxManager.getOpenId().then((openid) => {
             this._openid = openid;
@@ -200,8 +196,13 @@ export class GameManager extends Component {
             this.wxManager.getUserInfo().then(() => {
                 // 同步云数据
                 PlayerService.instance?.syncProgressWithCloud();
+                PlayerService.instance?.updateLastLoginTime();
             });
         });
+
+        this.menuManager.levelConfig = LevelConfig.getInstance();
+        PatternBundle.getInstance().loadBundle();
+        this.initStorage();
     }
 
     start() {
@@ -261,17 +262,6 @@ export class GameManager extends Component {
             case DifficultyMode.SIMPLE: return this._simpleLevel;
             case DifficultyMode.MEDIUM: return this._mediumLevel;
             case DifficultyMode.HARD:   return this._hardLevel;
-        }
-    }
-
-    /**
-     * 设置指定难度对应的关卡数（不触发存储和UI更新，用于同步）
-     */
-    public setLevelByDifficulty(difficulty: DifficultyMode, level: number): void {
-        switch (difficulty) {
-            case DifficultyMode.SIMPLE: this._simpleLevel = level; break;
-            case DifficultyMode.MEDIUM: this._mediumLevel = level; break;
-            case DifficultyMode.HARD: this._hardLevel = level; break;
         }
     }
 

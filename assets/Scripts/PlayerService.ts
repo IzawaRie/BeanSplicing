@@ -11,6 +11,17 @@ declare const wx: any;
 // 集合名称常量
 const COLLECTION_DIFFICULTY_SUMMARY = 'player_difficulty_summary';
 const COLLECTION_LEVEL_BEST = 'player_level_best';
+const COLLECTION_PLAYERS = 'players';
+
+// 玩家信息
+export interface Player {
+    _id: string;
+    userId: string;
+    nickname: string;
+    avatarUrl?: string;
+    createdAt: Date;
+    lastLoginAt: Date;
+}
 
 // 难度编码映射（与 collections.xlsx 一致）
 export const DifficultyCode = {
@@ -28,8 +39,6 @@ export interface DifficultySummary {
     difficulty: DifficultyCodeType;
     nickname: string;
     avatarUrl?: string;
-    regionCode?: string;
-    regionName?: string;
     highestLevel: number;
 }
 
@@ -206,17 +215,13 @@ export class PlayerService extends Component {
      * @param nickname 昵称
      * @param highestLevel 最高关卡
      * @param avatarUrl 头像URL（可选）
-     * @param regionCode 地区编码（可选）
-     * @param regionName 地区名称（可选）
      * @returns 是否保存成功
      */
     public async saveDifficultySummary(
         difficulty: DifficultyMode,
         nickname: string,
         highestLevel: number,
-        avatarUrl?: string,
-        regionCode?: string,
-        regionName?: string
+        avatarUrl?: string
     ): Promise<boolean> {
         const openid = this.getOpenId();
         if (!openid) return false;
@@ -233,8 +238,6 @@ export class PlayerService extends Component {
         };
 
         if (avatarUrl !== undefined) data.avatarUrl = avatarUrl;
-        if (regionCode !== undefined) data.regionCode = regionCode;
-        if (regionName !== undefined) data.regionName = regionName;
 
         // 使用 upsert：存在则更新，不存在则新增
         return await CloudbaseDBService.upsert(COLLECTION_DIFFICULTY_SUMMARY, docId, data);
@@ -319,9 +322,9 @@ export class PlayerService extends Component {
     public getCachedLevel(difficulty: DifficultyMode): number {
         const key = `level_${difficulty}`;
         if (typeof (wx) !== 'undefined') {
-            return wx.getStorageSync(key) || 0;
+            return wx.getStorageSync(key) || 1;
         }
-        return 0;
+        return 1;
     }
 
     /**
@@ -364,7 +367,7 @@ export class PlayerService extends Component {
         
         for (const difficulty of difficulties) {
             const cloudData = await this.getDifficultySummary(difficulty);
-            const cachedLevel = this.getCachedLevel(difficulty);
+            const cachedLevel = this.getCachedLevel(difficulty) - 1;
             const diffName = PlayerService.toDifficultyCode(difficulty);
 
             if (!cloudData) {
@@ -379,23 +382,68 @@ export class PlayerService extends Component {
                 // 云数据存在
                 if (cachedLevel == cloudData.highestLevel) continue;
 
-                if (cachedLevel > cloudData.highestLevel) {
-                    // 本地缓存 > 云数据，更新云端
-                    console.log(`PlayerService: ${diffName} 本地缓存(${cachedLevel}) > 云数据(${cloudData.highestLevel})，更新云端`);
-                    await this.saveDifficultySummary(difficulty, nickname, cachedLevel, avatarUrl);
-                } else {
-                    // 云数据 > 本地缓存，更新本地缓存
-                    console.log(`PlayerService: ${diffName} 云数据(${cloudData.highestLevel}) > 本地缓存(${cachedLevel})，更新本地缓存`);
-                    this.setCachedLevel(difficulty, cloudData.highestLevel);
-                    // 同步到 GameManager
-                    const gm = GameManager.getInstance();
-                    gm.setLevelByDifficulty(difficulty, cloudData.highestLevel);
-                    gm.menuManager?.updateLevelButtonText(cloudData.highestLevel, difficulty);
-                }
+                console.log(`PlayerService: ${diffName} 本地缓存(${cachedLevel}) > 云数据(${cloudData.highestLevel})，更新云端`);
+                await this.saveDifficultySummary(difficulty, nickname, cachedLevel, avatarUrl);
             }
         }
 
         console.log('PlayerService: 关卡进度同步完成');
+    }
+
+    // ==================== 玩家信息集合 ====================
+
+    /**
+     * 获取玩家信息
+     */
+    public async getPlayer(): Promise<Player | null> {
+        const openid = this.getOpenId();
+        if (!openid) return null;
+        return await CloudbaseDBService.getById<Player>(COLLECTION_PLAYERS, openid);
+    }
+
+    /**
+     * 保存玩家信息（首次创建或更新最后登录时间）
+     * @param nickname 玩家昵称
+     * @param avatarUrl 头像URL
+     */
+    public async savePlayer(nickname: string, avatarUrl?: string): Promise<boolean> {
+        const openid = this.getOpenId();
+        if (!openid) return false;
+
+        const now = new Date();
+        const existing = await this.getPlayer();
+
+        const data: Player = {
+            _id: openid,
+            userId: openid,
+            nickname: nickname,
+            avatarUrl: avatarUrl || '',
+            createdAt: existing?.createdAt ?? now,
+            lastLoginAt: now
+        };
+
+        return await CloudbaseDBService.upsert(COLLECTION_PLAYERS, openid, data);
+    }
+
+    /**
+     * 更新玩家最后登录时间
+     */
+    public async updateLastLoginTime(): Promise<boolean> {
+        const openid = this.getOpenId();
+        if (!openid) return false;
+
+        const player = await this.getPlayer();
+        if (!player) {
+            // 玩家不存在，调用 savePlayer 创建
+            const wxMgr = WXManager.instance;
+            const nickname = wxMgr?.nickname || '玩家';
+            const avatarUrl = wxMgr?.avatarUrl || '';
+            return await this.savePlayer(nickname, avatarUrl);
+        }
+
+        return await CloudbaseDBService.update(COLLECTION_PLAYERS, openid, {
+            lastLoginAt: new Date()
+        });
     }
 }
 
