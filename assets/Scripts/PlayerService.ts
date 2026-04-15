@@ -376,10 +376,22 @@ export class PlayerService extends Component {
                     console.log(`PlayerService: ${diffName} 云数据和本地缓存都为空`);
                 }
             } else {
+                // 云数据存在
                 if (cachedLevel == cloudData.highestLevel) continue;
-                
-                console.log(`PlayerService: ${diffName} 本地缓存(${cachedLevel}) > 云数据(${cloudData.highestLevel})，更新云端`);
-                await this.saveDifficultySummary(difficulty, nickname, cachedLevel, avatarUrl);
+
+                if (cachedLevel > cloudData.highestLevel) {
+                    // 本地缓存 > 云数据，更新云端
+                    console.log(`PlayerService: ${diffName} 本地缓存(${cachedLevel}) > 云数据(${cloudData.highestLevel})，更新云端`);
+                    await this.saveDifficultySummary(difficulty, nickname, cachedLevel, avatarUrl);
+                } else {
+                    // 云数据 > 本地缓存，更新本地缓存
+                    console.log(`PlayerService: ${diffName} 云数据(${cloudData.highestLevel}) > 本地缓存(${cachedLevel})，更新本地缓存`);
+                    this.setCachedLevel(difficulty, cloudData.highestLevel);
+                    // 同步到 GameManager
+                    const gm = GameManager.getInstance();
+                    gm.setLevelByDifficulty(difficulty, cloudData.highestLevel);
+                    gm.menuManager?.updateLevelButtonText(cloudData.highestLevel, difficulty);
+                }
             }
         }
 

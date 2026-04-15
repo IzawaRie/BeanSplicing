@@ -265,6 +265,17 @@ export class GameManager extends Component {
     }
 
     /**
+     * 设置指定难度对应的关卡数（不触发存储和UI更新，用于同步）
+     */
+    public setLevelByDifficulty(difficulty: DifficultyMode, level: number): void {
+        switch (difficulty) {
+            case DifficultyMode.SIMPLE: this._simpleLevel = level; break;
+            case DifficultyMode.MEDIUM: this._mediumLevel = level; break;
+            case DifficultyMode.HARD: this._hardLevel = level; break;
+        }
+    }
+
+    /**
      * 设置当前难度对应的关卡数
      */
     public set currentLevel(value: number) {
