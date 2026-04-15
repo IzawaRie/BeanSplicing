@@ -380,7 +380,7 @@ export class PlayerService extends Component {
                 }
             } else {
                 // 云数据存在
-                if (cachedLevel == cloudData.highestLevel) continue;
+                if (cachedLevel == cloudData.highestLevel || cachedLevel == 0) continue;
 
                 console.log(`PlayerService: ${diffName} 本地缓存(${cachedLevel}) > 云数据(${cloudData.highestLevel})，更新云端`);
                 await this.saveDifficultySummary(difficulty, nickname, cachedLevel, avatarUrl);
