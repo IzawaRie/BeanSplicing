@@ -10,6 +10,7 @@ declare const wx: any;
 
 // 集合名称常量
 const COLLECTION_DIFFICULTY_SUMMARY = 'player_difficulty_summary';
+const COLLECTION_LEVEL_BEST = 'player_level_best';
 
 // 难度编码映射（与 collections.xlsx 一致）
 export const DifficultyCode = {
@@ -30,6 +31,17 @@ export interface DifficultySummary {
     regionCode?: string;
     regionName?: string;
     highestLevel: number;
+}
+
+// 单关最佳成绩
+export interface LevelBest {
+    _id: string;
+    userId: string;
+    difficulty: DifficultyCodeType;
+    levelNo: number;
+    nickname: string;
+    avatarUrl?: string;
+    bestClearTime: number;
 }
 
 /**
@@ -79,6 +91,95 @@ export class PlayerService extends Component {
      */
     public static genDifficultySummaryId(difficulty: DifficultyCodeType, userId: string): string {
         return `${difficulty}#${userId}`;
+    }
+
+    /**
+     * 生成关卡最佳成绩文档 ID
+     */
+    public static genLevelBestId(difficulty: DifficultyCodeType, levelNo: number, userId: string): string {
+        return `${difficulty}#${levelNo}#${userId}`;
+    }
+
+    // ========== player_level_best 操作 ==========
+
+    /**
+     * 获取玩家某关卡的最佳成绩
+     * @param difficulty 难度
+     * @param levelNo 关卡编号
+     * @returns 最佳成绩数据，不存在返回 null
+     */
+    public async getLevelBest(difficulty: DifficultyMode, levelNo: number): Promise<LevelBest | null> {
+        const openid = this.getOpenId();
+        if (!openid) return null;
+
+        const diffCode = PlayerService.toDifficultyCode(difficulty);
+        const docId = PlayerService.genLevelBestId(diffCode, levelNo, openid);
+
+        return await CloudbaseDBService.getById<LevelBest>(COLLECTION_LEVEL_BEST, docId);
+    }
+
+    /**
+     * 保存玩家某关卡的通关成绩
+     * 如果存在记录则比较时间，保留最短的
+     * @param difficulty 难度
+     * @param levelNo 关卡编号
+     * @param clearTime 通关时间（秒）
+     * @param nickname 昵称
+     * @param avatarUrl 头像URL（可选）
+     * @returns 是否保存成功
+     */
+    public async saveLevelBest(
+        difficulty: DifficultyMode,
+        levelNo: number,
+        clearTime: number,
+        nickname: string,
+        avatarUrl?: string
+    ): Promise<boolean> {
+        const openid = this.getOpenId();
+        if (!openid) return false;
+
+        const diffCode = PlayerService.toDifficultyCode(difficulty);
+        const docId = PlayerService.genLevelBestId(diffCode, levelNo, openid);
+
+        // 先检查是否已有记录
+        const existing = await CloudbaseDBService.getById<LevelBest>(COLLECTION_LEVEL_BEST, docId);
+
+        // 如果已有记录且时间更长，不保存
+        if (existing && existing.bestClearTime <= clearTime) {
+            console.log(`关卡 ${levelNo} 已有更佳记录: ${existing.bestClearTime}s，当前: ${clearTime}s，跳过`);
+            return true;
+        }
+
+        const data: LevelBest = {
+            _id: docId,
+            userId: openid,
+            difficulty: diffCode,
+            levelNo: levelNo,
+            nickname: nickname,
+            bestClearTime: clearTime
+        };
+
+        if (avatarUrl !== undefined) data.avatarUrl = avatarUrl;
+
+        // 使用 upsert：存在则更新，不存在则新增
+        return await CloudbaseDBService.upsert(COLLECTION_LEVEL_BEST, docId, data);
+    }
+
+    /**
+     * 获取某关卡的排行榜（按最佳通关时间升序）
+     * @param difficulty 难度
+     * @param levelNo 关卡编号
+     * @param limit 返回数量，默认 10
+     * @returns 排行榜数据数组
+     */
+    public async getLevelRanking(difficulty: DifficultyMode, levelNo: number, limit: number = 10): Promise<LevelBest[]> {
+        const diffCode = PlayerService.toDifficultyCode(difficulty);
+
+        return await CloudbaseDBService.query<LevelBest>(COLLECTION_LEVEL_BEST, {
+            where: { difficulty: diffCode, levelNo: levelNo },
+            orderBy: 'bestClearTime',
+            limit: limit
+        });
     }
 
     // ========== player_difficulty_summary 操作 ==========
@@ -150,6 +251,9 @@ export class PlayerService extends Component {
         const openid = this.getOpenId();
         if (!openid) return false;
 
+        const wxMgr = WXManager.instance;
+        const nickname = wxMgr?.nickname || '玩家';
+        const avatarUrl = wxMgr?.avatarUrl || '';
         const diffCode = PlayerService.toDifficultyCode(difficulty);
         const docId = PlayerService.genDifficultySummaryId(diffCode, openid);
 
@@ -158,13 +262,15 @@ export class PlayerService extends Component {
 
         if (!current) {
             // 不存在，直接创建
-            return await this.saveDifficultySummary(difficulty, '玩家', newLevel);
+            return await this.saveDifficultySummary(difficulty, nickname, newLevel, avatarUrl);
         }
 
         // 如果新关卡更大，更新
         if (newLevel > current.highestLevel) {
             return await CloudbaseDBService.update(COLLECTION_DIFFICULTY_SUMMARY, docId, {
-                highestLevel: newLevel
+                highestLevel: newLevel,
+                nickname: nickname,
+                avatarUrl: avatarUrl
             });
         }
 
@@ -213,9 +319,9 @@ export class PlayerService extends Component {
     public getCachedLevel(difficulty: DifficultyMode): number {
         const key = `level_${difficulty}`;
         if (typeof (wx) !== 'undefined') {
-            return wx.getStorageSync(key) || 1;
+            return wx.getStorageSync(key) || 0;
         }
-        return 1;
+        return 0;
     }
 
     /**

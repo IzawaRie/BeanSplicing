@@ -120,24 +120,6 @@ export class CloudbaseDBService {
     }
 
     /**
-     * 替换记录（完全替换文档内容）
-     */
-    replace(collectionName: string, docId: string, data: Record<string, any>): Promise<boolean> {
-        const db = this.getDB();
-        if (!db) return Promise.resolve(false);
-
-        return db.collection(collectionName).doc(docId).set({
-            data: data
-        }).then(() => {
-            console.log(`替换 ${collectionName}/${docId} 成功`);
-            return true;
-        }).catch(error => {
-            console.error(`替换 ${collectionName}/${docId} 失败：`, error);
-            return false;
-        });
-    }
-
-    /**
      * 更新记录（只更新指定字段）
      */
     update(collectionName: string, docId: string, data: Record<string, any>): Promise<boolean> {
@@ -191,22 +173,22 @@ export class CloudbaseDBService {
     }
 
     /**
-     * upsert 操作：如果存在则更新，不存在则新增
+     * upsert 操作：直接使用 set，如果不存在则新增，存在则替换
      */
     upsert(collectionName: string, docId: string, data: Record<string, any>): Promise<boolean> {
         const db = this.getDB();
         if (!db) return Promise.resolve(false);
         
-        return db.collection(collectionName).doc(docId).get().then(res => {
-            if (res.data) {
-                return this.update(collectionName, docId, data);
-            } else {
-                return this.add(collectionName, { _id: docId, ...data });
-            }
+        // 排除 _id 字段（docId 已经通过 doc() 指定）
+        const { _id, ...updateData } = data;
+        
+        return db.collection(collectionName).doc(docId).set({
+            data: updateData
+        }).then(res => {
+            console.log(`upsert ${collectionName}/${docId} 成功, stats:`, res.stats);
+            return true;
         }).catch(error => {
-            if (error.errMsg && error.errMsg.indexOf('cannot find document') !== -1) {
-                return this.add(collectionName, { _id: docId, ...data });
-            }
+            console.error(`upsert ${collectionName}/${docId} 失败：`, error);
             return false;
         });
     }

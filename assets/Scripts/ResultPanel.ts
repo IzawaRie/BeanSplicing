@@ -5,6 +5,7 @@ import { AudioManager } from './AudioManager';
 import { LevelConfig } from './LevelConfig';
 import { WXManager } from './WXManager';
 import { GridDrawer } from './GridDrawer';
+import { PlayerService } from './PlayerService';
 const { ccclass, property } = _decorator;
 
 @ccclass('ResultPanel')
@@ -82,6 +83,9 @@ export class ResultPanel extends Component {
     /** 暂停开始时间（毫秒）- 记录结果页面开始显示的时间 */
     private _pauseStartTime: number = 0;
 
+    /** 本次通关用时（秒） */
+    private _clearTime: number = 0;
+
     /**
      * 设置成功状态，并更新界面文字
      */
@@ -110,6 +114,21 @@ export class ResultPanel extends Component {
 
         if (isSuccess) {
             AudioManager.instance.playEffect('victory', 0.4);
+
+            // 计算通关时间并保存到成员变量
+            if (this._gameStartTime > 0) {
+                const totalTime = Date.now() - this._gameStartTime;
+                const actualTime = totalTime - this._pausedTime;
+                this._clearTime = Math.round(actualTime / 1000);
+            } else {
+                this._clearTime = 0;
+            }
+
+            // 保存关卡数据到云端
+            const levelNo = gameManager.currentLevel;
+            this.saveLevelDataToCloud(difficulty, levelNo, this._clearTime);
+
+            // 更新当前关卡
             gameManager.currentLevel++;
 
             // 检查是否还有下一关
@@ -198,13 +217,8 @@ export class ResultPanel extends Component {
         // 计算熨烫率
         const ironPercent = totalCount > 0 ? Math.round((ironedCount / totalCount) * 100) : 0;
 
-        // 计算用时（减去所有结果页面的暂停时间）
-        let timeUsed = 0;
-        if (this._gameStartTime > 0) {
-            const totalTime = Date.now() - this._gameStartTime;
-            const actualTime = totalTime - this._pausedTime;
-            timeUsed = Math.round(actualTime / 1000);
-        }
+        // 使用已计算的通关时间
+        const timeUsed = this._clearTime;
 
         // 更新 Label 显示
         if (this.right_number) {
@@ -590,6 +604,35 @@ export class ResultPanel extends Component {
         WXManager.instance?.showNativeAd();
         WXManager.instance?.showNativeGridAd(0.14);
         AudioManager.instance.playMenuBgm();
+    }
+
+    /**
+     * 保存关卡数据到云端
+     */
+    private saveLevelDataToCloud(difficulty: DifficultyMode, levelNo: number, clearTime: number): void {
+        const playerService = PlayerService.instance;
+        if (!playerService) return;
+
+        // 获取昵称和头像
+        const wxMgr = WXManager.instance;
+        const nickname = wxMgr?.nickname || '玩家';
+        const avatarUrl = wxMgr?.avatarUrl || '';
+
+        // 保存单关最佳成绩
+        playerService.saveLevelBest(difficulty, levelNo, clearTime, nickname, avatarUrl)
+            .then(success => {
+                if (success) {
+                    console.log(`关卡数据已保存: ${levelNo}关, ${clearTime}秒`);
+                }
+            });
+
+        // 更新难度最高关卡（如果这是新最高关卡）
+        playerService.updateHighestLevelIfBetter(difficulty, levelNo)
+            .then(success => {
+                if (success) {
+                    console.log(`最高关卡已更新: ${levelNo}`);
+                }
+            });
     }
 
     /**
