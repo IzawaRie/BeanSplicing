@@ -103,6 +103,15 @@ export class ResultPanel extends Component {
         // 记录结果页面开始显示的时间（用于排除结果显示页面的时间）
         this._pauseStartTime = Date.now();
 
+        // 计算通关时间（无论成功或失败都计算）
+        if (this._gameStartTime > 0) {
+            const totalTime = Date.now() - this._gameStartTime;
+            const actualTime = totalTime - this._pausedTime;
+            this._clearTime = Math.floor(actualTime / 1000);
+        } else {
+            this._clearTime = 0;
+        }
+
         // 统计正确/错误/正确率
         this.updateResultStats();
 
@@ -114,15 +123,6 @@ export class ResultPanel extends Component {
 
         if (isSuccess) {
             AudioManager.instance.playEffect('victory', 0.4);
-
-            // 计算通关时间并保存到成员变量
-            if (this._gameStartTime > 0) {
-                const totalTime = Date.now() - this._gameStartTime;
-                const actualTime = totalTime - this._pausedTime;
-                this._clearTime = Math.round(actualTime / 1000);
-            } else {
-                this._clearTime = 0;
-            }
 
             // 保存关卡数据到云端
             const levelNo = gameManager.currentLevel;
@@ -209,13 +209,13 @@ export class ResultPanel extends Component {
         }
 
         // 计算正确率
-        const percent = totalCount > 0 ? Math.round((rightCount / totalCount) * 100) : 0;
+        const percent = totalCount > 0 ? Math.floor((rightCount / totalCount) * 100) : 0;
 
         // 计算高亮率
-        const highlightPercent = totalCount > 0 ? Math.round((highlightedCount / totalCount) * 100) : 0;
+        const highlightPercent = totalCount > 0 ? Math.floor((highlightedCount / totalCount) * 100) : 0;
 
         // 计算熨烫率
-        const ironPercent = totalCount > 0 ? Math.round((ironedCount / totalCount) * 100) : 0;
+        const ironPercent = totalCount > 0 ? Math.floor((ironedCount / totalCount) * 100) : 0;
 
         // 使用已计算的通关时间
         const timeUsed = this._clearTime;
