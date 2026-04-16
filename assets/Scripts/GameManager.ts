@@ -86,6 +86,9 @@ export class GameManager extends Component {
     public get openid(): string | null {
         return this._openid;
     }
+    public setOpenid(openid: string | null): void {
+        this._openid = openid;
+    }
 
     // 存储是否加载完成
     private _storageLoaded: boolean = false;
@@ -189,7 +192,7 @@ export class GameManager extends Component {
 
         // 获取用户 openid、用户信息，然后同步云数据
         this.wxManager.getOpenId().then((openid) => {
-            this._openid = openid;
+            this.setOpenid(openid);
             console.log('GameManager openid:', this._openid);
             
             // 获取用户信息

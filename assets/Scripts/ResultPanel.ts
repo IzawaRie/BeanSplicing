@@ -3,9 +3,9 @@ import { GameManager, GameState, DifficultyMode } from './GameManager';
 import { BlockController, BlockState } from './BlockController';
 import { AudioManager } from './AudioManager';
 import { LevelConfig } from './LevelConfig';
-import { WXManager } from './WXManager';
 import { GridDrawer } from './GridDrawer';
 import { PlayerService } from './PlayerService';
+import { WXManager } from './WXManager';
 const { ccclass, property } = _decorator;
 
 @ccclass('ResultPanel')
@@ -609,30 +609,21 @@ export class ResultPanel extends Component {
     /**
      * 保存关卡数据到云端
      */
-    private saveLevelDataToCloud(difficulty: DifficultyMode, levelNo: number, clearTime: number): void {
+    private async saveLevelDataToCloud(difficulty: DifficultyMode, levelNo: number, clearTime: number): Promise<void> {
         const playerService = PlayerService.instance;
         if (!playerService) return;
 
-        // 获取昵称和头像
-        const wxMgr = WXManager.instance;
-        const nickname = wxMgr?.nickname || '玩家';
-        const avatarUrl = wxMgr?.avatarUrl || '';
-
         // 保存单关最佳成绩
-        playerService.saveLevelBest(difficulty, levelNo, clearTime, nickname, avatarUrl)
-            .then(success => {
-                if (success) {
-                    console.log(`关卡数据已保存: ${levelNo}关, ${clearTime}秒`);
-                }
-            });
+        const saveBestSuccess = await playerService.saveLevelBest(difficulty, levelNo, clearTime);
+        if (saveBestSuccess) {
+            console.log(`关卡数据已保存: ${levelNo}关, ${clearTime}秒`);
+        }
 
         // 更新难度最高关卡（如果这是新最高关卡）
-        playerService.updateHighestLevelIfBetter(difficulty, levelNo)
-            .then(success => {
-                if (success) {
-                    console.log(`最高关卡已更新: ${levelNo}`);
-                }
-            });
+        const updateHighestSuccess = await playerService.updateHighestLevelIfBetter(difficulty, levelNo);
+        if (updateHighestSuccess) {
+            console.log(`最高关卡已更新: ${levelNo}`);
+        }
     }
 
     /**
