@@ -418,13 +418,14 @@ export class MenuManager extends Component {
     /**
      * 点击排行榜按钮，打开排行榜面板
      */
-    private onChartBtnClick(): void {
+    private async onChartBtnClick(): Promise<void> {
         const gameManager = GameManager.getInstance();
         if (!gameManager?.chart || (gameManager.gameState != GameState.WAITING)) return;
         if (gameManager.isWindowBlocking()) return;
 
         gameManager.vibrateShort();
         AudioManager.instance.playEffect('click_btn');
+        await gameManager.wxManager?.getUserInfo();
         gameManager.chart.node.active = true;
     }
 
