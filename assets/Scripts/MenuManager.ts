@@ -32,6 +32,9 @@ export class MenuManager extends Component {
     @property({ type: Node })
     recommend_btn: Node = null;
 
+    @property({ type: Node })
+    chart_btn: Node = null;
+
     @property({ type: Label })
     power_label: Label = null;
 
@@ -160,6 +163,9 @@ export class MenuManager extends Component {
         }
         if (this.recommend_btn) {
             this.recommend_btn.on(Node.EventType.TOUCH_END, this.onRecommendBtnClick, this);
+        }
+        if (this.chart_btn) {
+            this.chart_btn.on(Node.EventType.TOUCH_END, this.onChartBtnClick, this);
         }
 
         // 加载星星预制体
@@ -410,6 +416,19 @@ export class MenuManager extends Component {
     }
 
     /**
+     * 点击排行榜按钮，打开排行榜面板
+     */
+    private onChartBtnClick(): void {
+        const gameManager = GameManager.getInstance();
+        if (!gameManager?.chart || (gameManager.gameState != GameState.WAITING)) return;
+        if (gameManager.isWindowBlocking()) return;
+
+        gameManager.vibrateShort();
+        AudioManager.instance.playEffect('click_btn');
+        gameManager.chart.node.active = true;
+    }
+
+    /**
      * 显示进度面板
      */
     public showProgressPanel(): void {
@@ -530,6 +549,9 @@ export class MenuManager extends Component {
         }
         if (this.setting_btn) {
             this.setting_btn.off(Node.EventType.TOUCH_END, this.onSettingBtnClick, this);
+        }
+        if (this.chart_btn) {
+            this.chart_btn.off(Node.EventType.TOUCH_END, this.onChartBtnClick, this);
         }
     }
 }

@@ -4052,6 +4052,9 @@
     "recommend_btn": {
       "__id__": 93
     },
+    "chart_btn": {
+      "__id__": 101
+    },
     "power_label": {
       "__id__": 70
     },
@@ -38301,6 +38304,9 @@
     "content": {
       "__id__": 1047
     },
+    "chart_bg": {
+      "__id__": 990
+    },
     "_id": "96mUfNdEBNp5QontgxIIJG"
   },
   {
@@ -44012,6 +44018,9 @@
     },
     "levelMode": {
       "__id__": 984
+    },
+    "chart": {
+      "__id__": 1065
     },
     "window": {
       "__id__": 1219

@@ -1,4 +1,4 @@
-import { _decorator, Component, Label, Node, input, Input, EventTouch, UITransform } from 'cc';
+import { _decorator, Component, Label, Node, input, Input, EventTouch, UITransform, Vec2 } from 'cc';
 import { GameManager } from './GameManager';
 import { WXManager } from './WXManager';
 import { AudioManager } from './AudioManager';
@@ -102,19 +102,12 @@ export class WindowController extends Component {
     /**
      * 检查点击位置是否在内容面板内
      */
-    private isTouchInContentPanel(touchPos: { x: number, y: number }): boolean {
+    private isTouchInContentPanel(touchPos: Vec2): boolean {
         if (!this.border_bg) return false;
 
-        const contentWorldPos = this.border_bg.getWorldPosition();
         const contentTransform = this.border_bg.getComponent(UITransform);
         if (!contentTransform) return false;
 
-        const halfW = contentTransform.width / 2;
-        const halfH = contentTransform.height / 2;
-
-        return touchPos.x >= contentWorldPos.x - halfW && touchPos.x <= contentWorldPos.x + halfW &&
-               touchPos.y >= contentWorldPos.y - halfH && touchPos.y <= contentWorldPos.y + halfH;
+        return contentTransform.getBoundingBoxToWorld().contains(touchPos);
     }
 }
-
-

@@ -10,6 +10,7 @@ import { WXManager } from './WXManager';
 import { AudioManager } from './AudioManager';
 import { WindowController } from './WindowController';
 import { PlayerService } from './PlayerService';
+import { ChartController } from './ChartController';
 const { ccclass, property } = _decorator;
 
 /**
@@ -57,6 +58,9 @@ export class GameManager extends Component {
     @property({ type: LevelMode })
     levelMode: LevelMode = null;
 
+    @property({ type: ChartController })
+    chart: ChartController = null;
+    
     @property({ type: WindowController })
     window: WindowController = null;
 
@@ -179,7 +183,10 @@ export class GameManager extends Component {
      * 检查是否有窗口阻挡按钮点击
      */
     public isWindowBlocking(): boolean {
-        return this.isWindowOpen || (this.setting?.node?.active ?? false) || (this.window?.node?.active ?? false);
+        return this.isWindowOpen ||
+               (this.setting?.node?.active ?? false) ||
+               (this.window?.node?.active ?? false) ||
+               (this.chart?.node?.active ?? false);
     }
 
     onLoad() {
