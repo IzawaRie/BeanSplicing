@@ -1030,37 +1030,45 @@ export class WXManager extends Component {
 
     /**
      * 获取用户信息（昵称和头像）
-     * 每次都从微信获取最新数据，不使用缓存
+     * 每次都从微信获取最新数据，不使用缓存；拒绝授权时回退为“豆友+openid后四位”
      * @returns Promise<{ nickname: string; avatarUrl: string }>
      */
-    public getUserInfo(): Promise<{ nickname: string; avatarUrl: string }> {
-        return new Promise((resolve) => {
-            if (typeof (wx) === 'undefined') {
-                resolve({ nickname: '游客', avatarUrl: '' });
-                return;
-            }
+    public async getUserInfo(): Promise<{ nickname: string; avatarUrl: string }> {
+        const resolveFallbackProfile = async (): Promise<{ nickname: string; avatarUrl: string }> => {
+            const openid = await this.getOpenId();
+            const fallbackNickname = openid ? `豆友${openid.slice(-4)}` : '豆友';
+            this._nickname = fallbackNickname;
+            this._avatarUrl = '';
+            return { nickname: this._nickname, avatarUrl: this._avatarUrl };
+        };
 
+        if (typeof (wx) === 'undefined') {
+            return await resolveFallbackProfile();
+        }
+
+        return new Promise((resolve) => {
             // 直接调用 wx.getUserInfo 获取最新数据
             wx.getUserInfo({
                 withCredentials: false,
                 lang: 'zh_CN',
-                success: (res) => {
+                success: async (res) => {
                     const userInfo = res.userInfo;
                     if (userInfo) {
-                        this._nickname = userInfo.nickName || '玩家';
+                        const openid = await this.getOpenId();
+                        const fallbackNickname = openid ? `豆友${openid.slice(-4)}` : '豆友';
+                        this._nickname = userInfo.nickName?.trim() || fallbackNickname;
                         this._avatarUrl = userInfo.avatarUrl || '';
                         
                         console.log('获取用户信息成功:', this._nickname, this._avatarUrl);
                         resolve({ nickname: this._nickname, avatarUrl: this._avatarUrl });
-                    } else {
-                        resolve({ nickname: '玩家', avatarUrl: '' });
+                        return;
                     }
+
+                    resolve(await resolveFallbackProfile());
                 },
-                fail: (err) => {
+                fail: async (err) => {
                     console.warn('获取用户信息失败:', err);
-                    this._nickname = '玩家';
-                    this._avatarUrl = '';
-                    resolve({ nickname: this._nickname, avatarUrl: this._avatarUrl });
+                    resolve(await resolveFallbackProfile());
                 }
             });
         });
