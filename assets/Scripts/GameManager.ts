@@ -190,17 +190,18 @@ export class GameManager extends Component {
         }
         GameManager._instance = this;
 
-        // 获取用户 openid、用户信息，然后同步云数据
-        this.wxManager.getOpenId().then((openid) => {
+        // 获取用户 openid；如果用户已授权用户信息，再拉取用户信息，否则直接同步云数据
+        this.wxManager.getOpenId().then(async (openid) => {
             this.setOpenid(openid);
             console.log('GameManager openid:', this._openid);
-            
-            // 获取用户信息
-            this.wxManager.getUserInfo().then(() => {
-                // 同步云数据
-                PlayerService.instance?.syncProgressWithCloud();
-                PlayerService.instance?.updateLastLoginTime();
-            });
+
+            const hasUserInfoPermission = await this.wxManager.hasUserInfoPermission();
+            if (hasUserInfoPermission) {
+                await this.wxManager.getUserInfo();
+            }
+
+            PlayerService.instance?.syncProgressWithCloud();
+            PlayerService.instance?.updateLastLoginTime();
         });
 
         this.menuManager.levelConfig = LevelConfig.getInstance();

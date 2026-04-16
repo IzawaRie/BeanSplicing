@@ -1029,6 +1029,28 @@ export class WXManager extends Component {
     }
 
     /**
+     * 检查是否已授权读取用户信息
+     */
+    public hasUserInfoPermission(): Promise<boolean> {
+        return new Promise((resolve) => {
+            if (typeof (wx) === 'undefined') {
+                resolve(false);
+                return;
+            }
+
+            wx.getSetting({
+                success: (res) => {
+                    resolve(!!res.authSetting?.['scope.userInfo']);
+                },
+                fail: (err) => {
+                    console.warn('检查用户信息授权失败:', err);
+                    resolve(false);
+                }
+            });
+        });
+    }
+
+    /**
      * 获取用户信息（昵称和头像）
      * 每次都从微信获取最新数据，不使用缓存；拒绝授权时回退为“豆友+openid后四位”
      * @returns Promise<{ nickname: string; avatarUrl: string }>
