@@ -95,6 +95,12 @@ export class ResultPanel extends Component {
     /** 本次通关用时（秒） */
     private _clearTime: number = 0;
 
+    private _resultDifficulty: DifficultyMode = DifficultyMode.SIMPLE;
+
+    private _resultLevelNo: number = 1;
+
+    private _saveLevelDataTask: Promise<void> | null = null;
+
     /**
      * 设置成功状态，并更新界面文字
      */
@@ -102,6 +108,8 @@ export class ResultPanel extends Component {
         this._isSuccess = isSuccess;
         const gameManager = GameManager.getInstance();
         const difficulty = gameManager.currentDifficulty;
+        this._resultDifficulty = difficulty;
+        this._resultLevelNo = gameManager.currentLevel;
         gameManager.levelMode.stop30SecondWarning();
         // 结束可能正在进行的新手引导
         const tutorialController = gameManager.levelMode?.tutorialController;
@@ -135,7 +143,7 @@ export class ResultPanel extends Component {
 
             // 保存关卡数据到云端
             const levelNo = gameManager.currentLevel;
-            this.saveLevelDataToCloud(difficulty, levelNo, this._clearTime);
+            this._saveLevelDataTask = this.saveLevelDataToCloud(difficulty, levelNo, this._clearTime);
 
             // 更新当前关卡
             gameManager.currentLevel++;
@@ -152,6 +160,7 @@ export class ResultPanel extends Component {
                 this.homelBtn2.active = true;
             }
         } else {
+            this._saveLevelDataTask = null;
             AudioManager.instance.playEffect('game-fail', 0.7);
         }
 
@@ -550,6 +559,8 @@ export class ResultPanel extends Component {
         this.share_btn?.on(Node.EventType.TOUCH_END, this.onShareBtnClick, this);
         this.share_btn2?.on(Node.EventType.TOUCH_END, this.onShareBtnClick, this);
         this.continue_btn?.on(Node.EventType.TOUCH_END, this.onContinueBtnClick, this);
+        this.chart_btn?.on(Node.EventType.TOUCH_END, this.onChartBtnClick, this);
+        this.chart_btn2?.on(Node.EventType.TOUCH_END, this.onChartBtnClick, this);
     }
 
     onDestroy() {
@@ -561,6 +572,8 @@ export class ResultPanel extends Component {
         this.share_btn?.off(Node.EventType.TOUCH_END, this.onShareBtnClick, this);
         this.share_btn2?.off(Node.EventType.TOUCH_END, this.onShareBtnClick, this);
         this.continue_btn?.off(Node.EventType.TOUCH_END, this.onContinueBtnClick, this);
+        this.chart_btn?.off(Node.EventType.TOUCH_END, this.onChartBtnClick, this);
+        this.chart_btn2?.off(Node.EventType.TOUCH_END, this.onChartBtnClick, this);
     }
 
     /**
@@ -611,6 +624,25 @@ export class ResultPanel extends Component {
         gameManager.levelMode.node.active = false;
         gameManager.vibrateShort();
         gameManager.menuManager.loadLevel(gameManager.currentLevel, gameManager.currentDifficulty);
+    }
+
+    private async onChartBtnClick(): Promise<void> {
+        const gameManager = GameManager.getInstance();
+        if (!gameManager?.chart) return;
+        if (gameManager.isWindowBlocking()) return;
+
+        gameManager.vibrateShort();
+        AudioManager.instance.playEffect('click_btn');
+
+        if (!gameManager.canOpenChartDirectly) {
+            await gameManager.wxManager?.getUserInfo();
+        }
+
+        if (this._isSuccess && this._saveLevelDataTask) {
+            await this._saveLevelDataTask;
+        }
+
+        gameManager.chart.openLevelRanking(this._resultDifficulty, this._resultLevelNo, this._isSuccess);
     }
 
     private onShowHomePanel(){

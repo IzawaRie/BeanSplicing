@@ -1,13 +1,18 @@
 import { _decorator, assetManager, Color, Component, EventTouch, ImageAsset, input, Input, instantiate, isValid, Label, Layout, Node, Prefab, resources, ScrollView, Sprite, SpriteFrame, Texture2D, UITransform, Vec2 } from 'cc';
 import { DifficultyMode, GameManager } from './GameManager';
 import { ChartUser } from './ChartUser';
-import { DifficultySummary, PlayerService } from './PlayerService';
+import { DifficultySummary, LevelBest, PlayerService } from './PlayerService';
 const { ccclass, property } = _decorator;
 
 declare const wx: any;
 
 interface DifficultyRankingCache {
     data: DifficultySummary[];
+    updatedAt: number;
+}
+
+interface LevelRankingCache {
+    data: LevelBest[];
     updatedAt: number;
 }
 
@@ -49,8 +54,12 @@ export class ChartController extends Component {
     chart_bg: Node = null;
 
     private currentDifficulty: DifficultyMode = DifficultyMode.SIMPLE;
+    private currentLevelNo = 1;
+    private currentViewMode: 'difficulty' | 'level' = 'difficulty';
     private readonly rankingCache = new Map<DifficultyMode, DifficultyRankingCache>();
+    private readonly levelRankingCache = new Map<string, LevelRankingCache>();
     private readonly refreshTasks = new Map<DifficultyMode, Promise<void>>();
+    private readonly levelRefreshTasks = new Map<string, Promise<void>>();
     private readonly avatarFrameCache = new Map<string, SpriteFrame | null>();
     private readonly avatarLoadTasks = new Map<string, Promise<SpriteFrame | null>>();
     private chartUserPrefab: Prefab | null = null;
@@ -67,6 +76,12 @@ export class ChartController extends Component {
 
     onEnable() {
         input.on(Input.EventType.TOUCH_END, this.onTouchEnd, this);
+        if (this.currentViewMode === 'level') {
+            this.showLevelRankingOrLoading();
+            void this.refreshLevelRankingIfNeeded();
+            return;
+        }
+
         this.showCachedOrLoading();
         void this.refreshIfNeeded();
     }
@@ -78,6 +93,25 @@ export class ChartController extends Component {
 
     onDestroy() {
         this.unbindButtonEvents();
+    }
+
+    public openDifficultyRanking(difficulty: DifficultyMode = this.currentDifficulty, forceRefresh: boolean = false): void {
+        this.currentViewMode = 'difficulty';
+        this.currentDifficulty = difficulty;
+        this.setDifficultyTagsVisible(true);
+        this.node.active = true;
+        this.showCachedOrLoading(difficulty);
+        void this.refreshIfNeeded(forceRefresh, difficulty);
+    }
+
+    public openLevelRanking(difficulty: DifficultyMode, levelNo: number, forceRefresh: boolean = false): void {
+        this.currentViewMode = 'level';
+        this.currentDifficulty = difficulty;
+        this.currentLevelNo = Math.max(1, levelNo);
+        this.setDifficultyTagsVisible(false);
+        this.node.active = true;
+        this.showLevelRankingOrLoading();
+        void this.refreshLevelRankingIfNeeded(forceRefresh);
     }
 
     public showCachedOrLoading(difficulty: DifficultyMode = this.currentDifficulty): void {
@@ -115,6 +149,26 @@ export class ChartController extends Component {
         }
 
         await Promise.all(difficulties.map((difficulty) => this.refreshIfNeeded(force, difficulty)));
+    }
+
+    private showLevelRankingOrLoading(): void {
+        this.restoreLevelCacheFromStorage(this.currentDifficulty, this.currentLevelNo);
+        this.setDifficultyTagsVisible(false);
+        this.renderCurrentLevelRanking();
+    }
+
+    private async refreshLevelRankingIfNeeded(force: boolean = false): Promise<void> {
+        this.restoreLevelCacheFromStorage(this.currentDifficulty, this.currentLevelNo);
+        const levelKey = this.getLevelRankingKey(this.currentDifficulty, this.currentLevelNo);
+        const cache = this.levelRankingCache.get(levelKey);
+        if (!force && cache && !this.isCacheExpired(cache.updatedAt)) {
+            if (this.node.active && this.currentViewMode === 'level') {
+                this.renderCurrentLevelRanking();
+            }
+            return;
+        }
+
+        await this.refreshCurrentLevelRanking();
     }
 
     private bindButtonEvents(): void {
@@ -219,6 +273,24 @@ export class ChartController extends Component {
         void this.renderPlaceholder(placeholderMessage, renderToken);
     }
 
+    private renderCurrentLevelRanking(): void {
+        const renderToken = ++this.renderVersion;
+        const levelKey = this.getLevelRankingKey(this.currentDifficulty, this.currentLevelNo);
+        const cache = this.levelRankingCache.get(levelKey);
+        const ranking = cache?.data ?? [];
+        const hasCache = !!cache;
+
+        this.renderLevelOwnerSummary(ranking, renderToken);
+
+        if (ranking.length > 0) {
+            void this.renderLevelRankingList(ranking, renderToken);
+            return;
+        }
+
+        const placeholderMessage = hasCache ? ' \u6682\u65e0\u6392\u884c' : ' \u52a0\u8f7d\u4e2d...';
+        void this.renderPlaceholder(placeholderMessage, renderToken);
+    }
+
     private renderOwnerSummary(ranking: DifficultySummary[], renderToken: number): void {
         const gameManager = GameManager.getInstance();
         const playerService = PlayerService.instance;
@@ -252,6 +324,34 @@ export class ChartController extends Component {
         }
     }
 
+    private renderLevelOwnerSummary(ranking: LevelBest[], renderToken: number): void {
+        const gameManager = GameManager.getInstance();
+        const wxManager = gameManager?.wxManager;
+        const openid = gameManager?.openid ?? '';
+        const fallbackNickname = openid ? `\u8c46\u53cb${openid.slice(-4)}` : '\u8c46\u53cb';
+        const ownerEntry = openid ? ranking.find((item) => item.userId === openid) ?? null : null;
+        const ownerRank = ownerEntry ? ranking.findIndex((item) => item.userId === ownerEntry.userId) + 1 : 0;
+        const ownerNickname = ownerEntry?.nickname?.trim() || wxManager?.nickname?.trim() || fallbackNickname;
+        const ownerTimeText = ownerEntry ? this.formatClearTimeText(ownerEntry.bestClearTime) : '--';
+        const ownerRankText = ownerEntry ? `${ownerRank}` : '--';
+        const avatarUrl = ownerEntry?.avatarUrl || wxManager?.avatarUrl || '';
+
+        if (this.owner_name_label) {
+            this.owner_name_label.string = ownerNickname;
+        }
+        if (this.owner_number_label) {
+            this.owner_number_label.string = ownerRankText;
+        }
+        if (this.owner_level_label) {
+            this.owner_level_label.string = ownerTimeText;
+        }
+
+        this.resetOwnerAvatar();
+        if (avatarUrl) {
+            void this.applyAvatarToSprite(this.owner_avatar_sprite, avatarUrl, renderToken);
+        }
+    }
+
     private async renderRankingList(ranking: DifficultySummary[], renderToken: number): Promise<void> {
         const prefab = await this.loadChartUserPrefab();
         if (!prefab || renderToken !== this.renderVersion || !isValid(this.content)) {
@@ -270,6 +370,34 @@ export class ChartController extends Component {
 
             const nickname = itemData.nickname?.trim() || this.getFallbackNickname(itemData.userId);
             item.applyRankingData(index + 1, nickname, this.formatLevelText(itemData.highestLevel));
+
+            if (itemData.avatarUrl) {
+                void this.applyAvatarToChartUser(item, itemData.avatarUrl, renderToken);
+            }
+        }
+
+        this.updateListLayout();
+        this.scrollToTop();
+    }
+
+    private async renderLevelRankingList(ranking: LevelBest[], renderToken: number): Promise<void> {
+        const prefab = await this.loadChartUserPrefab();
+        if (!prefab || renderToken !== this.renderVersion || !isValid(this.content)) {
+            return;
+        }
+
+        this.content.destroyAllChildren();
+
+        for (let index = 0; index < ranking.length; index++) {
+            const itemData = ranking[index];
+            const itemNode = instantiate(prefab);
+            this.content.addChild(itemNode);
+
+            const item = itemNode.getComponent(ChartUser);
+            if (!item) continue;
+
+            const nickname = itemData.nickname?.trim() || this.getFallbackNickname(itemData.userId);
+            item.applyRankingData(index + 1, nickname, this.formatClearTimeText(itemData.bestClearTime));
 
             if (itemData.avatarUrl) {
                 void this.applyAvatarToChartUser(item, itemData.avatarUrl, renderToken);
@@ -341,10 +469,65 @@ export class ChartController extends Component {
         }
     }
 
+    private async refreshCurrentLevelRanking(): Promise<void> {
+        const levelKey = this.getLevelRankingKey(this.currentDifficulty, this.currentLevelNo);
+        const existingTask = this.levelRefreshTasks.get(levelKey);
+        if (existingTask) {
+            await existingTask;
+            return;
+        }
+
+        const task = (async () => {
+            try {
+                const playerService = PlayerService.instance;
+                if (!playerService) {
+                    console.warn(`ChartController: PlayerService is not ready for ${levelKey} ranking refresh`);
+                    return;
+                }
+
+                const ranking = await playerService.getLevelRanking(this.currentDifficulty, this.currentLevelNo, RANKING_LIMIT);
+                const cache: LevelRankingCache = {
+                    data: ranking,
+                    updatedAt: Date.now(),
+                };
+
+                this.levelRankingCache.set(levelKey, cache);
+                this.saveLevelCacheToStorage(this.currentDifficulty, this.currentLevelNo, cache);
+
+                if (this.node.active && this.currentViewMode === 'level') {
+                    this.renderCurrentLevelRanking();
+                }
+            } catch (error) {
+                console.warn(`ChartController: failed to refresh ${levelKey} ranking`, error);
+                if (this.node.active && this.currentViewMode === 'level' && !this.levelRankingCache.has(levelKey)) {
+                    this.renderCurrentLevelRanking();
+                }
+            }
+        })();
+
+        this.levelRefreshTasks.set(levelKey, task);
+
+        try {
+            await task;
+        } finally {
+            this.levelRefreshTasks.delete(levelKey);
+        }
+    }
+
     private updateDifficultyTagState(): void {
         this.setTagSelected(this.simple_tag, this.currentDifficulty === DifficultyMode.SIMPLE);
         this.setTagSelected(this.medium_tag, this.currentDifficulty === DifficultyMode.MEDIUM);
         this.setTagSelected(this.hard_tag, this.currentDifficulty === DifficultyMode.HARD);
+    }
+
+    private setDifficultyTagsVisible(visible: boolean): void {
+        if (this.simple_tag) this.simple_tag.active = visible;
+        if (this.medium_tag) this.medium_tag.active = visible;
+        if (this.hard_tag) this.hard_tag.active = visible;
+
+        if (visible) {
+            this.updateDifficultyTagState();
+        }
     }
 
     private setTagSelected(tagNode: Node | null, selected: boolean): void {
@@ -564,8 +747,54 @@ export class ChartController extends Component {
         }
     }
 
+    private restoreLevelCacheFromStorage(difficulty: DifficultyMode, levelNo: number): void {
+        if (typeof wx === 'undefined') {
+            return;
+        }
+
+        const levelKey = this.getLevelRankingKey(difficulty, levelNo);
+        if (this.levelRankingCache.has(levelKey)) {
+            return;
+        }
+
+        try {
+            const rawCache = wx.getStorageSync(this.getLevelStorageKey(difficulty, levelNo)) as LevelRankingCache | undefined;
+            if (!rawCache || !Array.isArray(rawCache.data) || typeof rawCache.updatedAt !== 'number') {
+                return;
+            }
+
+            this.levelRankingCache.set(levelKey, {
+                data: rawCache.data,
+                updatedAt: rawCache.updatedAt,
+            });
+        } catch (error) {
+            console.warn(`ChartController: failed to restore ${levelKey} ranking cache`, error);
+        }
+    }
+
+    private saveLevelCacheToStorage(difficulty: DifficultyMode, levelNo: number, cache: LevelRankingCache): void {
+        if (typeof wx === 'undefined') {
+            return;
+        }
+
+        const levelKey = this.getLevelRankingKey(difficulty, levelNo);
+        try {
+            wx.setStorageSync(this.getLevelStorageKey(difficulty, levelNo), cache);
+        } catch (error) {
+            console.warn(`ChartController: failed to save ${levelKey} ranking cache`, error);
+        }
+    }
+
     private getStorageKey(difficulty: DifficultyMode): string {
         return `${STORAGE_KEY_PREFIX}${difficulty}`;
+    }
+
+    private getLevelStorageKey(difficulty: DifficultyMode, levelNo: number): string {
+        return `${STORAGE_KEY_PREFIX}${difficulty}_level_${levelNo}`;
+    }
+
+    private getLevelRankingKey(difficulty: DifficultyMode, levelNo: number): string {
+        return `${difficulty}#${levelNo}`;
     }
 
     private isCacheExpired(updatedAt: number): boolean {
@@ -579,5 +808,9 @@ export class ChartController extends Component {
 
     private formatLevelText(highestLevel: number): string {
         return `\u7b2c${highestLevel}\u5173`;
+    }
+
+    private formatClearTimeText(clearTime: number): string {
+        return clearTime >= 0 ? `${clearTime}s` : '--';
     }
 }
