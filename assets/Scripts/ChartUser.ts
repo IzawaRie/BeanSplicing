@@ -12,6 +12,9 @@ export class ChartUser extends Component {
     @property({ type: Node })
     medal_no3: Node = null;
 
+    @property({ type: Node })
+    user_border: Node = null;
+
     @property({ type: Sprite })
     owner_avatar_sprite: Sprite = null;
 
@@ -33,6 +36,7 @@ export class ChartUser extends Component {
     public applyRankingData(rank: number, nickname: string, levelText: string): void {
         this.setAvatarVisible(true);
         this.resetAvatar();
+        this.setUserBorderVisible(true);
 
         const isTop1 = rank === 1;
         const isTop2 = rank === 2;
@@ -61,6 +65,7 @@ export class ChartUser extends Component {
         if (this.medal_no1) this.medal_no1.active = false;
         if (this.medal_no2) this.medal_no2.active = false;
         if (this.medal_no3) this.medal_no3.active = false;
+        this.setUserBorderVisible(false);
 
         if (this.owner_number_label) {
             this.owner_number_label.node.active = false;
@@ -94,6 +99,11 @@ export class ChartUser extends Component {
             this.owner_avatar_sprite.node.active = visible;
         }
     }
-}
 
+    private setUserBorderVisible(visible: boolean): void {
+        if (this.user_border) {
+            this.user_border.active = visible;
+        }
+    }
+}
 

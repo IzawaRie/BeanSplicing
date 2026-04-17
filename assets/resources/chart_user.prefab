@@ -1531,6 +1531,9 @@
     "medal_no3": {
       "__id__": 42
     },
+    "user_border": {
+      "__id__": 2
+    },
     "owner_avatar_sprite": {
       "__id__": 7
     },
