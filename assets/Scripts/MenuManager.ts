@@ -430,7 +430,7 @@ export class MenuManager extends Component {
             await gameManager.wxManager?.getUserInfo();
         }
 
-        gameManager.chart.openDifficultyRanking(gameManager.currentDifficulty);
+        gameManager.chart.openDifficultyRanking(gameManager.currentDifficulty, true);
     }
 
     /**

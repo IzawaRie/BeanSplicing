@@ -670,6 +670,7 @@ export class ResultPanel extends Component {
     private async saveLevelDataToCloud(difficulty: DifficultyMode, levelNo: number, clearTime: number): Promise<void> {
         const playerService = PlayerService.instance;
         if (!playerService) return;
+        const gameManager = GameManager.getInstance();
 
         // 保存单关最佳成绩
         const saveBestSuccess = await playerService.saveLevelBest(difficulty, levelNo, clearTime);
@@ -682,6 +683,8 @@ export class ResultPanel extends Component {
         if (updateHighestSuccess) {
             console.log(`最高关卡已更新: ${levelNo}`);
         }
+
+        await gameManager?.chart?.preloadAllRankings(true);
     }
 
     /**
