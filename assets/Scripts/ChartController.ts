@@ -400,25 +400,7 @@ export class ChartController extends Component {
             return await existingTask;
         }
 
-        const task = new Promise<SpriteFrame | null>((resolve) => {
-            const ext = this.getAvatarExtension(avatarUrl);
-            assetManager.loadRemote<ImageAsset>(avatarUrl, { ext }, (err, imageAsset) => {
-                if (err || !imageAsset) {
-                    console.warn(`ChartController: failed to load avatar ${avatarUrl}`, err);
-                    this.avatarFrameCache.set(avatarUrl, null);
-                    resolve(null);
-                    return;
-                }
-
-                const texture = new Texture2D();
-                texture.image = imageAsset;
-
-                const spriteFrame = new SpriteFrame();
-                spriteFrame.texture = texture;
-                this.avatarFrameCache.set(avatarUrl, spriteFrame);
-                resolve(spriteFrame);
-            });
-        });
+        const task = this.loadAvatarSpriteFrameWithRetry(avatarUrl);
 
         this.avatarLoadTasks.set(avatarUrl, task);
 
@@ -429,15 +411,61 @@ export class ChartController extends Component {
         }
     }
 
+    private async loadAvatarSpriteFrameWithRetry(avatarUrl: string): Promise<SpriteFrame | null> {
+        let spriteFrame = await this.loadAvatarSpriteFrameOnce(avatarUrl, false);
+        if (spriteFrame) {
+            this.avatarFrameCache.set(avatarUrl, spriteFrame);
+            return spriteFrame;
+        }
+
+        this.clearRemoteAvatarCache(avatarUrl);
+        spriteFrame = await this.loadAvatarSpriteFrameOnce(avatarUrl, true);
+        this.avatarFrameCache.set(avatarUrl, spriteFrame);
+        return spriteFrame;
+    }
+
+    private loadAvatarSpriteFrameOnce(avatarUrl: string, shouldWarn: boolean): Promise<SpriteFrame | null> {
+        return new Promise<SpriteFrame | null>((resolve) => {
+            const ext = this.getAvatarExtension(avatarUrl);
+            assetManager.loadRemote<ImageAsset>(avatarUrl, { ext }, (err, imageAsset) => {
+                if (err || !imageAsset) {
+                    if (shouldWarn) {
+                        console.warn(`ChartController: failed to load avatar ${avatarUrl}`, err);
+                    }
+                    resolve(null);
+                    return;
+                }
+
+                const texture = new Texture2D();
+                texture.image = imageAsset;
+
+                const spriteFrame = new SpriteFrame();
+                spriteFrame.texture = texture;
+                resolve(spriteFrame);
+            });
+        });
+    }
+
+    private clearRemoteAvatarCache(avatarUrl: string): void {
+        const cacheManager = (assetManager as any)?.cacheManager;
+        cacheManager?.removeCache?.(avatarUrl);
+    }
+
     private getAvatarExtension(avatarUrl: string): string {
         const normalizedUrl = avatarUrl.split('?')[0].toLowerCase();
+        if (normalizedUrl.includes('thirdwx.qlogo.cn') || normalizedUrl.includes('wx.qlogo.cn')) {
+            return '.jpg';
+        }
         if (normalizedUrl.endsWith('.jpg') || normalizedUrl.endsWith('.jpeg')) {
             return '.jpg';
         }
         if (normalizedUrl.endsWith('.webp')) {
             return '.webp';
         }
-        return '.png';
+        if (normalizedUrl.endsWith('.png')) {
+            return '.png';
+        }
+        return '.jpg';
     }
 
     private async loadChartUserPrefab(): Promise<Prefab | null> {
