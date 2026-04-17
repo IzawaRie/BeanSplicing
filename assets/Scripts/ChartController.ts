@@ -309,7 +309,7 @@ export class ChartController extends Component {
         const avatarUrl = ownerEntry?.avatarUrl || wxManager?.avatarUrl || '';
 
         if (this.owner_name_label) {
-            this.owner_name_label.string = ownerNickname;
+            this.owner_name_label.string = this.formatNicknameText(ownerNickname);
         }
         if (this.owner_number_label) {
             this.owner_number_label.string = ownerRankText;
@@ -337,7 +337,7 @@ export class ChartController extends Component {
         const avatarUrl = ownerEntry?.avatarUrl || wxManager?.avatarUrl || '';
 
         if (this.owner_name_label) {
-            this.owner_name_label.string = ownerNickname;
+            this.owner_name_label.string = this.formatNicknameText(ownerNickname);
         }
         if (this.owner_number_label) {
             this.owner_number_label.string = ownerRankText;
@@ -807,10 +807,14 @@ export class ChartController extends Component {
     }
 
     private formatLevelText(highestLevel: number): string {
-        return `\u7b2c${highestLevel}\u5173`;
+        return ` \u7b2c${highestLevel}\u5173`;
     }
 
     private formatClearTimeText(clearTime: number): string {
-        return clearTime >= 0 ? `${clearTime}s` : '--';
+        return clearTime >= 0 ? ` ${clearTime}s` : ' --';
+    }
+
+    private formatNicknameText(nickname: string): string {
+        return ` ${nickname}`;
     }
 }

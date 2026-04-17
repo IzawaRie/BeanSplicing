@@ -53,7 +53,7 @@ export class ChartUser extends Component {
         }
 
         if (this.owner_name_label) {
-            this.owner_name_label.string = nickname;
+            this.owner_name_label.string = this.formatNicknameText(nickname);
         }
 
         if (this.owner_level_label) {
@@ -104,6 +104,10 @@ export class ChartUser extends Component {
         if (this.user_border) {
             this.user_border.active = visible;
         }
+    }
+
+    private formatNicknameText(nickname: string): string {
+        return ` ${nickname}`;
     }
 }
 
