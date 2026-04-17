@@ -83,6 +83,7 @@ export class LevelMode extends GameMode {
     tutorial_tip: Node = null;
 
     private currentScore: number = 0;
+    private _currentLevelId: number = 1;
     private _patternPath: string = '';
     // 当前选中的颜色序号
     private _selectedColorIndex: number = 1;
@@ -465,6 +466,7 @@ export class LevelMode extends GameMode {
             this.settingBtn.active = false;
         }
         this.currentScore = 0;
+        this._currentLevelId = levelId;
         this._patternPath = patternPath;
         // 重置时间冻结状态
         this._isTimeFrozen = false;
@@ -644,6 +646,10 @@ export class LevelMode extends GameMode {
      */
     get patternPath(): string {
         return this._patternPath;
+    }
+
+    get currentLevelId(): number {
+        return this._currentLevelId;
     }
 
     /**

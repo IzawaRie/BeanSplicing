@@ -108,8 +108,9 @@ export class ResultPanel extends Component {
         this._isSuccess = isSuccess;
         const gameManager = GameManager.getInstance();
         const difficulty = gameManager.currentDifficulty;
+        const playedLevelNo = gameManager.levelMode?.currentLevelId ?? gameManager.currentLevel;
         this._resultDifficulty = difficulty;
-        this._resultLevelNo = gameManager.currentLevel;
+        this._resultLevelNo = playedLevelNo;
         gameManager.levelMode.stop30SecondWarning();
         // 结束可能正在进行的新手引导
         const tutorialController = gameManager.levelMode?.tutorialController;
@@ -142,14 +143,17 @@ export class ResultPanel extends Component {
             AudioManager.instance.playEffect('victory', 0.4);
 
             // 保存关卡数据到云端
-            const levelNo = gameManager.currentLevel;
+            const levelNo = this._resultLevelNo;
             this._saveLevelDataTask = this.saveLevelDataToCloud(difficulty, levelNo, this._clearTime);
 
             // 更新当前关卡
-            gameManager.currentLevel++;
+            const nextLevelNo = levelNo + 1;
+            if (gameManager.currentLevel <= levelNo) {
+                gameManager.currentLevel = nextLevelNo;
+            }
 
             // 检查是否还有下一关
-            const hasNextLevel = LevelConfig.getInstance().hasLevel(gameManager.currentLevel, difficulty);
+            const hasNextLevel = LevelConfig.getInstance().hasLevel(nextLevelNo, difficulty);
             if (hasNextLevel) {
                 // 有下一关，显示下一关按钮，隐藏返回按钮
                 this.nextLevelBtn.active = true;
@@ -588,7 +592,7 @@ export class ResultPanel extends Component {
         }
         gameManager.power--;
         AudioManager.instance.playEffect('ding');
-        this.loadLevel();
+        this.loadLevel(this._resultLevelNo + 1, this._resultDifficulty);
     }
 
     /**
@@ -603,7 +607,7 @@ export class ResultPanel extends Component {
         }
         gameManager.power--;
         AudioManager.instance.playEffect('click_btn');
-        this.loadLevel();
+        this.loadLevel(this._resultLevelNo, this._resultDifficulty);
     }
 
     /**
@@ -614,16 +618,16 @@ export class ResultPanel extends Component {
         if (gameManager?.isWindowBlocking()) return;
 
         AudioManager.instance.playEffect('click_btn');
-        this.loadLevel();
+        this.loadLevel(this._resultLevelNo, this._resultDifficulty);
     }
 
-    private loadLevel(){
+    private loadLevel(levelNo: number = GameManager.getInstance()?.currentLevel ?? 1, difficulty: DifficultyMode = GameManager.getInstance()?.currentDifficulty ?? DifficultyMode.SIMPLE){
         this.result_img.spriteFrame = null;
         this.node.active = false;
         const gameManager = GameManager.getInstance();
         gameManager.levelMode.node.active = false;
         gameManager.vibrateShort();
-        gameManager.menuManager.loadLevel(gameManager.currentLevel, gameManager.currentDifficulty);
+        gameManager.menuManager.loadLevel(levelNo, difficulty);
     }
 
     private async onChartBtnClick(): Promise<void> {
