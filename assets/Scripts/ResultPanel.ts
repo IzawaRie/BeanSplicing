@@ -27,6 +27,9 @@ export class ResultPanel extends Component {
     restartBtn: Node = null;
 
     @property(Node)
+    restartBtn2: Node = null;
+
+    @property(Node)
     homelBtn: Node = null;
 
     @property(Node)
@@ -46,6 +49,12 @@ export class ResultPanel extends Component {
 
     @property(Node)
     continue_btn: Node = null;
+
+    @property(Node)
+    chart_btn: Node = null;
+
+    @property(Node)
+    chart_btn2: Node = null;
 
     @property(Sprite)
     result_img: Sprite = null;
