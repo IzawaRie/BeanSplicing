@@ -36912,7 +36912,7 @@
       "a": 255
     },
     "_spriteFrame": {
-      "__uuid__": "7d8f9b89-4fd1-4c9f-a3ab-38ec7cded7ca@f9941",
+      "__uuid__": "acd0f35f-34fe-4b66-8f46-08672cf0f924@f9941",
       "__expectedType__": "cc.SpriteFrame"
     },
     "_type": 0,
@@ -36925,7 +36925,7 @@
     },
     "_fillStart": 0,
     "_fillRange": 0,
-    "_isTrimmedMode": true,
+    "_isTrimmedMode": false,
     "_useGrayscale": false,
     "_atlas": null,
     "_id": "14+gbUUPZJlZ1TWHom7ON/"
