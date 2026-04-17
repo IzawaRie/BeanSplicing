@@ -214,7 +214,7 @@ export class ChartController extends Component {
             return;
         }
 
-        const placeholderMessage = hasCache ? '\u6682\u65e0\u6392\u884c' : '\u52a0\u8f7d\u4e2d...';
+        const placeholderMessage = hasCache ? ' \u6682\u65e0\u6392\u884c' : ' \u52a0\u8f7d\u4e2d...';
         void this.renderPlaceholder(placeholderMessage, renderToken);
     }
 
