@@ -1,5 +1,20 @@
-import { _decorator, Component, Label, Node, Sprite, input, Input, EventTouch, UITransform, Vec2 } from 'cc';
+import { _decorator, assetManager, Color, Component, EventTouch, ImageAsset, input, Input, instantiate, isValid, Label, Layout, Node, Prefab, resources, ScrollView, Sprite, SpriteFrame, Texture2D, UITransform, Vec2 } from 'cc';
+import { DifficultyMode, GameManager } from './GameManager';
+import { ChartUser } from './ChartUser';
+import { DifficultySummary, PlayerService } from './PlayerService';
 const { ccclass, property } = _decorator;
+
+declare const wx: any;
+
+interface DifficultyRankingCache {
+    data: DifficultySummary[];
+    updatedAt: number;
+}
+
+const CACHE_TTL_MS = 60 * 1000;
+const RANKING_LIMIT = 100;
+const CHART_USER_PREFAB_PATH = 'chart_user';
+const STORAGE_KEY_PREFIX = 'chart_ranking_cache_';
 
 @ccclass('ChartController')
 export class ChartController extends Component {
@@ -33,18 +48,128 @@ export class ChartController extends Component {
     @property({ type: Node })
     chart_bg: Node = null;
 
+    private currentDifficulty: DifficultyMode = DifficultyMode.SIMPLE;
+    private readonly rankingCache = new Map<DifficultyMode, DifficultyRankingCache>();
+    private readonly refreshTasks = new Map<DifficultyMode, Promise<void>>();
+    private readonly avatarFrameCache = new Map<string, SpriteFrame | null>();
+    private readonly avatarLoadTasks = new Map<string, Promise<SpriteFrame | null>>();
+    private chartUserPrefab: Prefab | null = null;
+    private chartUserPrefabTask: Promise<Prefab | null> | null = null;
+    private defaultOwnerAvatarSpriteFrame: SpriteFrame | null = null;
+    private renderVersion = 0;
+
     onLoad() {
-        if (this.close_btn) {
-            this.close_btn.on(Node.EventType.TOUCH_END, this.onCloseBtnClick, this);
-        }
+        this.defaultOwnerAvatarSpriteFrame = this.owner_avatar_sprite?.spriteFrame ?? null;
+        this.restoreAllCachesFromStorage();
+        this.bindButtonEvents();
+        void this.loadChartUserPrefab();
     }
 
     onEnable() {
         input.on(Input.EventType.TOUCH_END, this.onTouchEnd, this);
+        this.showCachedOrLoading();
+        void this.refreshIfNeeded();
     }
 
     onDisable() {
         input.off(Input.EventType.TOUCH_END, this.onTouchEnd, this);
+        this.renderVersion++;
+    }
+
+    onDestroy() {
+        this.unbindButtonEvents();
+    }
+
+    public showCachedOrLoading(difficulty: DifficultyMode = this.currentDifficulty): void {
+        this.restoreCacheFromStorage(difficulty);
+        this.currentDifficulty = difficulty;
+        this.updateDifficultyTagState();
+        this.renderCurrentDifficulty();
+    }
+
+    public async refreshIfNeeded(force: boolean = false, difficulty: DifficultyMode = this.currentDifficulty): Promise<void> {
+        this.restoreCacheFromStorage(difficulty);
+        const cache = this.rankingCache.get(difficulty);
+        if (!force && cache && !this.isCacheExpired(cache.updatedAt)) {
+            if (this.node.active && this.currentDifficulty === difficulty) {
+                this.renderCurrentDifficulty();
+            }
+            return;
+        }
+
+        await this.refreshDifficultyRanking(difficulty);
+    }
+
+    public async preloadAllRankings(force: boolean = false): Promise<void> {
+        const difficulties = [DifficultyMode.SIMPLE, DifficultyMode.MEDIUM, DifficultyMode.HARD];
+        difficulties.forEach((difficulty) => this.restoreCacheFromStorage(difficulty));
+
+        if (!force) {
+            const hasFreshCache = difficulties.every((difficulty) => {
+                const cache = this.rankingCache.get(difficulty);
+                return !!cache && !this.isCacheExpired(cache.updatedAt);
+            });
+            if (hasFreshCache) {
+                return;
+            }
+        }
+
+        await Promise.all(difficulties.map((difficulty) => this.refreshIfNeeded(force, difficulty)));
+    }
+
+    private bindButtonEvents(): void {
+        if (this.close_btn) {
+            this.close_btn.on(Node.EventType.TOUCH_END, this.onCloseBtnClick, this);
+        }
+        if (this.simple_tag) {
+            this.simple_tag.on(Node.EventType.TOUCH_END, this.onSimpleTagClick, this);
+        }
+        if (this.medium_tag) {
+            this.medium_tag.on(Node.EventType.TOUCH_END, this.onMediumTagClick, this);
+        }
+        if (this.hard_tag) {
+            this.hard_tag.on(Node.EventType.TOUCH_END, this.onHardTagClick, this);
+        }
+    }
+
+    private unbindButtonEvents(): void {
+        if (this.close_btn) {
+            this.close_btn.off(Node.EventType.TOUCH_END, this.onCloseBtnClick, this);
+        }
+        if (this.simple_tag) {
+            this.simple_tag.off(Node.EventType.TOUCH_END, this.onSimpleTagClick, this);
+        }
+        if (this.medium_tag) {
+            this.medium_tag.off(Node.EventType.TOUCH_END, this.onMediumTagClick, this);
+        }
+        if (this.hard_tag) {
+            this.hard_tag.off(Node.EventType.TOUCH_END, this.onHardTagClick, this);
+        }
+    }
+
+    private onSimpleTagClick(): void {
+        this.switchDifficulty(DifficultyMode.SIMPLE);
+    }
+
+    private onMediumTagClick(): void {
+        this.switchDifficulty(DifficultyMode.MEDIUM);
+    }
+
+    private onHardTagClick(): void {
+        this.switchDifficulty(DifficultyMode.HARD);
+    }
+
+    private switchDifficulty(difficulty: DifficultyMode): void {
+        if (this.currentDifficulty === difficulty) {
+            this.showCachedOrLoading(difficulty);
+            void this.refreshIfNeeded(false, difficulty);
+            return;
+        }
+
+        this.currentDifficulty = difficulty;
+        this.updateDifficultyTagState();
+        this.renderCurrentDifficulty();
+        void this.refreshIfNeeded(false, difficulty);
     }
 
     private onTouchEnd(event: EventTouch): void {
@@ -76,9 +201,323 @@ export class ChartController extends Component {
         this.node.active = false;
     }
 
-    onDestroy() {
-        if (this.close_btn) {
-            this.close_btn.off(Node.EventType.TOUCH_END, this.onCloseBtnClick, this);
+    private renderCurrentDifficulty(): void {
+        const renderToken = ++this.renderVersion;
+        const cache = this.rankingCache.get(this.currentDifficulty);
+        const ranking = cache?.data ?? [];
+        const hasCache = !!cache;
+
+        this.renderOwnerSummary(ranking, renderToken);
+
+        if (ranking.length > 0) {
+            void this.renderRankingList(ranking, renderToken);
+            return;
         }
+
+        const placeholderMessage = hasCache ? '\u6682\u65e0\u6392\u884c' : '\u52a0\u8f7d\u4e2d...';
+        void this.renderPlaceholder(placeholderMessage, renderToken);
+    }
+
+    private renderOwnerSummary(ranking: DifficultySummary[], renderToken: number): void {
+        const gameManager = GameManager.getInstance();
+        const playerService = PlayerService.instance;
+        const wxManager = gameManager?.wxManager;
+        const openid = gameManager?.openid ?? '';
+        const fallbackNickname = openid ? `\u8c46\u53cb${openid.slice(-4)}` : '\u8c46\u53cb';
+        const ownerEntry = openid ? ranking.find((item) => item.userId === openid) ?? null : null;
+        const cachedLevel = Math.max(0, (playerService?.getCachedLevel(this.currentDifficulty) ?? 1) - 1);
+        const ownerHighestLevel = ownerEntry?.highestLevel ?? cachedLevel;
+        const ownerRank = ownerEntry ? ranking.findIndex((item) => item.userId === ownerEntry.userId) + 1 : 0;
+        const ownerRankText = ownerRank > 0 ? `${ownerRank}` : (ranking.length > 0 ? `${ranking.length}+` : '--');
+        const ownerNickname = ownerEntry?.nickname?.trim() || wxManager?.nickname?.trim() || fallbackNickname;
+        const avatarUrl = ownerEntry?.avatarUrl || wxManager?.avatarUrl || '';
+
+        if (this.owner_name_label) {
+            this.owner_name_label.string = ownerNickname;
+        }
+        if (this.owner_number_label) {
+            this.owner_number_label.string = ownerRankText;
+        }
+        if (this.owner_level_label) {
+            this.owner_level_label.string = this.formatLevelText(ownerHighestLevel);
+        }
+
+        this.resetOwnerAvatar();
+        if (avatarUrl) {
+            void this.applyAvatarToSprite(this.owner_avatar_sprite, avatarUrl, renderToken);
+        }
+    }
+
+    private async renderRankingList(ranking: DifficultySummary[], renderToken: number): Promise<void> {
+        const prefab = await this.loadChartUserPrefab();
+        if (!prefab || renderToken !== this.renderVersion || !isValid(this.content)) {
+            return;
+        }
+
+        this.content.destroyAllChildren();
+
+        for (let index = 0; index < ranking.length; index++) {
+            const itemData = ranking[index];
+            const itemNode = instantiate(prefab);
+            this.content.addChild(itemNode);
+
+            const item = itemNode.getComponent(ChartUser);
+            if (!item) continue;
+
+            const nickname = itemData.nickname?.trim() || this.getFallbackNickname(itemData.userId);
+            item.applyRankingData(index + 1, nickname, this.formatLevelText(itemData.highestLevel));
+
+            if (itemData.avatarUrl) {
+                void this.applyAvatarToChartUser(item, itemData.avatarUrl, renderToken);
+            }
+        }
+
+        this.updateListLayout();
+        this.scrollToTop();
+    }
+
+    private async renderPlaceholder(message: string, renderToken: number): Promise<void> {
+        const prefab = await this.loadChartUserPrefab();
+        if (!prefab || renderToken !== this.renderVersion || !isValid(this.content)) {
+            return;
+        }
+
+        this.content.destroyAllChildren();
+        const itemNode = instantiate(prefab);
+        this.content.addChild(itemNode);
+
+        const item = itemNode.getComponent(ChartUser);
+        item?.applyPlaceholder(message);
+
+        this.updateListLayout();
+        this.scrollToTop();
+    }
+
+    private async refreshDifficultyRanking(difficulty: DifficultyMode): Promise<void> {
+        const existingTask = this.refreshTasks.get(difficulty);
+        if (existingTask) {
+            await existingTask;
+            return;
+        }
+
+        const task = (async () => {
+            try {
+                const playerService = PlayerService.instance;
+                if (!playerService) {
+                    console.warn(`ChartController: PlayerService is not ready for ${difficulty} ranking refresh`);
+                    return;
+                }
+
+                const ranking = await playerService.getDifficultyRanking(difficulty, RANKING_LIMIT);
+                const cache: DifficultyRankingCache = {
+                    data: ranking,
+                    updatedAt: Date.now(),
+                };
+
+                this.rankingCache.set(difficulty, cache);
+                this.saveCacheToStorage(difficulty, cache);
+
+                if (this.node.active && this.currentDifficulty === difficulty) {
+                    this.renderCurrentDifficulty();
+                }
+            } catch (error) {
+                console.warn(`ChartController: failed to refresh ${difficulty} ranking`, error);
+                if (this.node.active && this.currentDifficulty === difficulty && !this.rankingCache.has(difficulty)) {
+                    this.renderCurrentDifficulty();
+                }
+            }
+        })();
+
+        this.refreshTasks.set(difficulty, task);
+
+        try {
+            await task;
+        } finally {
+            this.refreshTasks.delete(difficulty);
+        }
+    }
+
+    private updateDifficultyTagState(): void {
+        this.setTagSelected(this.simple_tag, this.currentDifficulty === DifficultyMode.SIMPLE);
+        this.setTagSelected(this.medium_tag, this.currentDifficulty === DifficultyMode.MEDIUM);
+        this.setTagSelected(this.hard_tag, this.currentDifficulty === DifficultyMode.HARD);
+    }
+
+    private setTagSelected(tagNode: Node | null, selected: boolean): void {
+        if (!tagNode) return;
+
+        const tagSprite = tagNode.getComponent(Sprite);
+        if (tagSprite) {
+            tagSprite.color = selected ? new Color(255, 255, 255, 255) : new Color(200, 200, 200, 255);
+        }
+    }
+
+    private updateListLayout(): void {
+        const layout = this.content?.getComponent(Layout);
+        layout?.updateLayout();
+    }
+
+    private scrollToTop(): void {
+        const scrollView = this.content?.parent?.parent?.getComponent(ScrollView);
+        scrollView?.scrollToTop(0.05);
+    }
+
+    private resetOwnerAvatar(): void {
+        if (this.owner_avatar_sprite) {
+            this.owner_avatar_sprite.spriteFrame = this.defaultOwnerAvatarSpriteFrame;
+        }
+    }
+
+    private async applyAvatarToChartUser(item: ChartUser, avatarUrl: string, renderToken: number): Promise<void> {
+        const spriteFrame = await this.loadAvatarSpriteFrame(avatarUrl);
+        if (!spriteFrame || renderToken !== this.renderVersion || !isValid(item?.node)) {
+            return;
+        }
+
+        item.setAvatarSpriteFrame(spriteFrame);
+    }
+
+    private async applyAvatarToSprite(sprite: Sprite | null, avatarUrl: string, renderToken: number): Promise<void> {
+        if (!sprite) return;
+
+        const spriteFrame = await this.loadAvatarSpriteFrame(avatarUrl);
+        if (!spriteFrame || renderToken !== this.renderVersion || !isValid(sprite.node)) {
+            return;
+        }
+
+        sprite.spriteFrame = spriteFrame;
+    }
+
+    private async loadAvatarSpriteFrame(avatarUrl: string): Promise<SpriteFrame | null> {
+        if (!avatarUrl) return null;
+
+        if (this.avatarFrameCache.has(avatarUrl)) {
+            return this.avatarFrameCache.get(avatarUrl) ?? null;
+        }
+
+        const existingTask = this.avatarLoadTasks.get(avatarUrl);
+        if (existingTask) {
+            return await existingTask;
+        }
+
+        const task = new Promise<SpriteFrame | null>((resolve) => {
+            const ext = this.getAvatarExtension(avatarUrl);
+            assetManager.loadRemote<ImageAsset>(avatarUrl, { ext }, (err, imageAsset) => {
+                if (err || !imageAsset) {
+                    console.warn(`ChartController: failed to load avatar ${avatarUrl}`, err);
+                    this.avatarFrameCache.set(avatarUrl, null);
+                    resolve(null);
+                    return;
+                }
+
+                const texture = new Texture2D();
+                texture.image = imageAsset;
+
+                const spriteFrame = new SpriteFrame();
+                spriteFrame.texture = texture;
+                this.avatarFrameCache.set(avatarUrl, spriteFrame);
+                resolve(spriteFrame);
+            });
+        });
+
+        this.avatarLoadTasks.set(avatarUrl, task);
+
+        try {
+            return await task;
+        } finally {
+            this.avatarLoadTasks.delete(avatarUrl);
+        }
+    }
+
+    private getAvatarExtension(avatarUrl: string): string {
+        const normalizedUrl = avatarUrl.split('?')[0].toLowerCase();
+        if (normalizedUrl.endsWith('.jpg') || normalizedUrl.endsWith('.jpeg')) {
+            return '.jpg';
+        }
+        if (normalizedUrl.endsWith('.webp')) {
+            return '.webp';
+        }
+        return '.png';
+    }
+
+    private async loadChartUserPrefab(): Promise<Prefab | null> {
+        if (this.chartUserPrefab) {
+            return this.chartUserPrefab;
+        }
+
+        if (this.chartUserPrefabTask) {
+            return await this.chartUserPrefabTask;
+        }
+
+        this.chartUserPrefabTask = new Promise<Prefab | null>((resolve) => {
+            resources.load(CHART_USER_PREFAB_PATH, Prefab, (err, prefab) => {
+                if (err || !prefab) {
+                    console.warn('ChartController: failed to load chart user prefab', err);
+                    this.chartUserPrefabTask = null;
+                    resolve(null);
+                    return;
+                }
+
+                this.chartUserPrefab = prefab;
+                resolve(prefab);
+            });
+        });
+
+        return await this.chartUserPrefabTask;
+    }
+
+    private restoreAllCachesFromStorage(): void {
+        this.restoreCacheFromStorage(DifficultyMode.SIMPLE);
+        this.restoreCacheFromStorage(DifficultyMode.MEDIUM);
+        this.restoreCacheFromStorage(DifficultyMode.HARD);
+    }
+
+    private restoreCacheFromStorage(difficulty: DifficultyMode): void {
+        if (this.rankingCache.has(difficulty) || typeof wx === 'undefined') {
+            return;
+        }
+
+        try {
+            const rawCache = wx.getStorageSync(this.getStorageKey(difficulty)) as DifficultyRankingCache | undefined;
+            if (!rawCache || !Array.isArray(rawCache.data) || typeof rawCache.updatedAt !== 'number') {
+                return;
+            }
+
+            this.rankingCache.set(difficulty, {
+                data: rawCache.data,
+                updatedAt: rawCache.updatedAt,
+            });
+        } catch (error) {
+            console.warn(`ChartController: failed to restore ${difficulty} ranking cache`, error);
+        }
+    }
+
+    private saveCacheToStorage(difficulty: DifficultyMode, cache: DifficultyRankingCache): void {
+        if (typeof wx === 'undefined') {
+            return;
+        }
+
+        try {
+            wx.setStorageSync(this.getStorageKey(difficulty), cache);
+        } catch (error) {
+            console.warn(`ChartController: failed to save ${difficulty} ranking cache`, error);
+        }
+    }
+
+    private getStorageKey(difficulty: DifficultyMode): string {
+        return `${STORAGE_KEY_PREFIX}${difficulty}`;
+    }
+
+    private isCacheExpired(updatedAt: number): boolean {
+        return Date.now() - updatedAt > CACHE_TTL_MS;
+    }
+
+    private getFallbackNickname(userId: string): string {
+        if (!userId) return '\u8c46\u53cb';
+        return `\u8c46\u53cb${userId.slice(-4)}`;
+    }
+
+    private formatLevelText(highestLevel: number): string {
+        return highestLevel > 0 ? `\u7b2c${highestLevel}\u5173` : '\u672a\u901a\u5173';
     }
 }

@@ -425,7 +425,11 @@ export class MenuManager extends Component {
 
         gameManager.vibrateShort();
         AudioManager.instance.playEffect('click_btn');
-        await gameManager.wxManager?.getUserInfo();
+
+        if (!gameManager.canOpenChartDirectly) {
+            await gameManager.wxManager?.getUserInfo();
+        }
+
         gameManager.chart.node.active = true;
     }
 

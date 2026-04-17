@@ -94,6 +94,29 @@ export class GameManager extends Component {
         this._openid = openid;
     }
 
+    private _hasUserInfoPermission: boolean = false;
+    private _hasLoadedUserInfo: boolean = false;
+
+    public get hasUserInfoPermission(): boolean {
+        return this._hasUserInfoPermission;
+    }
+
+    public setHasUserInfoPermission(value: boolean): void {
+        this._hasUserInfoPermission = value;
+    }
+
+    public get hasLoadedUserInfo(): boolean {
+        return this._hasLoadedUserInfo;
+    }
+
+    public setHasLoadedUserInfo(value: boolean): void {
+        this._hasLoadedUserInfo = value;
+    }
+
+    public get canOpenChartDirectly(): boolean {
+        return this._hasUserInfoPermission && this._hasLoadedUserInfo;
+    }
+
     // 存储是否加载完成
     private _storageLoaded: boolean = false;
     public get storageLoaded(): boolean {
@@ -203,12 +226,16 @@ export class GameManager extends Component {
             console.log('GameManager openid:', this._openid);
 
             const hasUserInfoPermission = await this.wxManager.hasUserInfoPermission();
+            this.setHasUserInfoPermission(hasUserInfoPermission);
             if (hasUserInfoPermission) {
                 await this.wxManager.getUserInfo();
             }
 
             PlayerService.instance?.syncProgressWithCloud();
             PlayerService.instance?.updateLastLoginTime();
+            this.scheduleOnce(() => {
+                void this.chart?.preloadAllRankings();
+            }, 0);
         });
 
         this.menuManager.levelConfig = LevelConfig.getInstance();

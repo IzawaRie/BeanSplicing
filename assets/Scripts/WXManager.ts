@@ -1034,16 +1034,20 @@ export class WXManager extends Component {
     public hasUserInfoPermission(): Promise<boolean> {
         return new Promise((resolve) => {
             if (typeof (wx) === 'undefined') {
+                GameManager.getInstance()?.setHasUserInfoPermission(false);
                 resolve(false);
                 return;
             }
 
             wx.getSetting({
                 success: (res) => {
-                    resolve(!!res.authSetting?.['scope.userInfo']);
+                    const hasPermission = !!res.authSetting?.['scope.userInfo'];
+                    GameManager.getInstance()?.setHasUserInfoPermission(hasPermission);
+                    resolve(hasPermission);
                 },
                 fail: (err) => {
                     console.warn('检查用户信息授权失败:', err);
+                    GameManager.getInstance()?.setHasUserInfoPermission(false);
                     resolve(false);
                 }
             });
@@ -1061,6 +1065,7 @@ export class WXManager extends Component {
             const fallbackNickname = openid ? `豆友${openid.slice(-4)}` : '豆友';
             this._nickname = fallbackNickname;
             this._avatarUrl = '';
+            GameManager.getInstance()?.setHasLoadedUserInfo(false);
             return { nickname: this._nickname, avatarUrl: this._avatarUrl };
         };
 
@@ -1080,6 +1085,9 @@ export class WXManager extends Component {
                         const fallbackNickname = openid ? `豆友${openid.slice(-4)}` : '豆友';
                         this._nickname = userInfo.nickName?.trim() || fallbackNickname;
                         this._avatarUrl = userInfo.avatarUrl || '';
+                        const gameManager = GameManager.getInstance();
+                        gameManager?.setHasUserInfoPermission(true);
+                        gameManager?.setHasLoadedUserInfo(true);
                         
                         console.log('获取用户信息成功:', this._nickname, this._avatarUrl);
                         resolve({ nickname: this._nickname, avatarUrl: this._avatarUrl });
