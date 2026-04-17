@@ -353,8 +353,36 @@ export class ChartController extends Component {
     }
 
     private updateListLayout(): void {
-        const layout = this.content?.getComponent(Layout);
+        if (!this.content) {
+            return;
+        }
+
+        this.updateContentHeight();
+
+        const layout = this.content.getComponent(Layout);
         layout?.updateLayout();
+    }
+
+    private updateContentHeight(): void {
+        const contentTransform = this.content?.getComponent(UITransform);
+        if (!contentTransform) {
+            return;
+        }
+
+        const layout = this.content.getComponent(Layout);
+        const activeChildren = this.content.children.filter((child) => child.active);
+        const firstChild = activeChildren[0] ?? null;
+        const firstChildTransform = firstChild?.getComponent(UITransform) ?? null;
+        const itemHeight = firstChildTransform ? firstChildTransform.height * Math.abs(firstChild.scale.y || 1) : 0;
+        const childrenHeight = itemHeight * activeChildren.length;
+
+        const spacingY = layout?.spacingY ?? 0;
+        const paddingTop = layout?.paddingTop ?? 0;
+        const paddingBottom = layout?.paddingBottom ?? 0;
+        const totalSpacing = activeChildren.length > 1 ? spacingY * (activeChildren.length - 1) : 0;
+        const nextHeight = childrenHeight + totalSpacing + paddingTop + paddingBottom;
+
+        contentTransform.setContentSize(contentTransform.width, Math.max(nextHeight, 0));
     }
 
     private scrollToTop(): void {
