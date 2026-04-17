@@ -543,6 +543,7 @@ export class ResultPanel extends Component {
     start() {
         this.nextLevelBtn?.on(Node.EventType.TOUCH_END, this.onNextLevelBtnClick, this);
         this.restartBtn?.on(Node.EventType.TOUCH_END, this.onRestartLevelBtnClick, this);
+        this.restartBtn2?.on(Node.EventType.TOUCH_END, this.onAgainLevelBtnClick, this);
         this.homelBtn?.on(Node.EventType.TOUCH_END, this.onShowHomePanel, this);
         this.homelBtn2?.on(Node.EventType.TOUCH_END, this.onShowHomePanel, this);
         this.camera_btn?.on(Node.EventType.TOUCH_END, this.onCameraBtnClick, this);
@@ -554,6 +555,7 @@ export class ResultPanel extends Component {
     onDestroy() {
         this.nextLevelBtn?.off(Node.EventType.TOUCH_END, this.onNextLevelBtnClick, this);
         this.restartBtn?.off(Node.EventType.TOUCH_END, this.onRestartLevelBtnClick, this);
+        this.restartBtn2?.off(Node.EventType.TOUCH_END, this.onAgainLevelBtnClick, this);
         this.homelBtn2?.off(Node.EventType.TOUCH_END, this.onShowHomePanel, this);
         this.camera_btn?.off(Node.EventType.TOUCH_END, this.onCameraBtnClick, this);
         this.share_btn?.off(Node.EventType.TOUCH_END, this.onShareBtnClick, this);
@@ -587,6 +589,17 @@ export class ResultPanel extends Component {
             return;
         }
         gameManager.power--;
+        AudioManager.instance.playEffect('click_btn');
+        this.loadLevel();
+    }
+
+    /**
+     * restartBtn 点击事件 - 再来一次
+     */
+    private onAgainLevelBtnClick(): void {
+        const gameManager = GameManager.getInstance();
+        if (gameManager?.isWindowBlocking()) return;
+
         AudioManager.instance.playEffect('click_btn');
         this.loadLevel();
     }
