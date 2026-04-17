@@ -3,6 +3,7 @@ import { GameManager, GameState, DifficultyMode } from './GameManager';
 import { LevelConfig } from './LevelConfig';
 import { AudioManager } from './AudioManager';
 import { WXManager } from './WXManager';
+import { PlayerService } from './PlayerService';
 
 const { ccclass, property } = _decorator;
 
@@ -427,7 +428,10 @@ export class MenuManager extends Component {
         AudioManager.instance.playEffect('click_btn');
 
         if (!gameManager.canOpenChartDirectly) {
-            await gameManager.wxManager?.getUserInfo();
+            const userInfo = await gameManager.wxManager?.getUserInfo();
+            if (gameManager.hasLoadedUserInfo) {
+                await PlayerService.instance?.syncAuthorizedProfile(userInfo?.nickname, userInfo?.avatarUrl);
+            }
         }
 
         gameManager.chart.openDifficultyRanking(gameManager.currentDifficulty, true);

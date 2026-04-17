@@ -228,7 +228,10 @@ export class GameManager extends Component {
             const hasUserInfoPermission = await this.wxManager.hasUserInfoPermission();
             this.setHasUserInfoPermission(hasUserInfoPermission);
             if (hasUserInfoPermission) {
-                await this.wxManager.getUserInfo();
+                const userInfo = await this.wxManager.getUserInfo();
+                if (this.hasLoadedUserInfo) {
+                    await PlayerService.instance?.syncAuthorizedProfile(userInfo.nickname, userInfo.avatarUrl);
+                }
             }
 
             PlayerService.instance?.syncProgressWithCloud();

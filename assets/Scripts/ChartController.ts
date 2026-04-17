@@ -294,10 +294,10 @@ export class ChartController extends Component {
     private renderOwnerSummary(ranking: DifficultySummary[], renderToken: number): void {
         const gameManager = GameManager.getInstance();
         const playerService = PlayerService.instance;
-        const wxManager = gameManager?.wxManager;
         const openid = gameManager?.openid ?? '';
         const fallbackNickname = openid ? `\u8c46\u53cb${openid.slice(-4)}` : '\u8c46\u53cb';
         const ownerEntry = openid ? ranking.find((item) => item.userId === openid) ?? null : null;
+        const ownerLocalProfile = this.getPreferredLocalProfile(openid);
         const cachedLevel = Math.max(0, (playerService?.getCachedLevel(this.currentDifficulty) ?? 1) - 1);
         const ownerHighestLevel = ownerEntry?.highestLevel ?? cachedLevel;
         const ownerRank = ownerEntry ? ranking.findIndex((item) => item.userId === ownerEntry.userId) + 1 : 0;
@@ -305,8 +305,8 @@ export class ChartController extends Component {
             ? (ownerRank > 0 ? `${ownerRank}` : (ranking.length > 0 ? `${ranking.length}+` : '--'))
             : '--';
         const ownerLevelText = ownerHighestLevel > 0 ? this.formatLevelText(ownerHighestLevel) : '--';
-        const ownerNickname = ownerEntry?.nickname?.trim() || wxManager?.nickname?.trim() || fallbackNickname;
-        const avatarUrl = ownerEntry?.avatarUrl || wxManager?.avatarUrl || '';
+        const ownerNickname = ownerLocalProfile?.nickname || ownerEntry?.nickname?.trim() || fallbackNickname;
+        const avatarUrl = ownerLocalProfile?.avatarUrl || ownerEntry?.avatarUrl || '';
 
         if (this.owner_name_label) {
             this.owner_name_label.string = this.formatNicknameText(ownerNickname);
@@ -326,15 +326,15 @@ export class ChartController extends Component {
 
     private renderLevelOwnerSummary(ranking: LevelBest[], renderToken: number): void {
         const gameManager = GameManager.getInstance();
-        const wxManager = gameManager?.wxManager;
         const openid = gameManager?.openid ?? '';
         const fallbackNickname = openid ? `\u8c46\u53cb${openid.slice(-4)}` : '\u8c46\u53cb';
         const ownerEntry = openid ? ranking.find((item) => item.userId === openid) ?? null : null;
+        const ownerLocalProfile = this.getPreferredLocalProfile(openid);
         const ownerRank = ownerEntry ? ranking.findIndex((item) => item.userId === ownerEntry.userId) + 1 : 0;
-        const ownerNickname = ownerEntry?.nickname?.trim() || wxManager?.nickname?.trim() || fallbackNickname;
+        const ownerNickname = ownerLocalProfile?.nickname || ownerEntry?.nickname?.trim() || fallbackNickname;
         const ownerTimeText = ownerEntry ? this.formatClearTimeText(ownerEntry.bestClearTime) : '--';
         const ownerRankText = ownerEntry ? `${ownerRank}` : '--';
-        const avatarUrl = ownerEntry?.avatarUrl || wxManager?.avatarUrl || '';
+        const avatarUrl = ownerLocalProfile?.avatarUrl || ownerEntry?.avatarUrl || '';
 
         if (this.owner_name_label) {
             this.owner_name_label.string = this.formatNicknameText(ownerNickname);
@@ -368,11 +368,13 @@ export class ChartController extends Component {
             const item = itemNode.getComponent(ChartUser);
             if (!item) continue;
 
-            const nickname = itemData.nickname?.trim() || this.getFallbackNickname(itemData.userId);
+            const localProfile = this.getPreferredLocalProfile(itemData.userId);
+            const nickname = localProfile?.nickname || itemData.nickname?.trim() || this.getFallbackNickname(itemData.userId);
             item.applyRankingData(index + 1, nickname, this.formatLevelText(itemData.highestLevel));
 
-            if (itemData.avatarUrl) {
-                void this.applyAvatarToChartUser(item, itemData.avatarUrl, renderToken);
+            const avatarUrl = localProfile?.avatarUrl || itemData.avatarUrl || '';
+            if (avatarUrl) {
+                void this.applyAvatarToChartUser(item, avatarUrl, renderToken);
             }
         }
 
@@ -396,11 +398,13 @@ export class ChartController extends Component {
             const item = itemNode.getComponent(ChartUser);
             if (!item) continue;
 
-            const nickname = itemData.nickname?.trim() || this.getFallbackNickname(itemData.userId);
+            const localProfile = this.getPreferredLocalProfile(itemData.userId);
+            const nickname = localProfile?.nickname || itemData.nickname?.trim() || this.getFallbackNickname(itemData.userId);
             item.applyRankingData(index + 1, nickname, this.formatClearTimeText(itemData.bestClearTime));
 
-            if (itemData.avatarUrl) {
-                void this.applyAvatarToChartUser(item, itemData.avatarUrl, renderToken);
+            const avatarUrl = localProfile?.avatarUrl || itemData.avatarUrl || '';
+            if (avatarUrl) {
+                void this.applyAvatarToChartUser(item, avatarUrl, renderToken);
             }
         }
 
@@ -607,7 +611,11 @@ export class ChartController extends Component {
         if (!avatarUrl) return null;
 
         if (this.avatarFrameCache.has(avatarUrl)) {
-            return this.avatarFrameCache.get(avatarUrl) ?? null;
+            const cachedSpriteFrame = this.avatarFrameCache.get(avatarUrl) ?? null;
+            if (cachedSpriteFrame) {
+                return cachedSpriteFrame;
+            }
+            this.avatarFrameCache.delete(avatarUrl);
         }
 
         const existingTask = this.avatarLoadTasks.get(avatarUrl);
@@ -635,8 +643,29 @@ export class ChartController extends Component {
 
         this.clearRemoteAvatarCache(avatarUrl);
         spriteFrame = await this.loadAvatarSpriteFrameOnce(avatarUrl, true);
-        this.avatarFrameCache.set(avatarUrl, spriteFrame);
+        if (spriteFrame) {
+            this.avatarFrameCache.set(avatarUrl, spriteFrame);
+        } else {
+            this.avatarFrameCache.delete(avatarUrl);
+        }
         return spriteFrame;
+    }
+
+    private getPreferredLocalProfile(userId: string): { nickname: string; avatarUrl: string } | null {
+        const gameManager = GameManager.getInstance();
+        const wxManager = gameManager?.wxManager;
+        const openid = gameManager?.openid ?? '';
+        if (!userId || userId !== openid || !gameManager?.hasLoadedUserInfo) {
+            return null;
+        }
+
+        const nickname = wxManager?.nickname?.trim() || '';
+        const avatarUrl = wxManager?.avatarUrl || '';
+        if (!nickname && !avatarUrl) {
+            return null;
+        }
+
+        return { nickname, avatarUrl };
     }
 
     private loadAvatarSpriteFrameOnce(avatarUrl: string, shouldWarn: boolean): Promise<SpriteFrame | null> {

@@ -639,7 +639,10 @@ export class ResultPanel extends Component {
         AudioManager.instance.playEffect('click_btn');
 
         if (!gameManager.canOpenChartDirectly) {
-            await gameManager.wxManager?.getUserInfo();
+            const userInfo = await gameManager.wxManager?.getUserInfo();
+            if (gameManager.hasLoadedUserInfo) {
+                await PlayerService.instance?.syncAuthorizedProfile(userInfo?.nickname, userInfo?.avatarUrl);
+            }
         }
 
         if (this._isSuccess && this._saveLevelDataTask) {

@@ -1061,11 +1061,16 @@ export class WXManager extends Component {
      */
     public async getUserInfo(): Promise<{ nickname: string; avatarUrl: string }> {
         const resolveFallbackProfile = async (): Promise<{ nickname: string; avatarUrl: string }> => {
+            const gameManager = GameManager.getInstance();
+            if (gameManager?.hasLoadedUserInfo && (this._nickname.trim() || this._avatarUrl)) {
+                return { nickname: this._nickname, avatarUrl: this._avatarUrl };
+            }
+
             const openid = await this.getOpenId();
             const fallbackNickname = openid ? `豆友${openid.slice(-4)}` : '豆友';
             this._nickname = fallbackNickname;
             this._avatarUrl = '';
-            GameManager.getInstance()?.setHasLoadedUserInfo(false);
+            gameManager?.setHasLoadedUserInfo(false);
             return { nickname: this._nickname, avatarUrl: this._avatarUrl };
         };
 

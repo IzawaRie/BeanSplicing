@@ -472,6 +472,37 @@ export class PlayerService extends Component {
             lastLoginAt: new Date()
         });
     }
+
+    public async syncAuthorizedProfile(nickname?: string, avatarUrl?: string): Promise<void> {
+        const openid = await this.ensureOpenId();
+        if (!openid) return;
+
+        const profile = this.getPlayerProfile(openid);
+        const finalNickname = nickname?.trim() || profile.nickname;
+        const finalAvatarUrl = avatarUrl ?? profile.avatarUrl;
+        const patchData = {
+            nickname: finalNickname,
+            avatarUrl: finalAvatarUrl
+        };
+
+        await this.savePlayer(finalNickname, finalAvatarUrl);
+
+        const difficultySummaries = await CloudbaseDBService.query<DifficultySummary>(COLLECTION_DIFFICULTY_SUMMARY, {
+            where: { userId: openid },
+            limit: 200
+        });
+        await Promise.all(difficultySummaries.map((summary) =>
+            CloudbaseDBService.update(COLLECTION_DIFFICULTY_SUMMARY, summary._id, patchData)
+        ));
+
+        const levelBests = await CloudbaseDBService.query<LevelBest>(COLLECTION_LEVEL_BEST, {
+            where: { userId: openid },
+            limit: 200
+        });
+        await Promise.all(levelBests.map((record) =>
+            CloudbaseDBService.update(COLLECTION_LEVEL_BEST, record._id, patchData)
+        ));
+    }
 }
 
 // 导出单例快捷访问
