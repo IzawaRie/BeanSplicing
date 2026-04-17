@@ -205,12 +205,13 @@ export class ChartController extends Component {
         const renderToken = ++this.renderVersion;
         const cache = this.rankingCache.get(this.currentDifficulty);
         const ranking = cache?.data ?? [];
+        const visibleRanking = ranking.filter((item) => item.highestLevel > 0);
         const hasCache = !!cache;
 
         this.renderOwnerSummary(ranking, renderToken);
 
-        if (ranking.length > 0) {
-            void this.renderRankingList(ranking, renderToken);
+        if (visibleRanking.length > 0) {
+            void this.renderRankingList(visibleRanking, renderToken);
             return;
         }
 
@@ -228,7 +229,10 @@ export class ChartController extends Component {
         const cachedLevel = Math.max(0, (playerService?.getCachedLevel(this.currentDifficulty) ?? 1) - 1);
         const ownerHighestLevel = ownerEntry?.highestLevel ?? cachedLevel;
         const ownerRank = ownerEntry ? ranking.findIndex((item) => item.userId === ownerEntry.userId) + 1 : 0;
-        const ownerRankText = ownerRank > 0 ? `${ownerRank}` : (ranking.length > 0 ? `${ranking.length}+` : '--');
+        const ownerRankText = ownerHighestLevel > 0
+            ? (ownerRank > 0 ? `${ownerRank}` : (ranking.length > 0 ? `${ranking.length}+` : '--'))
+            : '--';
+        const ownerLevelText = ownerHighestLevel > 0 ? this.formatLevelText(ownerHighestLevel) : '--';
         const ownerNickname = ownerEntry?.nickname?.trim() || wxManager?.nickname?.trim() || fallbackNickname;
         const avatarUrl = ownerEntry?.avatarUrl || wxManager?.avatarUrl || '';
 
@@ -239,7 +243,7 @@ export class ChartController extends Component {
             this.owner_number_label.string = ownerRankText;
         }
         if (this.owner_level_label) {
-            this.owner_level_label.string = this.formatLevelText(ownerHighestLevel);
+            this.owner_level_label.string = ownerLevelText;
         }
 
         this.resetOwnerAvatar();
@@ -574,6 +578,6 @@ export class ChartController extends Component {
     }
 
     private formatLevelText(highestLevel: number): string {
-        return highestLevel > 0 ? `\u7b2c${highestLevel}\u5173` : '\u672a\u901a\u5173';
+        return `\u7b2c${highestLevel}\u5173`;
     }
 }
