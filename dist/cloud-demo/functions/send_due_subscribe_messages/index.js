@@ -1,4 +1,5 @@
 const cloud = require('wx-server-sdk');
+const https = require('https');
 
 cloud.init({
   env: cloud.DYNAMIC_CURRENT_ENV
@@ -8,6 +9,8 @@ const db = cloud.database();
 const _ = db.command;
 
 const TASK_COLLECTION = 'subscribe_tasks';
+const ACCESS_TOKEN_URL = 'https://api.weixin.qq.com/cgi-bin/stable_token';
+const SUBSCRIBE_MESSAGE_SEND_URL = 'https://api.weixin.qq.com/cgi-bin/message/subscribe/send';
 
 function clampNumber(value, fallback, min, max) {
   const num = Number(value);
@@ -27,6 +30,126 @@ function toErrorPayload(error) {
   return {
     errCode: error?.errCode ?? '',
     errMsg: error?.errMsg || error?.message || 'unknown error'
+  };
+}
+
+function getWechatCredentials() {
+  const appid = process.env.WX_APPID
+    || process.env.MINIGAME_APPID
+    || 'wx0420daba14f55793';
+  const secret = process.env.WX_APPSECRET
+    || process.env.MINIGAME_APPSECRET
+    || 'b431adcec5194e43bd7fed2a2c9864bf';
+
+  return {
+    appid: typeof appid === 'string' ? appid.trim() : '',
+    secret: typeof secret === 'string' ? secret.trim() : ''
+  };
+}
+
+function requestJson(url, method, payload) {
+  return new Promise((resolve, reject) => {
+    const body = payload ? JSON.stringify(payload) : '';
+    const req = https.request(url, {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(body)
+      }
+    }, (res) => {
+      let raw = '';
+      res.on('data', (chunk) => {
+        raw += chunk;
+      });
+      res.on('end', () => {
+        try {
+          const parsed = raw ? JSON.parse(raw) : {};
+          if (res.statusCode && res.statusCode >= 400) {
+            const error = new Error(parsed.errmsg || `http status ${res.statusCode}`);
+            error.errCode = parsed.errcode ?? res.statusCode;
+            error.errMsg = parsed.errmsg || `http status ${res.statusCode}`;
+            error.response = parsed;
+            reject(error);
+            return;
+          }
+          resolve(parsed);
+        } catch (_error) {
+          const parseError = new Error('failed to parse wechat response');
+          parseError.errCode = 'PARSE_RESPONSE_FAILED';
+          parseError.errMsg = 'failed to parse wechat response';
+          parseError.rawResponse = raw;
+          reject(parseError);
+        }
+      });
+    });
+
+    req.on('error', reject);
+
+    if (body) {
+      req.write(body);
+    }
+    req.end();
+  });
+}
+
+async function getStableAccessToken() {
+  const { appid, secret } = getWechatCredentials();
+  if (!appid || !secret) {
+    const error = new Error('missing appid or secret');
+    error.errCode = 'MISSING_APP_CREDENTIALS';
+    error.errMsg = 'missing appid or secret';
+    throw error;
+  }
+
+  const response = await requestJson(ACCESS_TOKEN_URL, 'POST', {
+    grant_type: 'client_credential',
+    appid,
+    secret,
+    force_refresh: false
+  });
+
+  if (!response.access_token) {
+    const error = new Error(response.errmsg || 'get stable access token failed');
+    error.errCode = response.errcode ?? 'GET_ACCESS_TOKEN_FAILED';
+    error.errMsg = response.errmsg || 'get stable access token failed';
+    error.response = response;
+    throw error;
+  }
+
+  return {
+    accessToken: response.access_token,
+    expiresIn: response.expires_in ?? 0
+  };
+}
+
+async function sendSubscribeMessageByHttps(task) {
+  const tokenRes = await getStableAccessToken();
+  const url = `${SUBSCRIBE_MESSAGE_SEND_URL}?access_token=${encodeURIComponent(tokenRes.accessToken)}`;
+  const payload = {
+    touser: String(task.openid),
+    template_id: String(task.templateId),
+    data: task.payload,
+    miniprogram_state: normalizeState(task.miniprogramState),
+    lang: 'zh_CN'
+  };
+
+  if (typeof task.page === 'string' && task.page.trim()) {
+    payload.page = task.page.trim();
+  }
+
+  const response = await requestJson(url, 'POST', payload);
+  if (response.errcode && response.errcode !== 0) {
+    const error = new Error(response.errmsg || 'subscribe message send failed');
+    error.errCode = response.errcode;
+    error.errMsg = response.errmsg || 'subscribe message send failed';
+    error.response = response;
+    throw error;
+  }
+
+  return {
+    errCode: response.errcode ?? 0,
+    errMsg: response.errmsg || 'ok',
+    tokenExpiresIn: tokenRes.expiresIn
   };
 }
 
@@ -85,14 +208,7 @@ exports.main = async (event = {}, context) => {
 
       try {
         if (!dryRun) {
-          const sendRes = await cloud.openapi.subscribeMessage.send({
-            touser: String(task.openid),
-            templateId: String(task.templateId),
-            page: typeof task.page === 'string' ? task.page : undefined,
-            data: task.payload,
-            miniprogramState: normalizeState(task.miniprogramState),
-            lang: 'zh_CN'
-          });
+          const sendRes = await sendSubscribeMessageByHttps(task);
 
           await markTask(taskId, {
             status: 'sent',
