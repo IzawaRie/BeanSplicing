@@ -39,6 +39,9 @@ export class ResultPanel extends Component {
     camera_btn: Node = null;
 
     @property(Node)
+    camera_btn2: Node = null;
+
+    @property(Node)
     share_btn: Node = null;
 
     @property(Node)
@@ -564,6 +567,7 @@ export class ResultPanel extends Component {
         this.homelBtn?.on(Node.EventType.TOUCH_END, this.onShowHomePanel, this);
         this.homelBtn2?.on(Node.EventType.TOUCH_END, this.onShowHomePanel, this);
         this.camera_btn?.on(Node.EventType.TOUCH_END, this.onCameraBtnClick, this);
+        this.camera_btn2?.on(Node.EventType.TOUCH_END, this.onCameraBtnClick, this);
         this.share_btn?.on(Node.EventType.TOUCH_END, this.onShareBtnClick, this);
         this.share_btn2?.on(Node.EventType.TOUCH_END, this.onShareBtnClick, this);
         this.continue_btn?.on(Node.EventType.TOUCH_END, this.onContinueBtnClick, this);
@@ -577,6 +581,7 @@ export class ResultPanel extends Component {
         this.restartBtn2?.off(Node.EventType.TOUCH_END, this.onAgainLevelBtnClick, this);
         this.homelBtn2?.off(Node.EventType.TOUCH_END, this.onShowHomePanel, this);
         this.camera_btn?.off(Node.EventType.TOUCH_END, this.onCameraBtnClick, this);
+        this.camera_btn2?.off(Node.EventType.TOUCH_END, this.onCameraBtnClick, this);
         this.share_btn?.off(Node.EventType.TOUCH_END, this.onShareBtnClick, this);
         this.share_btn2?.off(Node.EventType.TOUCH_END, this.onShareBtnClick, this);
         this.continue_btn?.off(Node.EventType.TOUCH_END, this.onContinueBtnClick, this);
