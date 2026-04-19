@@ -1,6 +1,6 @@
 import { _decorator, Component } from 'cc';
 import { GameManager, DifficultyMode } from './GameManager';
-import CloudbaseDBService from './CloudbaseService';
+import CloudbaseDBService, { callFunction } from './CloudbaseService';
 import { WXManager } from './WXManager';
 
 const { ccclass, property } = _decorator;
@@ -51,6 +51,19 @@ export interface LevelBest {
     nickname: string;
     avatarUrl?: string;
     bestClearTime: number;
+}
+
+interface QueryDocumentsResult<T> {
+    success: boolean;
+    mode?: 'doc' | 'list' | 'count';
+    data?: T[];
+    error?: string;
+    pagination?: {
+        skip: number;
+        limit: number;
+        actualCount: number;
+        total: number;
+    };
 }
 
 /**
@@ -107,6 +120,35 @@ export class PlayerService extends Component {
             nickname: wxMgr?.nickname?.trim() || fallbackNickname,
             avatarUrl: wxMgr?.avatarUrl || ''
         };
+    }
+
+    private async queryRankingByCloudFunction<T>(
+        collection: string,
+        where: Record<string, any>,
+        orderBy: string,
+        order: 'asc' | 'desc',
+        limit: number
+    ): Promise<T[]> {
+        const safeLimit = Math.max(1, Math.floor(limit || 10));
+        const res = await callFunction('query_documents', {
+            collection,
+            where,
+            orderBy,
+            order,
+            limit: safeLimit,
+            skip: 0,
+            countOnly: false
+        });
+
+        const result = res?.result as QueryDocumentsResult<T> | undefined;
+        if (!result?.success) {
+            console.warn(`[PlayerService] query_documents failed for ${collection}`, result?.error || res);
+            return [];
+        }
+
+        const data = Array.isArray(result.data) ? result.data : [];
+        console.log(`[PlayerService] query_documents success for ${collection}, requestedLimit=${safeLimit}, actualCount=${data.length}, total=${result.pagination?.total ?? 0}`);
+        return data;
     }
 
     /**
@@ -212,12 +254,13 @@ export class PlayerService extends Component {
      */
     public async getLevelRanking(difficulty: DifficultyMode, levelNo: number, limit: number = 10): Promise<LevelBest[]> {
         const diffCode = PlayerService.toDifficultyCode(difficulty);
-
-        return await CloudbaseDBService.query<LevelBest>(COLLECTION_LEVEL_BEST, {
-            where: { difficulty: diffCode, levelNo: levelNo },
-            orderBy: 'bestClearTime',
-            limit: limit
-        });
+        return await this.queryRankingByCloudFunction<LevelBest>(
+            COLLECTION_LEVEL_BEST,
+            { difficulty: diffCode, levelNo: levelNo },
+            'bestClearTime',
+            'asc',
+            limit
+        );
     }
 
     // ========== player_difficulty_summary 操作 ==========
@@ -319,12 +362,13 @@ export class PlayerService extends Component {
      */
     public async getDifficultyRanking(difficulty: DifficultyMode, limit: number = 10): Promise<DifficultySummary[]> {
         const diffCode = PlayerService.toDifficultyCode(difficulty);
-
-        return await CloudbaseDBService.query<DifficultySummary>(COLLECTION_DIFFICULTY_SUMMARY, {
-            where: { difficulty: diffCode },
-            orderByDesc: 'highestLevel',
-            limit: limit
-        });
+        return await this.queryRankingByCloudFunction<DifficultySummary>(
+            COLLECTION_DIFFICULTY_SUMMARY,
+            { difficulty: diffCode },
+            'highestLevel',
+            'desc',
+            limit
+        );
     }
 
     /**
