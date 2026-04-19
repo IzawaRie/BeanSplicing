@@ -216,7 +216,7 @@ export class ResultPanel extends Component {
                 totalCount++;
 
                 // 统计高亮和熨烫状态
-                if (controller.state === BlockState.HAS_CIRCLE) {
+                if (controller.state === BlockState.HAS_CIRCLE || controller.state === BlockState.IRONING) {
                     highlightedCount++;
                 } else if (controller.state === BlockState.IRONED) {
                     ironedCount++;

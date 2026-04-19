@@ -228,10 +228,10 @@ export class CircleController extends Component {
         if (newTargetBlock) {
             const newTargetIndex = this.getBlockNumber(newTargetBlock);
 
-            // 检查该 block 是否已经是 IRONED 状态
+            // 检查该 block 是否已经开始熨烫
             const blockController = newTargetBlock.getComponent(BlockController);
-            if (blockController && blockController.state === BlockState.IRONED) {
-                // 已经是熨烫过的状态，不能再操作
+            if (blockController && (blockController.state === BlockState.IRONED || blockController.state === BlockState.IRONING)) {
+                // 已经开始熨烫的状态，不能再操作
                 this.resetHover();
                 return;
             }
@@ -508,7 +508,7 @@ export class CircleController extends Component {
 
             const blockController = block.getComponent(BlockController);
             if (!blockController || blockController.targetColorA === 0) continue;
-            if (blockController.state === BlockState.IRONED) continue; // 已熨烫的跳过
+            if (blockController.state === BlockState.IRONED || blockController.state === BlockState.IRONING) continue; // 已开始熨烫的跳过
 
             const blockColorIndex = this.getBlockColorIndex(block);
             if (blockColorIndex !== targetColorIndex) continue;

@@ -303,7 +303,7 @@ export class LevelMode extends GameMode {
 
                 const blockController = block.getComponent(BlockController);
                 // 只闪烁未高亮的 block（无 circle 或无颜色的）
-                if (blockController && blockController.state !== BlockState.HAS_CIRCLE) {
+                if (blockController && blockController.state !== BlockState.HAS_CIRCLE && blockController.state !== BlockState.IRONING) {
                     const redMask = block.getChildByName('red_mask');
                     if (redMask) {
                         const uiOpacity = redMask.getComponent(UIOpacity) ?? redMask.addComponent(UIOpacity);
@@ -1036,7 +1036,7 @@ export class LevelMode extends GameMode {
                 if (!controller) continue;
 
                 // 只处理有 circle 的 block（HAS_CIRCLE 或 IRONED 状态）
-                if (controller.state !== BlockState.HAS_CIRCLE && controller.state !== BlockState.IRONED) continue;
+                if (controller.state !== BlockState.HAS_CIRCLE && controller.state !== BlockState.IRONING && controller.state !== BlockState.IRONED) continue;
 
                 // 检查颜色是否与目标颜色匹配
                 if (!controller.isColorMatch()) {
@@ -1091,8 +1091,8 @@ export class LevelMode extends GameMode {
                         sprite.enabled = true;
                     }
                 }
-            } else if (controller.state === BlockState.IRONED) {
-                // 已熨烫状态：修复 block_sp 颜色
+            } else if (controller.state === BlockState.IRONING || controller.state === BlockState.IRONED) {
+                // 熨烫中 / 已熨烫状态：修复 block_sp 颜色
                 const blockSpNode = block.getChildByName('block_sp');
                 if (blockSpNode) {
                     const sprite = blockSpNode.getComponent(Sprite);
@@ -1105,10 +1105,9 @@ export class LevelMode extends GameMode {
                         );
                         sprite.enabled = true;
                     }
-                    // 恢复 opacity 为全不透明
                     const uiOpacity = blockSpNode.getComponent(UIOpacity);
                     if (uiOpacity) {
-                        uiOpacity.opacity = 255;
+                        uiOpacity.opacity = controller.getIronOpacity255();
                     }
                 }
             }
@@ -1173,6 +1172,14 @@ export class LevelMode extends GameMode {
                         );
                         targetOpacity = 255;
                     }
+                } else if (controller.state === BlockState.IRONING) {
+                    displayColor = new Color(
+                        controller.currentColorR,
+                        controller.currentColorG,
+                        controller.currentColorB,
+                        controller.currentColorA
+                    );
+                    targetOpacity = controller.getIronOpacity255();
                 } else if (controller.state === BlockState.HAS_CIRCLE) {
                     // 有 circle：显示目标正确颜色，半透明
                     if (controller.targetColorA > 0) {

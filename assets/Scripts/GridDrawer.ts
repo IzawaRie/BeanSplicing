@@ -407,8 +407,8 @@ export class GridDrawer extends Component {
                 const blockController = block.getComponent(BlockController);
                 if (!blockController) continue;
 
-                // 过滤掉已经熨烫的 block
-                if (blockController.state === BlockState.IRONED) {
+                // 过滤掉已经开始熨烫的 block
+                if (blockController.state === BlockState.IRONED || blockController.state === BlockState.IRONING) {
                     continue;
                 }
 
@@ -666,8 +666,8 @@ export class GridDrawer extends Component {
     }
 
     /**
-     * 显示所有已熨烫 block 上的 circle（用于 continue_btn 重置后显示 circle）
-     * - 如果格子是 IRONED 状态 → 退回为 HAS_CIRCLE 状态，显示 circle
+     * 显示所有已进入熨烫流程的 block 上的 circle（用于 continue_btn 重置后显示 circle）
+     * - 如果格子是 IRONING / IRONED 状态 → 退回为 HAS_CIRCLE 状态，显示 circle
      * - 如果格子是 HAS_CIRCLE 或 NONE 状态 → 保持不变，不处理
      */
     public showAllBlockCircles(): void {
@@ -683,10 +683,9 @@ export class GridDrawer extends Component {
                 // 只处理有效 block（目标颜色不透明）
                 if (controller.targetColorA <= 0) continue;
                 
-                // 只处理已熨烫（IRONED）状态的格子，退回为高亮（HAS_CIRCLE）状态
-                if (controller.state === BlockState.IRONED) {
-                    // 重置为 HAS_CIRCLE 状态
-                    controller.state = BlockState.HAS_CIRCLE;
+                // 只处理已进入熨烫流程的格子，退回为高亮（HAS_CIRCLE）状态
+                if (controller.state === BlockState.IRONING || controller.state === BlockState.IRONED) {
+                    controller.resetIroningProgress();
                     
                     // 显示 circle 并设置颜色
                     const circleNode = block.getChildByName('circle');

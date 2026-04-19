@@ -16,6 +16,8 @@ export class IronController extends Component {
     private lastShaTime: number = 0;
     // 熨烫音效最小间隔（毫秒）
     private readonly SHA_COOLDOWN: number = 100;
+    private readonly IRON_STAGE_INTERVAL: number = 500;
+    private readonly activeIronTargets = new Map<Node, number>();
 
     onLoad() {
         // 保存原始位置
@@ -37,10 +39,16 @@ export class IronController extends Component {
         this.node.off(Node.EventType.TOUCH_CANCEL, this.onTouchEnd, this);
     }
 
+    update(): void {
+        if (!this.isDragging) return;
+        this.handleBlocksInIronRange();
+    }
+
     /**
      * 重置位置
      */
     public resetPosition(): void {
+        this.activeIronTargets.clear();
         this.node.setPosition(this.originalPos.x, this.originalPos.y, this.originalPos.z);
         tween(this.node).
             to(0.3, {scale: Vec3.ONE}).
@@ -81,9 +89,6 @@ export class IronController extends Component {
 
         const pos = event.getUILocation();
         this.node.setWorldPosition(pos.x, pos.y, 0);
-
-        // 根据熨斗的 UITransform 范围，检测范围内所有已高亮的 block 并熨烫
-        this.handleBlocksInIronRange();
     }
 
     /**
@@ -109,7 +114,10 @@ export class IronController extends Component {
         const ironMinY = ironWorldPos.y - ironHalfH;
         const ironMaxY = ironWorldPos.y + ironHalfH;
 
+        const now = Date.now();
+        const overlappingBlocks = new Set<Node>();
         let ironedCount = 0;
+        let progressedCount = 0;
         for (let row = 0; row < blocks.length; row++) {
             for (let col = 0; col < blocks[row].length; col++) {
                 const block = blocks[row][col];
@@ -118,8 +126,8 @@ export class IronController extends Component {
                 const blockController = block.getComponent(BlockController);
                 if (!blockController) continue;
 
-                // 只处理已高亮的 block（HAS_CIRCLE 状态）
-                if (blockController.state !== BlockState.HAS_CIRCLE) continue;
+                // 只处理已高亮或熨烫中的 block
+                if (blockController.state !== BlockState.HAS_CIRCLE && blockController.state !== BlockState.IRONING) continue;
 
                 // 获取 block 世界坐标和尺寸
                 const blockWorldPos = block.getWorldPosition();
@@ -148,16 +156,37 @@ export class IronController extends Component {
                                         ironMaxY < blockMinY || ironMinY > blockMaxY);
 
                 if (isOverlapping) {
-                    if (this.processBlock(block)) {
-                        ironedCount++;
+                    overlappingBlocks.add(block);
+
+                    const nextStageTime = this.activeIronTargets.get(block);
+                    if (nextStageTime === undefined || now >= nextStageTime) {
+                        const result = this.processBlock(block);
+                        if (result.progressed) {
+                            progressedCount++;
+                        }
+                        if (result.completed) {
+                            ironedCount++;
+                            this.activeIronTargets.delete(block);
+                        } else if (result.progressed) {
+                            this.activeIronTargets.set(block, now + this.IRON_STAGE_INTERVAL);
+                        }
                     }
                 }
+            }
+        }
+
+        for (const block of this.activeIronTargets.keys()) {
+            if (!overlappingBlocks.has(block)) {
+                this.activeIronTargets.delete(block);
             }
         }
 
         // 更新进度
         if (ironedCount > 0) {
             gameManager.levelMode.onBlocksIroned(ironedCount);
+        }
+
+        if (progressedCount > 0) {
             // 节流播放音效
             const now = Date.now();
             if (now - this.lastShaTime >= this.SHA_COOLDOWN) {
@@ -178,37 +207,40 @@ export class IronController extends Component {
         const gameManager = GameManager.getInstance();
         gameManager.levelMode.tutorialController?.setPauseTime();
         this.isDragging = false;
+        this.activeIronTargets.clear();
         this.node.getChildByName('mask').active = true;
         this.resetPosition();
     }
 
     /**
      * 处理单个 block：如果有上色的 circle，则隐藏 circle 并显示 block 的 sprite
-     * @returns 是否成功熨烫了 block
+     * @returns 当前是否推进了熨烫进度，以及是否达到完全熨烫
      */
-    private processBlock(block: Node): boolean {
+    private processBlock(block: Node): { progressed: boolean; completed: boolean } {
         // 获取 BlockController 检查状态
         const blockController = block.getComponent(BlockController);
-        if (!blockController) return false;
+        if (!blockController) return { progressed: false, completed: false };
 
-        // 检查是否可以熨烫（只有 HAS_CIRCLE 状态可以熨烫）
-        if (!blockController.canIron()) return false;
+        // 检查是否可以熨烫（HAS_CIRCLE / IRONING 状态）
+        if (!blockController.canIron()) return { progressed: false, completed: false };
 
-        // 检查 circle 子节点
         const circleNode = block.getChildByName('circle');
-        if (!circleNode) return false;
-
-        const circleSprite = circleNode.getComponent(Sprite);
-        if (!circleSprite || !circleSprite.enabled) return false;
-
-        // 检查 circle 是否有颜色（上色了）
-        const color = circleSprite.color;
-        if (color.a === 0) {
-            return false; // 没有颜色，不处理
+        const circleSprite = circleNode?.getComponent(Sprite) ?? null;
+        if (blockController.state === BlockState.HAS_CIRCLE) {
+            if (!circleSprite || !circleSprite.enabled || circleSprite.color.a === 0) {
+                return { progressed: false, completed: false };
+            }
         }
 
-        // 隐藏 circle 的 sprite
-        circleSprite.enabled = false;
+        const prevStage = blockController.ironOpacityStage;
+        const nextStage = blockController.advanceIroningStage();
+        if (nextStage === prevStage) {
+            return { progressed: false, completed: false };
+        }
+
+        if (circleSprite) {
+            circleSprite.enabled = false;
+        }
 
         // 显示 block_sp 下的 sprite 组件
         const blockSpNode = block.getChildByName('block_sp');
@@ -224,16 +256,17 @@ export class IronController extends Component {
                 );
                 blockSprite.enabled = true;
             }
-            // 恢复 opacity 为全不透明（255）
-            const uiOpacity = blockSpNode.getComponent(UIOpacity);
-            if (uiOpacity) {
-                uiOpacity.opacity = 255;
+
+            let uiOpacity = blockSpNode.getComponent(UIOpacity);
+            if (!uiOpacity) {
+                uiOpacity = blockSpNode.addComponent(UIOpacity);
             }
+            uiOpacity.opacity = blockController.getIronOpacity255();
         }
 
-        // 设置 block 状态为已熨烫
-        blockController.setIroned();
-
-        return true;
+        return {
+            progressed: true,
+            completed: blockController.state === BlockState.IRONED
+        };
     }
 }

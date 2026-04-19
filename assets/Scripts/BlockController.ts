@@ -7,7 +7,8 @@ const { ccclass } = _decorator;
 export enum BlockState {
     NO_CIRCLE = 0,    // 无 circle
     HAS_CIRCLE = 1,  // 有 circle（未熨烫）
-    IRONED = 2       // 已熨烫
+    IRONING = 2,     // 熨烫中（半透明）
+    IRONED = 3       // 已熨烫
 }
 
 @ccclass('BlockController')
@@ -30,6 +31,7 @@ export class BlockController extends Component {
 
     // Block 状态
     private _state: BlockState = BlockState.NO_CIRCLE;
+    private _ironOpacityStage: number = 0;
 
     /**
      * 设置 block 的行列信息
@@ -75,6 +77,7 @@ export class BlockController extends Component {
     // Block 状态
     get state(): BlockState { return this._state; }
     set state(value: BlockState) { this._state = value; }
+    get ironOpacityStage(): number { return this._ironOpacityStage; }
 
     onLoad() {
         // 注册触摸结束事件
@@ -85,7 +88,38 @@ export class BlockController extends Component {
      * 设置 block 为已熨烫状态
      */
     public setIroned(): void {
+        this._ironOpacityStage = 3;
         this._state = BlockState.IRONED;
+    }
+
+    public resetIroningProgress(): void {
+        this._ironOpacityStage = 0;
+        if (this._state === BlockState.IRONING || this._state === BlockState.IRONED) {
+            this._state = BlockState.HAS_CIRCLE;
+        }
+    }
+
+    public advanceIroningStage(): number {
+        if (!this.canIron()) {
+            return this._ironOpacityStage;
+        }
+
+        this._ironOpacityStage = Math.min(3, this._ironOpacityStage + 1);
+        this._state = this._ironOpacityStage >= 3 ? BlockState.IRONED : BlockState.IRONING;
+        return this._ironOpacityStage;
+    }
+
+    public getIronOpacityRatio(): number {
+        switch (this._ironOpacityStage) {
+            case 1: return 0.3;
+            case 2: return 0.6;
+            case 3: return 1;
+            default: return 0;
+        }
+    }
+
+    public getIronOpacity255(): number {
+        return Math.round(this.getIronOpacityRatio() * 255);
     }
 
     /**
@@ -94,6 +128,7 @@ export class BlockController extends Component {
      */
     public resetBlock(): void {
         this._state = BlockState.NO_CIRCLE;
+        this._ironOpacityStage = 0;
         this._currentColorR = -1;
         this._currentColorG = -1;
         this._currentColorB = -1;
@@ -127,7 +162,7 @@ export class BlockController extends Component {
      */
     public canIron(): boolean {
         //console.log('_row:', this._row, ' _col:', this._col, ' _state:', this._state);
-        return this._state === BlockState.HAS_CIRCLE;
+        return this._state === BlockState.HAS_CIRCLE || this._state === BlockState.IRONING;
     }
 
     private onTouchEnd(): void {

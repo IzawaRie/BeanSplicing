@@ -44,8 +44,6 @@ export class TutorialController extends Component {
      * 每帧检测
      */
     update(_deltaTime: number): void {
-        if (this._pauseTime <= 0) return;
-
         const controller = this._targetBlock?.getComponent(BlockController);
         // 阶段1：检测 circle 是否已高亮
         if (this._phase === 1 && controller?.state === BlockState.HAS_CIRCLE) {
@@ -62,6 +60,8 @@ export class TutorialController extends Component {
             this.endTutorial();
             return;
         }
+
+        if (this._pauseTime <= 0) return;
 
         // 超时恢复
         if (Date.now() - this._pauseTime > this._TIMEOUT) {
@@ -117,6 +117,13 @@ export class TutorialController extends Component {
 
     public setPauseTime(): void {
         const controller = this._targetBlock?.getComponent(BlockController);
+        if (this._phase === 1 && controller?.state === BlockState.HAS_CIRCLE) {
+            this._phase = 2;
+            this._isActive = true;
+            this._pauseTime = 0;
+            this.playStepToCircle();
+            return;
+        }
         if(this._phase === 2 && controller?.state === BlockState.IRONED){
             this.endTutorial();
             return;
