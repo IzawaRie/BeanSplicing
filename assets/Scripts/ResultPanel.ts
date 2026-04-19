@@ -124,8 +124,8 @@ export class ResultPanel extends Component {
         // 计算通关时间（无论成功或失败都计算）
         if (this._gameStartTime > 0) {
             const totalTime = Date.now() - this._gameStartTime;
-            const actualTime = totalTime - this._pausedTime;
-            this._clearTime = Math.floor(actualTime / 1000);
+            const actualTime = Math.max(0, totalTime - this._pausedTime);
+            this._clearTime = Math.max(0, Math.floor(actualTime / 1000));
         } else {
             this._clearTime = 0;
         }
@@ -179,6 +179,10 @@ export class ResultPanel extends Component {
      */
     public recordGameStartTime(): void {
         this._gameStartTime = Date.now();
+        this._pausedTime = 0;
+        this._pauseStartTime = 0;
+        this._clearTime = 0;
+        this._saveLevelDataTask = null;
     }
 
     /**
