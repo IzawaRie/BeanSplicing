@@ -95,7 +95,8 @@ exports.main = async (event = {}, context) => {
       updatedAt: now,
       sentAt: null,
       lastTriedAt: null,
-      error: null,
+      errorCode: '',
+      errorMessage: '',
       miniprogramState,
       scene,
       dedupeKey

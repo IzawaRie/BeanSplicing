@@ -62,20 +62,23 @@ exports.main = async (event = {}, context) => {
       };
 
       if (!taskId || !task.openid || !task.templateId || !task.payload) {
+        const invalidTaskError = {
+          errCode: 'INVALID_TASK',
+          errMsg: 'task is missing openid, templateId or payload'
+        };
         const errorPayload = {
           status: 'failed',
           lastTriedAt: now,
-          error: {
-            errCode: 'INVALID_TASK',
-            errMsg: 'task is missing openid, templateId or payload'
-          }
+          updatedAt: now,
+          errorCode: invalidTaskError.errCode,
+          errorMessage: invalidTaskError.errMsg
         };
 
         if (!dryRun && taskId) {
           await markTask(taskId, errorPayload);
         }
 
-        taskResult.error = errorPayload.error;
+        taskResult.error = invalidTaskError;
         results.push(taskResult);
         continue;
       }
@@ -95,7 +98,9 @@ exports.main = async (event = {}, context) => {
             status: 'sent',
             sentAt: now,
             lastTriedAt: now,
-            error: null,
+            updatedAt: now,
+            errorCode: '',
+            errorMessage: '',
             sendResult: {
               errCode: sendRes?.errCode ?? 0,
               errMsg: sendRes?.errMsg || 'ok'
@@ -115,7 +120,9 @@ exports.main = async (event = {}, context) => {
           await markTask(taskId, {
             status: 'failed',
             lastTriedAt: now,
-            error: errorInfo
+            updatedAt: now,
+            errorCode: errorInfo.errCode,
+            errorMessage: errorInfo.errMsg
           });
         }
 
