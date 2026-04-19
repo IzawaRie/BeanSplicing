@@ -36,6 +36,9 @@ export class MenuManager extends Component {
     @property({ type: Node })
     chart_btn: Node = null;
 
+    @property({ type: Node })
+    subscribe_btn: Node = null;
+
     @property({ type: Label })
     power_label: Label = null;
 
@@ -167,6 +170,9 @@ export class MenuManager extends Component {
         }
         if (this.chart_btn) {
             this.chart_btn.on(Node.EventType.TOUCH_END, this.onChartBtnClick, this);
+        }
+        if (this.subscribe_btn) {
+            this.subscribe_btn.on(Node.EventType.TOUCH_END, this.onSubscribeBtnClick, this);
         }
 
         // 加载星星预制体
@@ -438,6 +444,19 @@ export class MenuManager extends Component {
     }
 
     /**
+     * 点击订阅按钮，发起体力恢复订阅
+     */
+    private onSubscribeBtnClick(): void {
+        const gameManager = GameManager.getInstance();
+        if (!gameManager?.wxManager || (gameManager.gameState != GameState.WAITING)) return;
+        if (gameManager.isWindowBlocking()) return;
+
+        gameManager.vibrateShort();
+        AudioManager.instance.playEffect('click_btn');
+        void gameManager.wxManager.requestPowerRegenSubscribe('menu_subscribe_btn');
+    }
+
+    /**
      * 显示进度面板
      */
     public showProgressPanel(): void {
@@ -561,6 +580,9 @@ export class MenuManager extends Component {
         }
         if (this.chart_btn) {
             this.chart_btn.off(Node.EventType.TOUCH_END, this.onChartBtnClick, this);
+        }
+        if (this.subscribe_btn) {
+            this.subscribe_btn.off(Node.EventType.TOUCH_END, this.onSubscribeBtnClick, this);
         }
     }
 }

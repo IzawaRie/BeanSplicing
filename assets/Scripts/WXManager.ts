@@ -1,10 +1,45 @@
 import { _decorator, Component, Node } from 'cc';
 import { GameManager, DifficultyMode } from './GameManager';
 import { callFunction } from './CloudbaseService';
-const { ccclass, property } = _decorator;
+const { ccclass, property} = _decorator;
 
 // 微信小游戏全局对象类型声明
 declare const wx: any;
+
+type SubscribeMessageStatus = 'accept' | 'reject' | 'ban' | 'filter' | '';
+
+interface RequestSubscribeMessageResult {
+    success: boolean;
+    result: Record<string, SubscribeMessageStatus>;
+    error?: string;
+}
+
+interface SubscribeMessageSettingResult {
+    success: boolean;
+    mainSwitch: boolean | null;
+    itemSettings: Record<string, SubscribeMessageStatus>;
+    error?: string;
+}
+
+interface CreateSubscribeTaskOptions {
+    templateId: string;
+    payload: Record<string, any>;
+    sendAt: number;
+    page?: string;
+    scene?: string;
+    miniprogramState?: 'developer' | 'trial' | 'formal';
+    dedupeKey?: string;
+}
+
+interface SubscribeTaskClientResult {
+    success: boolean;
+    subscribeStatus?: SubscribeMessageStatus;
+    subscribeResult?: Record<string, SubscribeMessageStatus>;
+    taskResult?: any;
+    duplicated?: boolean;
+    taskId?: string;
+    error?: string;
+}
 
 /**
  * 云存储管理器
@@ -15,6 +50,11 @@ export class WXManager extends Component {
 
     @property({ type: Node })
     testBtn: Node = null;
+
+    subscribeTemplateId: string = 'dhpYKr-YayyWv_ibni2T5BmxwdhCkxoSbwWpijjrLtc';
+    subscribePage: string = '';
+    subscribeTipField: string = 'thing2';
+    subscribeCurrentPowerField: string = 'character_string5';
 
     // 激励视频广告实例
     private rewardedVideoAd: any = null;
@@ -695,6 +735,11 @@ export class WXManager extends Component {
         });
     }
 
+    public getPowerNextRegenTimeSync(): number {
+        if (typeof (wx) === 'undefined') return 0;
+        return Math.max(0, Number(wx.getStorageSync('power_next_regen')) || 0);
+    }
+
     // ========== 原生模板广告 ==========
     private customAd: any = null;
     private nativeAdStyle = { left: 0, top: 0, width: 0 };
@@ -1107,5 +1152,357 @@ export class WXManager extends Component {
                 }
             });
         });
+    }
+
+    private async ensureOpenIdForSubscribe(): Promise<string> {
+        const gameManager = GameManager.getInstance();
+        const storageOpenid = typeof (wx) === 'undefined' ? '' : (wx.getStorageSync('openid') || '');
+        const cachedOpenid = (gameManager?.openid || storageOpenid || '').trim();
+        if (cachedOpenid) {
+            return cachedOpenid;
+        }
+
+        const openid = (await this.getOpenId())?.trim() || '';
+        if (openid) {
+            gameManager?.setOpenid(openid);
+        }
+        return openid;
+    }
+
+    private getSubscribeMessageSettings(templateIds: string[]): Promise<SubscribeMessageSettingResult> {
+        const safeTemplateIds = Array.from(new Set(
+            templateIds
+                .map((id) => typeof id === 'string' ? id.trim() : '')
+                .filter((id) => !!id)
+        ));
+
+        return new Promise((resolve) => {
+            if (typeof (wx) === 'undefined' || typeof wx.getSetting !== 'function') {
+                console.warn('[Subscribe] getSubscribeMessageSettings unavailable', {
+                    hasWx: typeof (wx) !== 'undefined',
+                    hasGetSetting: typeof (wx) !== 'undefined' && typeof wx.getSetting === 'function'
+                });
+                resolve({
+                    success: false,
+                    mainSwitch: null,
+                    itemSettings: {},
+                    error: 'getSetting is not available'
+                });
+                return;
+            }
+
+            wx.getSetting({
+                withSubscriptions: true,
+                success: (res) => {
+                    console.log('[Subscribe] wx.getSetting success', {
+                        mainSwitch: res?.subscriptionsSetting?.mainSwitch,
+                        itemSettings: res?.subscriptionsSetting?.itemSettings || {}
+                    });
+                    const itemSettings: Record<string, SubscribeMessageStatus> = {};
+                    const rawItemSettings = res?.subscriptionsSetting?.itemSettings || {};
+                    for (const templateId of safeTemplateIds) {
+                        const status = typeof rawItemSettings?.[templateId] === 'string' ? rawItemSettings[templateId] : '';
+                        itemSettings[templateId] = status as SubscribeMessageStatus;
+                    }
+
+                    resolve({
+                        success: true,
+                        mainSwitch: typeof res?.subscriptionsSetting?.mainSwitch === 'boolean'
+                            ? res.subscriptionsSetting.mainSwitch
+                            : null,
+                        itemSettings
+                    });
+                },
+                fail: (err) => {
+                    console.warn('[Subscribe] wx.getSetting failed', err);
+                    resolve({
+                        success: false,
+                        mainSwitch: null,
+                        itemSettings: {},
+                        error: err?.errMsg || 'getSetting failed'
+                    });
+                }
+            });
+        });
+    }
+
+    public async requestSubscribeMessage(templateIds: string[]): Promise<RequestSubscribeMessageResult> {
+        const safeTemplateIds = Array.from(new Set(
+            templateIds
+                .map((id) => typeof id === 'string' ? id.trim() : '')
+                .filter((id) => !!id)
+        ));
+
+        console.log('[Subscribe] requestSubscribeMessage start', {
+            templateIds,
+            safeTemplateIds
+        });
+
+        if (typeof (wx) === 'undefined' || typeof wx.requestSubscribeMessage !== 'function') {
+            console.warn('[Subscribe] requestSubscribeMessage unavailable', {
+                hasWx: typeof (wx) !== 'undefined',
+                hasRequestSubscribeMessage: typeof (wx) !== 'undefined' && typeof wx.requestSubscribeMessage === 'function'
+            });
+            return {
+                success: false,
+                result: {},
+                error: 'requestSubscribeMessage is not available'
+            };
+        }
+
+        if (safeTemplateIds.length <= 0) {
+            console.warn('[Subscribe] requestSubscribeMessage aborted: empty templateIds');
+            return {
+                success: false,
+                result: {},
+                error: 'templateIds is empty'
+            };
+        }
+
+        console.log('[Subscribe] requestSubscribeMessage invoke immediately to preserve touch interaction');
+
+        return new Promise((resolve) => {
+            wx.requestSubscribeMessage({
+                tmplIds: safeTemplateIds,
+                success: (res) => {
+                    const result: Record<string, SubscribeMessageStatus> = {};
+                    for (const templateId of safeTemplateIds) {
+                        const status = typeof res?.[templateId] === 'string' ? res[templateId] : '';
+                        result[templateId] = status as SubscribeMessageStatus;
+                    }
+                    console.log('[Subscribe] wx.requestSubscribeMessage success', {
+                        rawResult: res,
+                        result
+                    });
+                    resolve({
+                        success: true,
+                        result
+                    });
+
+                    void this.getSubscribeMessageSettings(safeTemplateIds).then((settingResult) => {
+                        if (settingResult.success) {
+                            console.log('[Subscribe] requestSubscribeMessage settings(after request):', {
+                                mainSwitch: settingResult.mainSwitch,
+                                itemSettings: settingResult.itemSettings
+                            });
+                        } else {
+                            console.warn('[Subscribe] requestSubscribeMessage settings unavailable(after request)', settingResult.error);
+                        }
+                    });
+                },
+                fail: (err) => {
+                    console.warn('[Subscribe] wx.requestSubscribeMessage failed', err);
+                    resolve({
+                        success: false,
+                        result: {},
+                        error: err?.errMsg || 'requestSubscribeMessage failed'
+                    });
+
+                    void this.getSubscribeMessageSettings(safeTemplateIds).then((settingResult) => {
+                        if (settingResult.success) {
+                            console.log('[Subscribe] requestSubscribeMessage settings(after failed request):', {
+                                mainSwitch: settingResult.mainSwitch,
+                                itemSettings: settingResult.itemSettings
+                            });
+                        } else {
+                            console.warn('[Subscribe] requestSubscribeMessage settings unavailable(after failed request)', settingResult.error);
+                        }
+                    });
+                }
+            });
+        });
+    }
+
+    public async createSubscribeTask(options: CreateSubscribeTaskOptions): Promise<any> {
+        const openid = await this.ensureOpenIdForSubscribe();
+        if (!openid) {
+            console.warn('[Subscribe] createSubscribeTask aborted: missing openid');
+            return {
+                success: false,
+                error: 'openid is required'
+            };
+        }
+
+        const templateId = options.templateId?.trim() || '';
+        if (!templateId) {
+            console.warn('[Subscribe] createSubscribeTask aborted: missing templateId');
+            return {
+                success: false,
+                error: 'templateId is required'
+            };
+        }
+
+        if (!options.payload || typeof options.payload !== 'object' || Array.isArray(options.payload)) {
+            console.warn('[Subscribe] createSubscribeTask aborted: invalid payload', options.payload);
+            return {
+                success: false,
+                error: 'payload is required'
+            };
+        }
+
+        console.log('[Subscribe] createSubscribeTask request', {
+            openid,
+            templateId,
+            page: options.page?.trim() || '',
+            sendAt: Number(options.sendAt) || Date.now(),
+            scene: options.scene?.trim() || '',
+            dedupeKey: options.dedupeKey?.trim() || '',
+            payload: options.payload
+        });
+
+        const result = await callFunction('create_subscribe_task', {
+            openid,
+            templateId,
+            page: options.page?.trim() || '',
+            payload: options.payload,
+            sendAt: Number(options.sendAt) || Date.now(),
+            scene: options.scene?.trim() || '',
+            miniprogramState: options.miniprogramState || 'formal',
+            dedupeKey: options.dedupeKey?.trim() || ''
+        });
+
+        console.log('[Subscribe] createSubscribeTask response', result?.result ?? result);
+
+        return result?.result ?? result;
+    }
+
+    public async requestAndCreateSubscribeTask(options: CreateSubscribeTaskOptions): Promise<SubscribeTaskClientResult> {
+        const templateId = options.templateId?.trim() || '';
+        if (!templateId) {
+            console.warn('[Subscribe] requestAndCreateSubscribeTask aborted: missing templateId');
+            return {
+                success: false,
+                error: 'templateId is required'
+            };
+        }
+
+        console.log('[Subscribe] requestAndCreateSubscribeTask start', {
+            templateId,
+            sendAt: options.sendAt,
+            page: options.page?.trim() || '',
+            scene: options.scene?.trim() || '',
+            dedupeKey: options.dedupeKey?.trim() || ''
+        });
+
+        const subscribeRes = await this.requestSubscribeMessage([templateId]);
+        if (!subscribeRes.success) {
+            console.warn('[Subscribe] requestAndCreateSubscribeTask aborted: subscribe request failed', subscribeRes);
+            return {
+                success: false,
+                subscribeResult: subscribeRes.result,
+                error: subscribeRes.error || 'requestSubscribeMessage failed'
+            };
+        }
+
+        const subscribeStatus = subscribeRes.result[templateId] || '';
+        if (subscribeStatus !== 'accept') {
+            console.warn('[Subscribe] requestAndCreateSubscribeTask aborted: subscribe not accepted', {
+                templateId,
+                subscribeStatus,
+                subscribeResult: subscribeRes.result
+            });
+            return {
+                success: false,
+                subscribeStatus,
+                subscribeResult: subscribeRes.result,
+                error: `subscribe status is ${subscribeStatus || 'unknown'}`
+            };
+        }
+
+        const taskResult = await this.createSubscribeTask(options);
+        if (!taskResult?.success) {
+            console.warn('[Subscribe] requestAndCreateSubscribeTask aborted: create task failed', taskResult);
+            return {
+                success: false,
+                subscribeStatus,
+                subscribeResult: subscribeRes.result,
+                taskResult,
+                error: taskResult?.error || 'create subscribe task failed'
+            };
+        }
+
+        return {
+            success: true,
+            subscribeStatus,
+            subscribeResult: subscribeRes.result,
+            taskResult,
+            duplicated: !!taskResult?.duplicated,
+            taskId: taskResult?.taskId || ''
+        };
+    }
+
+    public async requestPowerRegenSubscribe(source: string = 'manual'): Promise<SubscribeTaskClientResult> {
+        const templateId = this.subscribeTemplateId?.trim() || '';
+        const gameManager = GameManager.getInstance();
+
+        console.log('[Subscribe] requestPowerRegenSubscribe start', {
+            source,
+            templateId,
+            subscribePage: this.subscribePage?.trim() || '',
+            subscribeTipField: this.subscribeTipField?.trim() || '',
+            subscribeCurrentPowerField: this.subscribeCurrentPowerField?.trim() || '',
+            currentPower: gameManager?.power,
+            openid: gameManager?.openid || ''
+        });
+
+        if (!templateId) {
+            console.warn('[Subscribe] requestPowerRegenSubscribe aborted: subscribeTemplateId is empty');
+            return {
+                success: false,
+                error: 'subscribeTemplateId is empty'
+            };
+        }
+
+        if (!gameManager || gameManager.power >= 10) {
+            console.warn('[Subscribe] requestPowerRegenSubscribe aborted: power is already full or gameManager missing', {
+                hasGameManager: !!gameManager,
+                power: gameManager?.power
+            });
+            return {
+                success: false,
+                error: 'power is already full'
+            };
+        }
+
+        const sendAt = this.getPowerNextRegenTimeSync();
+        console.log('[Subscribe] requestPowerRegenSubscribe power_next_regen', {
+            sendAt,
+            now: Date.now()
+        });
+        if (sendAt <= Date.now()) {
+            console.warn('[Subscribe] requestPowerRegenSubscribe aborted: power regen time is invalid', {
+                sendAt,
+                now: Date.now()
+            });
+            return {
+                success: false,
+                error: 'power regen time is invalid'
+            };
+        }
+
+        const tipField = this.subscribeTipField?.trim() || 'thing2';
+        const currentPowerField = this.subscribeCurrentPowerField?.trim() || 'character_string5';
+        const nextPower = Math.min(gameManager.power + 1, 10);
+        const payload: Record<string, any> = {
+            [currentPowerField]: { value: `${nextPower}/10` },
+            [tipField]: { value: '体力已恢复，记得回来闯关欧~' }
+        };
+
+        console.log('[Subscribe] requestPowerRegenSubscribe payload ready', {
+            nextPower,
+            payload
+        });
+
+        const result = await this.requestAndCreateSubscribeTask({
+            templateId,
+            page: this.subscribePage?.trim() || '',
+            payload,
+            sendAt,
+            scene: `power_regen_${source}`,
+            dedupeKey: `power_regen_${sendAt}`
+        });
+
+        console.log('[Subscribe] requestPowerRegenSubscribe result', result);
+        return result;
     }
 }
