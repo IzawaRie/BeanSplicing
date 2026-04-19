@@ -104,12 +104,30 @@ export class BlockController extends Component {
             return this._ironOpacityStage;
         }
 
+        if (this.isNearWhiteColor()) {
+            this._ironOpacityStage = 3;
+            this._state = BlockState.IRONED;
+            return this._ironOpacityStage;
+        }
+
         this._ironOpacityStage = Math.min(3, this._ironOpacityStage + 1);
         this._state = this._ironOpacityStage >= 3 ? BlockState.IRONED : BlockState.IRONING;
         return this._ironOpacityStage;
     }
 
+    private isNearWhiteColor(): boolean {
+        const colorR = this._currentColorR >= 0 ? this._currentColorR : this._targetColorR;
+        const colorG = this._currentColorG >= 0 ? this._currentColorG : this._targetColorG;
+        const colorB = this._currentColorB >= 0 ? this._currentColorB : this._targetColorB;
+
+        return colorR > 225 && colorG > 225 && colorB > 225;
+    }
+
     public getIronOpacityRatio(): number {
+        if (this._ironOpacityStage > 0 && this.isNearWhiteColor()) {
+            return 1;
+        }
+
         switch (this._ironOpacityStage) {
             case 1: return 0.3;
             case 2: return 0.6;
