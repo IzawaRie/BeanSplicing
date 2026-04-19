@@ -145,6 +145,8 @@ export class MenuManager extends Component {
             gameManager.levelMode.node.active = false;
         }
 
+        this.setSubscribeButtonVisible(false);
+
         // 注册按钮事件（即使节点不激活也执行，确保 GameManager 能调用 loadLevel）
         if (this.simple_btn) {
             this.simple_btn.on(Node.EventType.TOUCH_END, this.onSimpleClick, this);
@@ -453,7 +455,17 @@ export class MenuManager extends Component {
 
         gameManager.vibrateShort();
         AudioManager.instance.playEffect('click_btn');
-        void gameManager.wxManager.requestPowerRegenSubscribe('menu_subscribe_btn');
+        const subscribeTask = gameManager.wxManager.requestPowerRegenSubscribe('menu_subscribe_btn');
+        void subscribeTask.then((result) => {
+            if (result.success || result.subscribeStatus === 'accept') {
+                this.setSubscribeButtonVisible(false);
+            }
+        });
+    }
+
+    public setSubscribeButtonVisible(visible: boolean): void {
+        if (!this.subscribe_btn) return;
+        this.subscribe_btn.active = visible;
     }
 
     /**

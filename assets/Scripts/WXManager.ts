@@ -1169,7 +1169,7 @@ export class WXManager extends Component {
         return openid;
     }
 
-    private getSubscribeMessageSettings(templateIds: string[]): Promise<SubscribeMessageSettingResult> {
+    public getSubscribeMessageSettings(templateIds: string[]): Promise<SubscribeMessageSettingResult> {
         const safeTemplateIds = Array.from(new Set(
             templateIds
                 .map((id) => typeof id === 'string' ? id.trim() : '')
@@ -1226,6 +1226,32 @@ export class WXManager extends Component {
         });
     }
 
+    public async hasAcceptedPowerRegenSubscribe(): Promise<boolean> {
+        const templateId = this.subscribeTemplateId?.trim() || '';
+        if (!templateId) {
+            console.warn('[Subscribe] hasAcceptedPowerRegenSubscribe aborted: subscribeTemplateId is empty');
+            return false;
+        }
+
+        const settingResult = await this.getSubscribeMessageSettings([templateId]);
+        if (!settingResult.success) {
+            console.warn('[Subscribe] hasAcceptedPowerRegenSubscribe failed to get setting', settingResult.error);
+            return false;
+        }
+
+        const subscribeStatus = settingResult.itemSettings[templateId] || '';
+        const hasAccepted = settingResult.mainSwitch !== false && subscribeStatus === 'accept';
+
+        console.log('[Subscribe] hasAcceptedPowerRegenSubscribe result', {
+            templateId,
+            mainSwitch: settingResult.mainSwitch,
+            subscribeStatus,
+            hasAccepted
+        });
+
+        return hasAccepted;
+    }
+
     public async requestSubscribeMessage(templateIds: string[]): Promise<RequestSubscribeMessageResult> {
         const safeTemplateIds = Array.from(new Set(
             templateIds
@@ -1278,17 +1304,6 @@ export class WXManager extends Component {
                         success: true,
                         result
                     });
-
-                    void this.getSubscribeMessageSettings(safeTemplateIds).then((settingResult) => {
-                        if (settingResult.success) {
-                            console.log('[Subscribe] requestSubscribeMessage settings(after request):', {
-                                mainSwitch: settingResult.mainSwitch,
-                                itemSettings: settingResult.itemSettings
-                            });
-                        } else {
-                            console.warn('[Subscribe] requestSubscribeMessage settings unavailable(after request)', settingResult.error);
-                        }
-                    });
                 },
                 fail: (err) => {
                     console.warn('[Subscribe] wx.requestSubscribeMessage failed', err);
@@ -1296,17 +1311,6 @@ export class WXManager extends Component {
                         success: false,
                         result: {},
                         error: err?.errMsg || 'requestSubscribeMessage failed'
-                    });
-
-                    void this.getSubscribeMessageSettings(safeTemplateIds).then((settingResult) => {
-                        if (settingResult.success) {
-                            console.log('[Subscribe] requestSubscribeMessage settings(after failed request):', {
-                                mainSwitch: settingResult.mainSwitch,
-                                itemSettings: settingResult.itemSettings
-                            });
-                        } else {
-                            console.warn('[Subscribe] requestSubscribeMessage settings unavailable(after failed request)', settingResult.error);
-                        }
                     });
                 }
             });
@@ -1482,14 +1486,12 @@ export class WXManager extends Component {
 
         const tipField = this.subscribeTipField?.trim() || 'thing2';
         const currentPowerField = this.subscribeCurrentPowerField?.trim() || 'character_string5';
-        const nextPower = Math.min(gameManager.power + 1, 10);
         const payload: Record<string, any> = {
-            [currentPowerField]: { value: `${nextPower}/10` },
+            [currentPowerField]: { value: '可领取' },
             [tipField]: { value: '体力已恢复，记得回来闯关欧~' }
         };
 
         console.log('[Subscribe] requestPowerRegenSubscribe payload ready', {
-            nextPower,
             payload
         });
 
