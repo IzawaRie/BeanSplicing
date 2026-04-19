@@ -1,0 +1,15 @@
+{
+  "name": "send_due_subscribe_messages",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "Scheduled cloud function for sending pending mini program subscribe messages.",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

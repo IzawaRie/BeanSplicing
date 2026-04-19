@@ -1,0 +1,15 @@
+{
+  "name": "create_subscribe_task",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "Cloud function for creating pending mini program subscribe message tasks.",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

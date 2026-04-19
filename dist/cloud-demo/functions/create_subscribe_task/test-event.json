@@ -1,0 +1,17 @@
+{
+  "openid": "oaoLb4qz0R8STBj6ipGlHkfNCO2Q",
+  "templateId": "YOUR_TEMPLATE_ID",
+  "page": "pages/index/index",
+  "payload": {
+    "thing1": {
+      "value": "体力已恢复"
+    },
+    "time2": {
+      "value": "2026-04-19 20:00"
+    }
+  },
+  "sendAt": 1776600000000,
+  "scene": "stamina_recovered",
+  "miniprogramState": "formal",
+  "dedupeKey": "stamina_recovered_2026_04_19_20_00"
+}
