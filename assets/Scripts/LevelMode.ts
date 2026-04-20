@@ -1,4 +1,4 @@
-import { _decorator, Component, Label, Node, Sprite, tween, UIOpacity, Color, resources, Prefab, instantiate, UITransform, Widget } from 'cc';
+﻿import { _decorator, Component, Label, Node, Sprite, tween, UIOpacity, Color, resources, Prefab, instantiate, UITransform, Widget } from 'cc';
 import { GameMode, GameModeType} from './GameMode';
 import { GridDrawer } from './GridDrawer';
 import { IronController } from './IronController';
@@ -100,11 +100,11 @@ export class LevelMode extends GameMode {
     private _isTimeFrozen: boolean = false; // 是否冻结时间
     private _timeFreezeTimer: number = 0;     // 冻结剩余时间
 
-    // 30秒警告相关
-    private _is30SecondWarning: boolean = false; // 是否已触发30秒警告
+    // 30 秒警告相关
+    private _is30SecondWarning: boolean = false; // 是否已触发 30 秒警告
     private _isFlashingRed: boolean = false;  // 是否正在红色闪烁
-    private _warningTimerId: any = null;    // 闪烁定时器ID
-    private _warningSecondColor: Color = new Color(255, 255, 255, 255); // 30秒警告闪烁的第二种颜色（默认白色）
+    private _warningTimerId: any = null;    // 闪烁定时器 ID
+    private _warningSecondColor: Color = new Color(255, 255, 255, 255); // 30 秒警告闪烁的第二种颜色（默认白色）
 
     // palette 技能相关
     private _isPaletteActive: boolean = false; // palette 技能是否激活
@@ -116,15 +116,18 @@ export class LevelMode extends GameMode {
     private _highlightedCount: number = 0;   // 已高亮的 block 数
     private _ironedCount: number = 0;        // 已熨烫的 block 数
 
-    // 空闲闪烁相关（进度 > 90% 且 10 秒无操作）
-    private _idleFlashTimer: number = 0;      // 空闲计时器
-    private _isIdleFlashing: boolean = false;  // 是否正在闪烁
-    private readonly _IDLE_FLASH_THRESHOLD: number = 10; // 10 秒阈值
-    private readonly _IDLE_FLASH_PROGRESS: number = 0.8; // 80% 进度阈值
+    // 空闲闪烁相关（进度达到 80% 后开始检测）
+    private _isIdleFlashing: boolean = false;  // 是否正在空闲闪烁
+    private readonly _IDLE_FLASH_PROGRESS: number = 0.8; // 空闲提示进度阈值
 
-    private readonly _RESULT_DELAY_SECONDS: number = 2;
+    private readonly _RESULT_DELAY_SECONDS: number = 0.7;
     private _isResultDelayPending: boolean = false;
     private _resultDelayToken: number = 0;
+
+    private _highlightIdleTimer: number = 0;
+    private _ironIdleTimer: number = 0;
+    private readonly _IDLE_ACTION_THRESHOLD: number = 5;
+    private _idleFlashMode: 'highlight' | 'iron' | null = null;
 
     public tutorialController: TutorialController = null;
 
@@ -181,7 +184,7 @@ export class LevelMode extends GameMode {
 
         this._remainingTime -= _deltaTime;
 
-        // 30秒警告：开始红色闪烁并播放didi音效
+        // 30 秒警告：开始红色闪烁并播放 didi 音效
         if (this._remainingTime <= 30 && !this._is30SecondWarning) {
             this._is30SecondWarning = true;
             this.start30SecondWarning();
@@ -215,10 +218,10 @@ export class LevelMode extends GameMode {
         }
     }
 
-    // ==================== 30秒警告系统 ====================
+    // ==================== 30 秒警告系统 ====================
 
     /**
-     * 开始30秒警告：时间文字闪烁 + didi音效（循环播放）
+     * 开始 30 秒警告：时间文字闪烁 + didi 音效（循环播放）
      * 使用全局变量 _warningSecondColor 决定闪烁的第二种颜色
      */
     private start30SecondWarning(): void {
@@ -226,18 +229,18 @@ export class LevelMode extends GameMode {
 
         this._isFlashingRed = true;
 
-        // 每隔0.3秒闪烁一次
+        // 每隔 0.5 秒切换一次颜色
         const flashAndPlay = () => {
             if (!this._isFlashingRed) return;
 
-            // 变红色
+            // 切到红色
             this.time_label.color = new Color(255, 0, 0, 255);
 
-            // 0.5秒后恢复
+            // 0.5 秒后恢复
             this._warningTimerId = setTimeout(() => {
                 if (!this._isFlashingRed) return;
                 this.time_label.color = this._warningSecondColor;
-                // 0.5秒后再次闪烁（总共间隔1秒）
+                // 再过 0.5 秒继续下一轮闪烁（总间隔 1 秒）
                 this._warningTimerId = setTimeout(() => {
                     if (this._isFlashingRed) {
                         flashAndPlay();
@@ -249,7 +252,7 @@ export class LevelMode extends GameMode {
     }
 
     /**
-     * 停止30秒警告
+     * 停止 30 秒警告
      */
     stop30SecondWarning(): void {
         this._isFlashingRed = false;
@@ -277,27 +280,44 @@ export class LevelMode extends GameMode {
         const progress = (this._highlightedCount * 0.5 + this._ironedCount) / this._totalBlockCount;
         const isHighProgress = progress >= this._IDLE_FLASH_PROGRESS;
 
-        if (isHighProgress && !this._isIdleFlashing) {
-            // 进度超过 90%，开始计时
-            this._idleFlashTimer += deltaTime;
-            if (this._idleFlashTimer >= this._IDLE_FLASH_THRESHOLD) {
-                this.startIdleFlash();
-                this._idleFlashTimer = 0;
-            }
-        } else if (!isHighProgress) {
-            // 进度低于 90%，停止闪烁，重置计时器
-            this._idleFlashTimer = 0;
+        if (!isHighProgress) {
+            this._highlightIdleTimer = 0;
+            this._ironIdleTimer = 0;
             if (this._isIdleFlashing) {
                 this.stopIdleFlash();
             }
+            return;
         }
+
+        if (this._isIdleFlashing) {
+            return;
+        }
+
+        const hasPendingIronTargets = this.hasPendingIronTargets();
+        const hasPendingHighlightTargets = this.hasPendingHighlightTargets();
+
+        this._ironIdleTimer = hasPendingIronTargets ? this._ironIdleTimer + deltaTime : 0;
+        this._highlightIdleTimer = hasPendingHighlightTargets ? this._highlightIdleTimer + deltaTime : 0;
+
+        if (hasPendingIronTargets && this._ironIdleTimer >= this._IDLE_ACTION_THRESHOLD) {
+            this.startIdleFlash('iron');
+            return;
+        }
+
+        if (hasPendingHighlightTargets && this._highlightIdleTimer >= this._IDLE_ACTION_THRESHOLD) {
+            this.startIdleFlash('highlight');
+        }
+
     }
 
     /**
-     * 开始空闲闪烁（闪烁所有未高亮的 block）
+     * 开始空闲闪烁（闪烁所有待提示的 block）
      */
-    private startIdleFlash(): void {
+    private startIdleFlash(mode: 'highlight' | 'iron'): void {
         this._isIdleFlashing = true;
+        this._idleFlashMode = mode;
+        this._highlightIdleTimer = 0;
+        this._ironIdleTimer = 0;
         const blocks = this.gridDrawer.getAllBlocks();
 
         for (let row = 0; row < blocks.length; row++) {
@@ -306,12 +326,12 @@ export class LevelMode extends GameMode {
                 if (!block) continue;
 
                 const blockController = block.getComponent(BlockController);
-                // 只闪烁未高亮的 block（无 circle 或无颜色的）
-                if (blockController && blockController.state !== BlockState.HAS_CIRCLE && blockController.state !== BlockState.IRONING) {
+                // 只闪烁当前模式下需要提示的 block
+                if (this.shouldFlashBlock(blockController, mode)) {
                     const redMask = block.getChildByName('red_mask');
                     if (redMask) {
                         const uiOpacity = redMask.getComponent(UIOpacity) ?? redMask.addComponent(UIOpacity);
-                        // opacity 0 -> 200 -> 0 闪烁 3 次
+                        // opacity 0 -> 200 -> 0，闪烁 3 次
                         tween(uiOpacity)
                             .to(0.4, { opacity: 200 })
                             .to(0.4, { opacity: 0 })
@@ -319,7 +339,9 @@ export class LevelMode extends GameMode {
                             .repeat(3)
                             .call(()=>{
                                 this._isIdleFlashing = false;
-                                this._idleFlashTimer = 0;
+                                this._highlightIdleTimer = 0;
+                                this._ironIdleTimer = 0;
+                                this._idleFlashMode = null;
                             }).start();
                     }
                 }
@@ -328,11 +350,64 @@ export class LevelMode extends GameMode {
     }
 
     /**
-     * 停止空闲闪烁
+     * 判断指定 block 是否需要闪烁提示
      */
+    private shouldFlashBlock(blockController: BlockController | null, mode: 'highlight' | 'iron'): boolean {
+        if (!blockController || blockController.targetColorA === 0) {
+            return false;
+        }
+
+        if (mode === 'iron') {
+            // 只要还能继续熨烫，就应该参与熨烫提示。
+            return blockController.canIron();
+        }
+
+        return blockController.state === BlockState.NO_CIRCLE;
+    }
+
+    private hasPendingHighlightTargets(): boolean {
+        const blocks = this.gridDrawer?.getAllBlocks();
+        if (!blocks) return false;
+
+        for (let row = 0; row < blocks.length; row++) {
+            for (let col = 0; col < blocks[row].length; col++) {
+                const block = blocks[row][col];
+                if (!block) continue;
+
+                const blockController = block.getComponent(BlockController);
+                if (this.shouldFlashBlock(blockController, 'highlight')) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private hasPendingIronTargets(): boolean {
+        const blocks = this.gridDrawer?.getAllBlocks();
+        if (!blocks) return false;
+
+        for (let row = 0; row < blocks.length; row++) {
+            for (let col = 0; col < blocks[row].length; col++) {
+                const block = blocks[row][col];
+                if (!block) continue;
+
+                const blockController = block.getComponent(BlockController);
+                if (this.shouldFlashBlock(blockController, 'iron')) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
     private stopIdleFlash(): void {
         this._isIdleFlashing = false;
-        this._idleFlashTimer = 0;
+        this._highlightIdleTimer = 0;
+        this._ironIdleTimer = 0;
+        this._idleFlashMode = null;
         const blocks = this.gridDrawer.getAllBlocks();
 
         for (let row = 0; row < blocks.length; row++) {
@@ -353,13 +428,20 @@ export class LevelMode extends GameMode {
     }
 
     /**
-     * 玩家有操作时调用，重置空闲计时器并停止闪烁
+     * 玩家有操作时调用，重置高亮空闲计时器并停止闪烁
      */
     public resetIdleFlashTimer(): void {
         if (this._isIdleFlashing) {
             this.stopIdleFlash();
         }
-        this._idleFlashTimer = 0;
+        this._highlightIdleTimer = 0;
+    }
+
+    public resetIronIdleFlashTimer(): void {
+        if (this._isIdleFlashing && this._idleFlashMode === 'iron') {
+            this.stopIdleFlash();
+        }
+        this._ironIdleTimer = 0;
     }
 
     // ==================== 进度系统 ====================
@@ -370,6 +452,8 @@ export class LevelMode extends GameMode {
     public initProgress(): void {
         this._highlightedCount = 0;
         this._ironedCount = 0;
+        this._highlightIdleTimer = 0;
+        this._ironIdleTimer = 0;
 
         const blocks = this.gridDrawer?.getAllBlocks();
         if (!blocks) return;
@@ -380,7 +464,7 @@ export class LevelMode extends GameMode {
                 const block = blocks[row][col];
                 if (!block) continue;
                 const bc = block.getComponent(BlockController);
-                if (!bc || bc.targetColorA === 0) continue; // 跳过透明
+                if (!bc || bc.targetColorA === 0) continue; // 跳过透明 block
                 this._totalBlockCount++;
             }
         }
@@ -395,6 +479,7 @@ export class LevelMode extends GameMode {
      */
     public onBlocksHighlighted(count: number): void {
         this._highlightedCount += count;
+        this.resetIdleFlashTimer();
         this.updateProgressUI();
     }
 
@@ -405,6 +490,7 @@ export class LevelMode extends GameMode {
     public onBlocksIroned(count: number): void {
         this._highlightedCount -= count;
         this._ironedCount += count;
+        this.resetIronIdleFlashTimer();
         this.updateProgressUI();
     }
 
@@ -414,11 +500,11 @@ export class LevelMode extends GameMode {
     private updateProgressUI(): void {
         if (this._totalBlockCount <= 0) return;
 
-        // 进度 = (高亮数 * 0.5 + 熨烫数 * 1) / 总数 * 100
+        // 进度 = (高亮数 * 0.5 + 熨烫数 * 1) / 总数
         const progress = (this._highlightedCount * 0.5 + this._ironedCount * 1) / this._totalBlockCount;
         const percent = Math.min(100, Math.floor(progress * 100));
 
-        // 更新 progress_sp fillRange（0 到 1）
+        // 更新 progress_sp 的 fillRange（0 到 1）
         if (this.progress_sp) {
             (this.progress_sp as any).fillRange = progress;
         }
@@ -431,7 +517,7 @@ export class LevelMode extends GameMode {
 
     /**
      * 重置进度到初始高亮状态（continue_btn 使用）
-     * 所有格子都是高亮状态，所以高亮数 = 总数，熨烫数 = 0
+     * 所有格子都处于高亮状态，所以高亮数 = 总数，熨烫数 = 0
      * 进度 = (总数 * 0.5 + 0) / 总数 = 50%
      */
     public resetProgressToHighlighted(): void {
@@ -450,9 +536,11 @@ export class LevelMode extends GameMode {
             }
         }
 
-        // 所有格子都是高亮状态
+        // 所有格子都处于高亮状态
         this._highlightedCount = this._totalBlockCount;
         this._ironedCount = 0;
+        this._highlightIdleTimer = 0;
+        this._ironIdleTimer = 0;
 
         console.log(`进度重置为高亮状态: 总数=${this._totalBlockCount}, 高亮数=${this._highlightedCount}`);
         this.updateProgressUI();
@@ -476,9 +564,11 @@ export class LevelMode extends GameMode {
         this._isTimeFrozen = false;
         this._timeFreezeTimer = 0;
         // 重置空闲闪烁状态
-        this._idleFlashTimer = 0;
+        this._highlightIdleTimer = 0;
+        this._ironIdleTimer = 0;
         this._isIdleFlashing = false;
-        // 重置30秒警告状态
+        this._idleFlashMode = null;
+        // 重置 30 秒警告状态
         this._is30SecondWarning = false;
         this._isFlashingRed = false;
         if (this.time_label) {
@@ -550,7 +640,7 @@ export class LevelMode extends GameMode {
             this.daojishi_label.string = '10';
         }
 
-        // 立即初始化游戏倒计时，避免显示上一关的残留数值
+        // 立即初始化游戏倒计时，避免显示上一关残留的数值
         this.startCountdown();
 
         // 显示所有 block 的 sprite（显示拼豆颜色）
@@ -835,7 +925,7 @@ export class LevelMode extends GameMode {
             this.resultPanel.recordGameStartTime();
         }
 
-        // 显示原生格子广告（距离屏幕顶部 10% 位置）
+        // 显示原生格子广告（距离屏幕顶部 14% 位置）
         WXManager.instance?.showNativeGridAd(0.14);
 
         // 第一关开启新手引导
@@ -1021,7 +1111,7 @@ export class LevelMode extends GameMode {
 
     /**
      * 时间冻结技能（time_skill）
-     * 停止倒计时时间，持续10秒
+     * 停止倒计时流逝，持续 30 秒
      */
     public activateTimeFreeze(): void {
         if (this._isTimeFrozen || this._isDaojiCounting) return; // 已在冻结或读秒中
@@ -1030,7 +1120,7 @@ export class LevelMode extends GameMode {
         }
         this._isTimeFrozen = true;
         this._timeFreezeTimer = 30;
-        // 先停止30秒警告的红色闪烁
+        // 先停止 30 秒警告的红色闪烁
         this.stop30SecondWarning();
         // 改变时间标签颜色表示冻结状态
         if (this.time_label) {
@@ -1041,7 +1131,7 @@ export class LevelMode extends GameMode {
 
     /**
      * 修复技能（fix_skill）
-     * 只修复同一个颜色中不匹配数量最多的格子的颜色
+     * 只修复同一种颜色中不匹配数量最多的格子
      */
     public activateFixSkill(): void {
         if (!this.gridDrawer) return;
@@ -1062,12 +1152,12 @@ export class LevelMode extends GameMode {
                 const controller = block.getComponent(BlockController);
                 if (!controller) continue;
 
-                // 只处理有 circle 的 block（HAS_CIRCLE 或 IRONED 状态）
+                // 只处理有 circle 的 block（HAS_CIRCLE / IRONING / IRONED 状态）
                 if (controller.state !== BlockState.HAS_CIRCLE && controller.state !== BlockState.IRONING && controller.state !== BlockState.IRONED) continue;
 
                 // 检查颜色是否与目标颜色匹配
                 if (!controller.isColorMatch()) {
-                    // 用 RGBA 创建一个唯一的颜色键
+                    // 用 RGBA 创建唯一颜色键
                     const colorKey = `${controller.targetColorR},${controller.targetColorG},${controller.targetColorB},${controller.targetColorA}`;
 
                     const count = colorMismatchCount.get(colorKey) || 0;

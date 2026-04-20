@@ -477,8 +477,6 @@ export class CircleController extends Component {
         if (!blocks || blocks.length === 0) return 0;
 
         // 重置空闲计时器
-        GameManager.getInstance()?.levelMode.resetIdleFlashTimer();
-        
         const rows = blocks.length;
         const columns = blocks[0]?.length ?? 0;
 
