@@ -56,6 +56,8 @@ export class WXManager extends Component {
     subscribeTipField: string = 'thing2';
     subscribeCurrentPowerField: string = 'character_string5';
     private hasAcceptedPowerRegenSubscribeCache: boolean = false;
+    private powerRegenSubscribeMainSwitchCache: boolean | null = null;
+    private powerRegenSubscribeStatusCache: SubscribeMessageStatus = '';
 
     // 激励视频广告实例
     private rewardedVideoAd: any = null;
@@ -1227,25 +1229,29 @@ export class WXManager extends Component {
         });
     }
 
-    public async hasAcceptedPowerRegenSubscribe(): Promise<boolean> {
+    public async refreshPowerRegenSubscribeState(): Promise<boolean> {
         const templateId = this.subscribeTemplateId?.trim() || '';
         if (!templateId) {
-            console.warn('[Subscribe] hasAcceptedPowerRegenSubscribe aborted: subscribeTemplateId is empty');
+            console.warn('[Subscribe] refreshPowerRegenSubscribeState aborted: subscribeTemplateId is empty');
             this.hasAcceptedPowerRegenSubscribeCache = false;
+            this.powerRegenSubscribeMainSwitchCache = null;
+            this.powerRegenSubscribeStatusCache = '';
             return false;
         }
 
         const settingResult = await this.getSubscribeMessageSettings([templateId]);
         if (!settingResult.success) {
-            console.warn('[Subscribe] hasAcceptedPowerRegenSubscribe failed to get setting', settingResult.error);
+            console.warn('[Subscribe] refreshPowerRegenSubscribeState failed to get setting', settingResult.error);
             this.hasAcceptedPowerRegenSubscribeCache = false;
+            this.powerRegenSubscribeMainSwitchCache = null;
+            this.powerRegenSubscribeStatusCache = '';
             return false;
         }
 
         const subscribeStatus = settingResult.itemSettings[templateId] || '';
         const hasAccepted = settingResult.mainSwitch !== false && subscribeStatus === 'accept';
 
-        console.log('[Subscribe] hasAcceptedPowerRegenSubscribe result', {
+        console.log('[Subscribe] refreshPowerRegenSubscribeState result', {
             templateId,
             mainSwitch: settingResult.mainSwitch,
             subscribeStatus,
@@ -1253,6 +1259,8 @@ export class WXManager extends Component {
         });
 
         this.hasAcceptedPowerRegenSubscribeCache = hasAccepted;
+        this.powerRegenSubscribeMainSwitchCache = settingResult.mainSwitch;
+        this.powerRegenSubscribeStatusCache = subscribeStatus;
         return hasAccepted;
     }
 
@@ -1403,6 +1411,7 @@ export class WXManager extends Component {
         }
 
         const subscribeStatus = subscribeRes.result[templateId] || '';
+        this.powerRegenSubscribeStatusCache = subscribeStatus;
         if (subscribeStatus !== 'accept') {
             console.warn('[Subscribe] requestAndCreateSubscribeTask aborted: subscribe not accepted', {
                 templateId,
@@ -1418,6 +1427,7 @@ export class WXManager extends Component {
         }
 
         this.hasAcceptedPowerRegenSubscribeCache = true;
+        this.powerRegenSubscribeMainSwitchCache = true;
         const taskResult = await this.createSubscribeTask(options);
         if (!taskResult?.success) {
             console.warn('[Subscribe] requestAndCreateSubscribeTask aborted: create task failed', taskResult);
@@ -1509,16 +1519,36 @@ export class WXManager extends Component {
             dedupeKey: 'power_regen'
         };
 
-        const hasAcceptedPowerRegenSubscribe = this.hasAcceptedPowerRegenSubscribeCache;
         console.log('[Subscribe] requestPowerRegenSubscribe mode', {
-            hasAcceptedPowerRegenSubscribe
+            hasAccepted: this.hasAcceptedPowerRegenSubscribeCache,
+            mainSwitch: this.powerRegenSubscribeMainSwitchCache,
+            subscribeStatus: this.powerRegenSubscribeStatusCache
         });
 
-        const result = hasAcceptedPowerRegenSubscribe
+        if (this.powerRegenSubscribeMainSwitchCache === false || this.powerRegenSubscribeStatusCache === 'reject') {
+            const blockedResult: SubscribeTaskClientResult = {
+                success: false,
+                subscribeStatus: this.powerRegenSubscribeStatusCache || '',
+                subscribeResult: {
+                    [templateId]: this.powerRegenSubscribeStatusCache || ''
+                },
+                error: this.powerRegenSubscribeMainSwitchCache === false
+                    ? 'subscribe mainSwitch is false'
+                    : 'subscribe status is reject'
+            };
+
+            console.warn('[Subscribe] requestPowerRegenSubscribe aborted by cached subscribe setting', {
+                mainSwitch: this.powerRegenSubscribeMainSwitchCache,
+                subscribeStatus: this.powerRegenSubscribeStatusCache
+            });
+            return blockedResult;
+        }
+
+        const result = this.hasAcceptedPowerRegenSubscribeCache
             ? await this.createSubscribeTask(taskOptions)
             : await this.requestAndCreateSubscribeTask(taskOptions);
 
-        const normalizedResult: SubscribeTaskClientResult = hasAcceptedPowerRegenSubscribe
+        const normalizedResult: SubscribeTaskClientResult = this.hasAcceptedPowerRegenSubscribeCache
             ? (result?.success
                 ? {
                     success: true,

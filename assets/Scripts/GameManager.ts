@@ -244,7 +244,7 @@ export class GameManager extends Component {
         this.menuManager.levelConfig = LevelConfig.getInstance();
         PatternBundle.getInstance().loadBundle();
         void this.initStorage().then(async () => {
-            this.wxManager?.hasAcceptedPowerRegenSubscribe();
+            this.wxManager?.refreshPowerRegenSubscribeState();
         });
     }
 
