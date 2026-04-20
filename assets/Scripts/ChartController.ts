@@ -375,7 +375,7 @@ export class ChartController extends Component {
 
         this.resetOwnerAvatar();
         if (avatarUrl) {
-            void this.applyAvatarToSprite(this.owner_avatar_sprite, avatarUrl, renderToken);
+            this.deferApplyAvatarToSprite(this.owner_avatar_sprite, avatarUrl, renderToken);
         }
     }
 
@@ -403,7 +403,7 @@ export class ChartController extends Component {
 
         this.resetOwnerAvatar();
         if (avatarUrl) {
-            void this.applyAvatarToSprite(this.owner_avatar_sprite, avatarUrl, renderToken);
+            this.deferApplyAvatarToSprite(this.owner_avatar_sprite, avatarUrl, renderToken);
         }
     }
 
@@ -839,7 +839,7 @@ export class ChartController extends Component {
 
         const avatarUrl = localProfile?.avatarUrl || itemData.avatarUrl || '';
         if (avatarUrl) {
-            void this.applyAvatarToChartUser(item, avatarUrl, renderToken);
+            this.deferApplyAvatarToChartUser(item, avatarUrl, renderToken);
         }
     }
 
@@ -855,8 +855,36 @@ export class ChartController extends Component {
 
         const avatarUrl = localProfile?.avatarUrl || itemData.avatarUrl || '';
         if (avatarUrl) {
-            void this.applyAvatarToChartUser(item, avatarUrl, renderToken);
+            this.deferApplyAvatarToChartUser(item, avatarUrl, renderToken);
         }
+    }
+
+    private deferApplyAvatarToChartUser(item: ChartUser | null, avatarUrl: string, renderToken: number): void {
+        if (!item || !avatarUrl) {
+            return;
+        }
+
+        const itemNode = item.node;
+        this.scheduleOnce(() => {
+            if (renderToken !== this.renderVersion || !isValid(itemNode)) {
+                return;
+            }
+            void this.applyAvatarToChartUser(item, avatarUrl, renderToken);
+        }, 0);
+    }
+
+    private deferApplyAvatarToSprite(sprite: Sprite | null, avatarUrl: string, renderToken: number): void {
+        if (!sprite || !avatarUrl) {
+            return;
+        }
+
+        const spriteNode = sprite.node;
+        this.scheduleOnce(() => {
+            if (renderToken !== this.renderVersion || !isValid(spriteNode)) {
+                return;
+            }
+            void this.applyAvatarToSprite(sprite, avatarUrl, renderToken);
+        }, 0);
     }
 
     private async applyAvatarToSprite(sprite: Sprite | null, avatarUrl: string, renderToken: number): Promise<void> {
