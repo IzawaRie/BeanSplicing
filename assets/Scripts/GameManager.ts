@@ -192,6 +192,8 @@ export class GameManager extends Component {
             this._powerNextRegenTime = Date.now() + this.POWER_REGEN_INTERVAL;
             this.wxManager.setPowerNextRegenTime(this._powerNextRegenTime);
         }
+
+        void this.wxManager?.createPowerRegenSubscribeTaskIfAccepted('game_manager_power_setter');
     }
 
     /**
@@ -270,7 +272,14 @@ export class GameManager extends Component {
         this.menuManager.levelConfig = LevelConfig.getInstance();
         PatternBundle.getInstance().loadBundle();
         void this.initStorage().then(async () => {
-            this.wxManager?.refreshPowerRegenSubscribeState();
+            if (!this.wxManager) {
+                return;
+            }
+
+            const subscribeState = await this.wxManager.getSubscribeTemplateAuthorizeState();
+            if (this.menuManager?.sub_btn) {
+                this.menuManager.sub_btn.active = subscribeState === 'unset';
+            }
         });
     }
 

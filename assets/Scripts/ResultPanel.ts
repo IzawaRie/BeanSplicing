@@ -601,10 +601,6 @@ export class ResultPanel extends Component {
         }
         gameManager.power--;
         AudioManager.instance.playEffect('ding');
-        const subscribeTask = gameManager.wxManager?.requestPowerRegenSubscribe('result_next_level_btn');
-        void subscribeTask?.then((result) => {
-            console.log('[Subscribe][ResultPanel] onNextLevelBtnClick result:', result);
-        });
         this.loadLevel(this._resultLevelNo + 1, this._resultDifficulty);
     }
 

@@ -7,6 +7,7 @@ const { ccclass, property} = _decorator;
 declare const wx: any;
 
 type SubscribeMessageStatus = 'accept' | 'reject' | 'ban' | 'filter' | '';
+type SubscribeTemplateAuthorizeState = 'unset' | 'accept' | 'reject';
 
 interface RequestSubscribeMessageResult {
     success: boolean;
@@ -57,9 +58,7 @@ export class WXManager extends Component {
     subscribePage: string = '';
     subscribeTipField: string = 'thing2';
     subscribeCurrentPowerField: string = 'thing7';
-    private hasAcceptedPowerRegenSubscribeCache: boolean = false;
-    private powerRegenSubscribeMainSwitchCache: boolean | null = null;
-    private powerRegenSubscribeStatusCache: SubscribeMessageStatus = '';
+    private subscribeTemplateAuthorizeStateCache: SubscribeTemplateAuthorizeState = 'unset';
 
     // 激励视频广告实例
     private rewardedVideoAd: any = null;
@@ -1208,6 +1207,7 @@ export class WXManager extends Component {
         });
     }
 
+    // ==================== 订阅消息 ====================
     private async ensureOpenIdForSubscribe(): Promise<string> {
         const gameManager = GameManager.getInstance();
         const storageOpenid = typeof (wx) === 'undefined' ? '' : (wx.getStorageSync('openid') || '');
@@ -1280,39 +1280,128 @@ export class WXManager extends Component {
         });
     }
 
-    public async refreshPowerRegenSubscribeState(): Promise<boolean> {
+    /**
+     * 获取当前订阅模板的授权状态。
+     * 返回三种状态：
+     * - unset: 用户还没有对该模板做过“总是保持以上选择”的明确选择
+     * - accept: 用户已接受该模板订阅
+     * - reject: 用户已拒绝该模板订阅，或总开关已关闭
+     */
+    public async getSubscribeTemplateAuthorizeState(): Promise<SubscribeTemplateAuthorizeState> {
         const templateId = this.subscribeTemplateId?.trim() || '';
         if (!templateId) {
-            console.warn('[Subscribe] refreshPowerRegenSubscribeState aborted: subscribeTemplateId is empty');
-            this.hasAcceptedPowerRegenSubscribeCache = false;
-            this.powerRegenSubscribeMainSwitchCache = null;
-            this.powerRegenSubscribeStatusCache = '';
-            return false;
+            this.subscribeTemplateAuthorizeStateCache = 'unset';
+            return 'unset';
         }
 
         const settingResult = await this.getSubscribeMessageSettings([templateId]);
         if (!settingResult.success) {
-            console.warn('[Subscribe] refreshPowerRegenSubscribeState failed to get setting', settingResult.error);
-            this.hasAcceptedPowerRegenSubscribeCache = false;
-            this.powerRegenSubscribeMainSwitchCache = null;
-            this.powerRegenSubscribeStatusCache = '';
-            return false;
+            this.subscribeTemplateAuthorizeStateCache = 'unset';
+            return 'unset';
+        }
+
+        if (settingResult.mainSwitch === false) {
+            this.subscribeTemplateAuthorizeStateCache = 'reject';
+            return 'reject';
         }
 
         const subscribeStatus = settingResult.itemSettings[templateId] || '';
-        const hasAccepted = settingResult.mainSwitch !== false && subscribeStatus === 'accept';
+        if (subscribeStatus === 'accept') {
+            this.subscribeTemplateAuthorizeStateCache = 'accept';
+            return 'accept';
+        }
+        if (subscribeStatus === 'reject') {
+            this.subscribeTemplateAuthorizeStateCache = 'reject';
+            return 'reject';
+        }
 
-        console.log('[Subscribe] refreshPowerRegenSubscribeState result', {
-            templateId,
-            mainSwitch: settingResult.mainSwitch,
-            subscribeStatus,
-            hasAccepted
-        });
+        this.subscribeTemplateAuthorizeStateCache = 'unset';
+        return 'unset';
+    }
 
-        this.hasAcceptedPowerRegenSubscribeCache = hasAccepted;
-        this.powerRegenSubscribeMainSwitchCache = settingResult.mainSwitch;
-        this.powerRegenSubscribeStatusCache = subscribeStatus;
-        return hasAccepted;
+    public buildPowerRegenSubscribeTaskOptions(source: string): { options?: CreateSubscribeTaskOptions; error?: string } {
+        const templateId = this.subscribeTemplateId?.trim() || '';
+        const gameManager = GameManager.getInstance();
+        if (!templateId) {
+            return { error: 'subscribeTemplateId is empty' };
+        }
+
+        if (!gameManager || gameManager.power >= 10) {
+            return { error: 'power is already full' };
+        }
+
+        const sendAt = this.getPowerNextRegenTimeSync();
+        if (sendAt <= Date.now()) {
+            return { error: 'power regen time is invalid' };
+        }
+
+        const tipField = this.subscribeTipField?.trim() || 'thing2';
+        const currentPowerField = this.subscribeCurrentPowerField?.trim() || 'thing7';
+        return {
+            options: {
+                templateId,
+                page: this.subscribePage?.trim() || '',
+                payload: {
+                    [currentPowerField]: { value: '体力值已经恢复啦！' },
+                    [tipField]: { value: '记得回来闯关欧~' }
+                },
+                sendAt,
+                scene: `power_regen_${source}`,
+                dedupeKey: 'power_regen'
+            }
+        };
+    }
+
+    public async createPowerRegenSubscribeTaskIfAccepted(source: string = 'power_setter'): Promise<SubscribeTaskClientResult> {
+        const templateId = this.subscribeTemplateId?.trim() || '';
+        const authorizeState = await this.getSubscribeTemplateAuthorizeState();
+        if (authorizeState !== 'accept') {
+            const subscribeStatus: SubscribeMessageStatus = authorizeState === 'reject' ? 'reject' : '';
+            return {
+                success: false,
+                subscribeStatus,
+                subscribeResult: {
+                    [templateId]: subscribeStatus
+                },
+                error: 'subscribe not accepted'
+            };
+        }
+
+        const taskSetup = this.buildPowerRegenSubscribeTaskOptions(source);
+        if (!taskSetup.options) {
+            return {
+                success: false,
+                subscribeStatus: 'accept',
+                subscribeResult: {
+                    [templateId]: 'accept'
+                },
+                error: taskSetup.error || 'invalid subscribe task options'
+            };
+        }
+
+        const taskResult = await this.createSubscribeTask(taskSetup.options);
+        if (!taskResult?.success) {
+            return {
+                success: false,
+                subscribeStatus: 'accept',
+                subscribeResult: {
+                    [templateId]: 'accept'
+                },
+                taskResult,
+                error: taskResult?.error || 'create subscribe task failed'
+            };
+        }
+
+        return {
+            success: true,
+            subscribeStatus: 'accept',
+            subscribeResult: {
+                [templateId]: 'accept'
+            },
+            taskResult,
+            duplicated: !!taskResult?.duplicated,
+            taskId: taskResult?.taskId || ''
+        };
     }
 
     public async requestSubscribeMessage(templateIds: string[]): Promise<RequestSubscribeMessageResult> {
@@ -1433,196 +1522,4 @@ export class WXManager extends Component {
         return result?.result ?? result;
     }
 
-    public async requestAndCreateSubscribeTask(options: CreateSubscribeTaskOptions): Promise<SubscribeTaskClientResult> {
-        const templateId = options.templateId?.trim() || '';
-        if (!templateId) {
-            console.warn('[Subscribe] requestAndCreateSubscribeTask aborted: missing templateId');
-            return {
-                success: false,
-                error: 'templateId is required'
-            };
-        }
-
-        console.log('[Subscribe] requestAndCreateSubscribeTask start', {
-            templateId,
-            sendAt: options.sendAt,
-            page: options.page?.trim() || '',
-            scene: options.scene?.trim() || '',
-            dedupeKey: options.dedupeKey?.trim() || ''
-        });
-
-        const subscribeRes = await this.requestSubscribeMessage([templateId]);
-        if (!subscribeRes.success) {
-            console.warn('[Subscribe] requestAndCreateSubscribeTask aborted: subscribe request failed', subscribeRes);
-            return {
-                success: false,
-                subscribeResult: subscribeRes.result,
-                error: subscribeRes.error || 'requestSubscribeMessage failed'
-            };
-        }
-
-        const subscribeStatus = subscribeRes.result[templateId] || '';
-        this.powerRegenSubscribeStatusCache = subscribeStatus;
-        if (subscribeStatus !== 'accept') {
-            console.warn('[Subscribe] requestAndCreateSubscribeTask aborted: subscribe not accepted', {
-                templateId,
-                subscribeStatus,
-                subscribeResult: subscribeRes.result
-            });
-            return {
-                success: false,
-                subscribeStatus,
-                subscribeResult: subscribeRes.result,
-                error: `subscribe status is ${subscribeStatus || 'unknown'}`
-            };
-        }
-
-        this.hasAcceptedPowerRegenSubscribeCache = true;
-        this.powerRegenSubscribeMainSwitchCache = true;
-        const taskResult = await this.createSubscribeTask(options);
-        if (!taskResult?.success) {
-            console.warn('[Subscribe] requestAndCreateSubscribeTask aborted: create task failed', taskResult);
-            return {
-                success: false,
-                subscribeStatus,
-                subscribeResult: subscribeRes.result,
-                taskResult,
-                error: taskResult?.error || 'create subscribe task failed'
-            };
-        }
-
-        return {
-            success: true,
-            subscribeStatus,
-            subscribeResult: subscribeRes.result,
-            taskResult,
-            duplicated: !!taskResult?.duplicated,
-            taskId: taskResult?.taskId || ''
-        };
-    }
-
-    public async requestPowerRegenSubscribe(source: string = 'manual'): Promise<SubscribeTaskClientResult> {
-        const templateId = this.subscribeTemplateId?.trim() || '';
-        const gameManager = GameManager.getInstance();
-
-        console.log('[Subscribe] requestPowerRegenSubscribe start', {
-            source,
-            templateId,
-            subscribePage: this.subscribePage?.trim() || '',
-            subscribeTipField: this.subscribeTipField?.trim() || '',
-            subscribeCurrentPowerField: this.subscribeCurrentPowerField?.trim() || '',
-            currentPower: gameManager?.power,
-            openid: gameManager?.openid || ''
-        });
-
-        if (!templateId) {
-            console.warn('[Subscribe] requestPowerRegenSubscribe aborted: subscribeTemplateId is empty');
-            return {
-                success: false,
-                error: 'subscribeTemplateId is empty'
-            };
-        }
-
-        if (!gameManager || gameManager.power >= 10) {
-            console.warn('[Subscribe] requestPowerRegenSubscribe aborted: power is already full or gameManager missing', {
-                hasGameManager: !!gameManager,
-                power: gameManager?.power
-            });
-            return {
-                success: false,
-                error: 'power is already full'
-            };
-        }
-
-        const sendAt = this.getPowerNextRegenTimeSync();
-        console.log('[Subscribe] requestPowerRegenSubscribe power_next_regen', {
-            sendAt,
-            now: Date.now()
-        });
-        if (sendAt <= Date.now()) {
-            console.warn('[Subscribe] requestPowerRegenSubscribe aborted: power regen time is invalid', {
-                sendAt,
-                now: Date.now()
-            });
-            return {
-                success: false,
-                error: 'power regen time is invalid'
-            };
-        }
-
-        const tipField = this.subscribeTipField?.trim() || 'thing2';
-        const currentPowerField = this.subscribeCurrentPowerField?.trim() || 'thing7';
-        const payload: Record<string, any> = {
-            [currentPowerField]: { value: '体力值已经恢复啦！' },
-            [tipField]: { value: '记得回来闯关欧~' }
-        };
-
-        console.log('[Subscribe] requestPowerRegenSubscribe payload ready', {
-            payload
-        });
-
-        const taskOptions: CreateSubscribeTaskOptions = {
-            templateId,
-            page: this.subscribePage?.trim() || '',
-            payload,
-            sendAt,
-            scene: `power_regen_${source}`,
-            dedupeKey: 'power_regen'
-        };
-
-        console.log('[Subscribe] requestPowerRegenSubscribe mode', {
-            hasAccepted: this.hasAcceptedPowerRegenSubscribeCache,
-            mainSwitch: this.powerRegenSubscribeMainSwitchCache,
-            subscribeStatus: this.powerRegenSubscribeStatusCache
-        });
-
-        if (this.powerRegenSubscribeMainSwitchCache === false || this.powerRegenSubscribeStatusCache === 'reject') {
-            const blockedResult: SubscribeTaskClientResult = {
-                success: false,
-                subscribeStatus: this.powerRegenSubscribeStatusCache || '',
-                subscribeResult: {
-                    [templateId]: this.powerRegenSubscribeStatusCache || ''
-                },
-                error: this.powerRegenSubscribeMainSwitchCache === false
-                    ? 'subscribe mainSwitch is false'
-                    : 'subscribe status is reject'
-            };
-
-            console.warn('[Subscribe] requestPowerRegenSubscribe aborted by cached subscribe setting', {
-                mainSwitch: this.powerRegenSubscribeMainSwitchCache,
-                subscribeStatus: this.powerRegenSubscribeStatusCache
-            });
-            return blockedResult;
-        }
-
-        const result = this.hasAcceptedPowerRegenSubscribeCache
-            ? await this.createSubscribeTask(taskOptions)
-            : await this.requestAndCreateSubscribeTask(taskOptions);
-
-        const normalizedResult: SubscribeTaskClientResult = this.hasAcceptedPowerRegenSubscribeCache
-            ? (result?.success
-                ? {
-                    success: true,
-                    subscribeStatus: 'accept',
-                    subscribeResult: {
-                        [templateId]: 'accept'
-                    },
-                    taskResult: result,
-                    duplicated: !!result?.duplicated,
-                    taskId: result?.taskId || ''
-                }
-                : {
-                    success: false,
-                    subscribeStatus: 'accept',
-                    subscribeResult: {
-                        [templateId]: 'accept'
-                    },
-                    taskResult: result,
-                    error: result?.error || 'create subscribe task failed'
-                })
-            : result;
-
-        console.log('[Subscribe] requestPowerRegenSubscribe result', normalizedResult);
-        return normalizedResult;
-    }
 }

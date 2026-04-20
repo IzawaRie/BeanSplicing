@@ -45326,6 +45326,12 @@
     },
     "_enabled": true,
     "__prefab": null,
+    "sub_btn": {
+      "__id__": 1244
+    },
+    "sub_bg": {
+      "__id__": 1229
+    },
     "_id": "d3u3WATylIxLWsCKZ/KDza"
   },
   {
