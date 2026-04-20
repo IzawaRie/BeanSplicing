@@ -652,14 +652,7 @@ export class ResultPanel extends Component {
         AudioManager.instance.playEffect('click_btn');
 
         if (!gameManager.canOpenChartDirectly) {
-            if (gameManager.wxManager?.nickname?.trim() || gameManager.wxManager?.avatarUrl) {
-                gameManager.setHasLoadedUserInfo(true);
-            } else {
-                const userInfo = await gameManager.wxManager?.getUserInfo();
-                if (gameManager.hasLoadedUserInfo) {
-                    await PlayerService.instance?.syncAuthorizedProfile(userInfo?.nickname, userInfo?.avatarUrl);
-                }
-            }
+            await gameManager.ensureChartProfileReady();
         }
 
         if (this._isSuccess && this._saveLevelDataTask) {

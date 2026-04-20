@@ -1,6 +1,7 @@
 import { _decorator, assetManager, Color, Component, EventTouch, ImageAsset, input, Input, instantiate, isValid, Label, Layout, Node, Prefab, resources, ScrollView, Sprite, SpriteFrame, Texture2D, tween, Tween, UITransform, Vec2, Vec3 } from 'cc';
 import { DifficultyMode, GameManager } from './GameManager';
 import { ChartUser } from './ChartUser';
+import { ChartLocalProfileContext, ChartOwnerSummaryBuilder, ChartOwnerSummaryData } from './ChartOwnerSummary';
 import { DifficultySummary, LevelBest, PlayerService } from './PlayerService';
 const { ccclass, property } = _decorator;
 
@@ -29,7 +30,7 @@ const VIRTUAL_LIST_NODE_COUNT = VISIBLE_RANKING_COUNT + VIRTUAL_LIST_BUFFER_COUN
 
 @ccclass('ChartController')
 export class ChartController extends Component {
-    // 难度页签
+    // ==================== 难度页签 ====================
     @property({ type: Node })
     simple_tag: Node = null;
 
@@ -39,7 +40,7 @@ export class ChartController extends Component {
     @property({ type: Node })
     hard_tag: Node = null;
 
-    // 头部区域
+    // ==================== 头部区域 ====================
     @property({ type: Node })
     close_btn: Node = null;
 
@@ -55,35 +56,35 @@ export class ChartController extends Component {
     @property({ type: Label })
     owner_level_label: Label = null;
 
-    // 排行榜列表区域
+    // ==================== 排行榜列表区域 ====================
     @property({ type: Node })
     content: Node = null;
 
     @property({ type: Node })
     chart_bg: Node = null;
 
-    // 当前视图状态
+    // ==================== 当前视图状态 ====================
     private currentDifficulty: DifficultyMode = DifficultyMode.SIMPLE;
     private currentLevelNo = 1;
     private currentViewMode: ChartViewMode = 'difficulty';
 
-    // 运行期内存缓存
+    // ==================== 运行期内存缓存 ====================
     private readonly rankingCache = new Map<DifficultyMode, DifficultyRankingCache>();
     private readonly levelRankingCache = new Map<string, LevelRankingCache>();
     private readonly refreshTasks = new Map<DifficultyMode, Promise<void>>();
     private readonly levelRefreshTasks = new Map<string, Promise<void>>();
 
-    // 头像缓存
+    // ==================== 头像缓存 ====================
     private readonly avatarFrameCache = new Map<string, SpriteFrame | null>();
     private readonly avatarLoadTasks = new Map<string, Promise<SpriteFrame | null>>();
 
-    // Prefab 与节点池
+    // ==================== Prefab 与节点池 ====================
     private chartUserPrefab: Prefab | null = null;
     private chartUserPrefabTask: Promise<Prefab | null> | null = null;
     private chartUserPrewarmTask: Promise<void> | null = null;
     private readonly chartUserNodePool: Node[] = [];
 
-    // 渲染状态
+    // ==================== 渲染状态 ====================
     private defaultOwnerAvatarSpriteFrame: SpriteFrame | null = null;
     private renderVersion = 0;
     private pendingOpenForceRefresh = false;
@@ -95,7 +96,7 @@ export class ChartController extends Component {
     private bottomSpacerNode: Node | null = null;
     private readonly virtualItemNodes: Node[] = [];
 
-    // 生命周期
+    // ==================== 生命周期 ====================
     // 初始化默认头像、按钮事件和列表资源预热。
     onLoad() {
         this.defaultOwnerAvatarSpriteFrame = this.owner_avatar_sprite?.spriteFrame ?? null;
@@ -109,15 +110,8 @@ export class ChartController extends Component {
         const forceRefresh = this.pendingOpenForceRefresh;
         this.pendingOpenForceRefresh = false;
         this.playOpenAnimation();
-
-        if (this.currentViewMode === 'level') {
-            this.showLevelRankingOrLoading();
-            void this.refreshLevelRankingIfNeeded(forceRefresh);
-            return;
-        }
-
-        this.showCachedOrLoading();
-        void this.refreshIfNeeded(forceRefresh);
+        this.showCurrentRankingOrLoading();
+        void this.refreshCurrentRankingIfNeeded(forceRefresh);
     }
 
     // 关闭排行榜时移除全局触摸监听，并使当前渲染令牌失效。
@@ -137,7 +131,7 @@ export class ChartController extends Component {
         this.updateVirtualList();
     }
 
-    // 对外接口
+    // ==================== 对外接口 ====================
     // 打开指定难度的排行榜页面。
     public openDifficultyRanking(difficulty: DifficultyMode = this.currentDifficulty, forceRefresh: boolean = false): void {
         this.currentViewMode = 'difficulty';
@@ -151,8 +145,8 @@ export class ChartController extends Component {
 
         this.node.active = true;
         this.playOpenAnimation();
-        this.showCachedOrLoading(difficulty);
-        void this.refreshIfNeeded(forceRefresh, difficulty);
+        this.showCurrentRankingOrLoading();
+        void this.refreshCurrentRankingIfNeeded(forceRefresh);
     }
 
     // 打开指定难度和关卡的排行榜页面。
@@ -169,19 +163,20 @@ export class ChartController extends Component {
 
         this.node.active = true;
         this.playOpenAnimation();
-        this.showLevelRankingOrLoading();
-        void this.refreshLevelRankingIfNeeded(forceRefresh);
+        this.showCurrentRankingOrLoading();
+        void this.refreshCurrentRankingIfNeeded(forceRefresh);
     }
 
+    // ==================== 难度排行榜 ====================
     // 先使用内存缓存渲染当前难度排行榜，没有数据时显示占位。
-    public showCachedOrLoading(difficulty: DifficultyMode = this.currentDifficulty): void {
+    private showCachedOrLoading(difficulty: DifficultyMode = this.currentDifficulty): void {
         this.currentDifficulty = difficulty;
         this.updateDifficultyTagState();
         this.renderCurrentDifficulty();
     }
 
     // 当缓存过期或被强制要求时刷新指定难度排行榜。
-    public async refreshIfNeeded(force: boolean = false, difficulty: DifficultyMode = this.currentDifficulty): Promise<void> {
+    private async refreshIfNeeded(force: boolean = false, difficulty: DifficultyMode = this.currentDifficulty): Promise<void> {
         const cache = this.rankingCache.get(difficulty);
         if (!force && cache && !this.isCacheExpired(cache.updatedAt)) {
             return;
@@ -208,8 +203,29 @@ export class ChartController extends Component {
         await Promise.all(difficulties.map((difficulty) => this.refreshIfNeeded(force, difficulty)));
     }
 
-    // 视图切换与交互
-    // 使用当前关卡的缓存渲染排行榜，没有数据时显示占位。
+    // ==================== 排行榜入口调度 ====================
+    // 根据当前视图模式渲染排行榜缓存或占位内容。
+    private showCurrentRankingOrLoading(): void {
+        if (this.currentViewMode === 'level') {
+            this.showLevelRankingOrLoading();
+            return;
+        }
+
+        this.showCachedOrLoading(this.currentDifficulty);
+    }
+
+    // 根据当前视图模式决定是否刷新排行榜数据。
+    private async refreshCurrentRankingIfNeeded(force: boolean = false): Promise<void> {
+        if (this.currentViewMode === 'level') {
+            await this.refreshLevelRankingIfNeeded(force);
+            return;
+        }
+
+        await this.refreshIfNeeded(force, this.currentDifficulty);
+    }
+
+    // ==================== 关卡排行榜 ====================
+    // 使用当前关卡缓存渲染排行榜，没有数据时显示占位。
     private showLevelRankingOrLoading(): void {
         this.setDifficultyTagsVisible(false);
         this.renderCurrentLevelRanking();
@@ -226,6 +242,7 @@ export class ChartController extends Component {
         await this.refreshCurrentLevelRanking();
     }
 
+    // ==================== 界面交互 ====================
     // 绑定关闭按钮和三个难度页签的点击事件。
     private bindButtonEvents(): void {
         if (this.close_btn) {
@@ -276,15 +293,14 @@ export class ChartController extends Component {
     // 切换当前难度，并尽量先复用已有缓存显示。
     private switchDifficulty(difficulty: DifficultyMode): void {
         if (this.currentDifficulty === difficulty) {
-            this.showCachedOrLoading(difficulty);
-            void this.refreshIfNeeded(false, difficulty);
+            this.showCurrentRankingOrLoading();
+            void this.refreshCurrentRankingIfNeeded(false);
             return;
         }
 
         this.currentDifficulty = difficulty;
-        this.updateDifficultyTagState();
-        this.renderCurrentDifficulty();
-        void this.refreshIfNeeded(false, difficulty);
+        this.showCurrentRankingOrLoading();
+        void this.refreshCurrentRankingIfNeeded(false);
     }
 
     // 监听全局触摸，在点击面板外部时关闭排行榜。
@@ -336,107 +352,98 @@ export class ChartController extends Component {
             .start();
     }
 
-    // 渲染入口
+    // ==================== 排行榜渲染入口 ====================
     // 根据当前难度缓存渲染排行榜页面主体。
     private renderCurrentDifficulty(): void {
-        const renderToken = ++this.renderVersion;
         const cache = this.rankingCache.get(this.currentDifficulty);
         const ranking = cache?.data ?? [];
         const visibleRanking = ranking.filter((item) => item.highestLevel > 0);
-        const hasCache = !!cache;
-        this.activeRankingRenderToken = renderToken;
-        this.currentRankingTotalCount = visibleRanking.length;
-        this.currentVirtualStartIndex = -1;
-        this.virtualListMode = visibleRanking.length > 0 ? 'difficulty' : 'placeholder';
 
-        this.renderOwnerSummary(ranking, renderToken);
-
-        if (visibleRanking.length > 0) {
-            void this.renderRankingList(visibleRanking, renderToken);
-            return;
-        }
-
-        const placeholderMessage = hasCache ? ' \u6682\u65e0\u6392\u884c' : ' \u52a0\u8f7d\u4e2d...';
-        void this.renderPlaceholder(placeholderMessage, renderToken);
+        this.renderCurrentRankingView(
+            visibleRanking,
+            !!cache,
+            'difficulty',
+            (renderToken) => {
+                this.applyOwnerSummary(
+                    ChartOwnerSummaryBuilder.buildDifficultyOwnerSummary({
+                        currentUserId: GameManager.getInstance()?.openid ?? '',
+                        ranking,
+                        cachedLevel: Math.max(0, (PlayerService.instance?.getCachedLevel(this.currentDifficulty) ?? 1) - 1),
+                        localProfile: this.getLocalProfileContext(),
+                        formatLevelText: (highestLevel) => this.formatLevelText(highestLevel)
+                    }),
+                    renderToken
+                );
+            },
+            (list, renderToken) => this.renderRankingItems(list, renderToken, this.updateVirtualDifficultyWindow.bind(this))
+        );
     }
 
     // 根据当前关卡缓存渲染排行榜页面主体。
     private renderCurrentLevelRanking(): void {
-        const renderToken = ++this.renderVersion;
         const levelKey = this.getLevelRankingKey(this.currentDifficulty, this.currentLevelNo);
         const cache = this.levelRankingCache.get(levelKey);
         const ranking = cache?.data ?? [];
-        const hasCache = !!cache;
+
+        this.renderCurrentRankingView(
+            ranking,
+            !!cache,
+            'level',
+            (renderToken) => {
+                this.applyOwnerSummary(
+                    ChartOwnerSummaryBuilder.buildLevelOwnerSummary({
+                        currentUserId: GameManager.getInstance()?.openid ?? '',
+                        ranking,
+                        localProfile: this.getLocalProfileContext(),
+                        formatClearTimeText: (clearTime) => this.formatClearTimeText(clearTime)
+                    }),
+                    renderToken
+                );
+            },
+            (list, renderToken) => this.renderRankingItems(list, renderToken, this.updateVirtualLevelWindow.bind(this))
+        );
+    }
+
+    // ==================== 通用渲染流程 ====================
+    // 统一处理头部摘要、列表内容和占位提示的渲染入口。
+    private renderCurrentRankingView<T>(
+        ranking: T[],
+        hasCache: boolean,
+        listMode: Extract<VirtualListMode, 'difficulty' | 'level'>,
+        renderOwnerSummary: (renderToken: number) => void,
+        renderList: (ranking: T[], renderToken: number) => Promise<void>
+    ): void {
+        const renderToken = ++this.renderVersion;
         this.activeRankingRenderToken = renderToken;
         this.currentRankingTotalCount = ranking.length;
         this.currentVirtualStartIndex = -1;
-        this.virtualListMode = ranking.length > 0 ? 'level' : 'placeholder';
+        this.virtualListMode = ranking.length > 0 ? listMode : 'placeholder';
 
-        this.renderLevelOwnerSummary(ranking, renderToken);
+        renderOwnerSummary(renderToken);
 
         if (ranking.length > 0) {
-            void this.renderLevelRankingList(ranking, renderToken);
+            void renderList(ranking, renderToken);
             return;
         }
 
-        const placeholderMessage = hasCache ? ' \u6682\u65e0\u6392\u884c' : ' \u52a0\u8f7d\u4e2d...';
+        const placeholderMessage = hasCache ? ' 暂无排行' : ' 加载中...';
         void this.renderPlaceholder(placeholderMessage, renderToken);
     }
 
-    // 头部信息渲染
-    // 渲染难度排行榜头部的玩家摘要信息。
-    private renderOwnerSummary(ranking: DifficultySummary[], renderToken: number): void {
-        const gameManager = GameManager.getInstance();
-        const playerService = PlayerService.instance;
-        const openid = gameManager?.openid ?? '';
-        const fallbackNickname = openid ? `\u8c46\u53cb${openid.slice(-4)}` : '\u8c46\u53cb';
-        const ownerEntry = openid ? ranking.find((item) => item.userId === openid) ?? null : null;
-        const cachedLevel = Math.max(0, (playerService?.getCachedLevel(this.currentDifficulty) ?? 1) - 1);
-        const ownerHighestLevel = ownerEntry?.highestLevel ?? cachedLevel;
-        const ownerRank = ownerEntry ? ranking.findIndex((item) => item.userId === ownerEntry.userId) + 1 : 0;
-        const ownerRankText = ownerHighestLevel > 0
-            ? (ownerRank > 0 ? `${ownerRank}` : (ranking.length > 0 ? `${ranking.length}+` : '--'))
-            : '--';
-        const ownerLevelText = ownerHighestLevel > 0 ? this.formatLevelText(ownerHighestLevel) : '--';
-        const profile = this.resolveDisplayProfile(openid, ownerEntry?.nickname, ownerEntry?.avatarUrl, fallbackNickname);
-
-        this.applyOwnerSummary(profile.nickname, ownerRankText, ownerLevelText, profile.avatarUrl, renderToken);
-    }
-
-    // 渲染关卡排行榜头部的玩家摘要信息。
-    private renderLevelOwnerSummary(ranking: LevelBest[], renderToken: number): void {
-        const gameManager = GameManager.getInstance();
-        const openid = gameManager?.openid ?? '';
-        const fallbackNickname = openid ? `\u8c46\u53cb${openid.slice(-4)}` : '\u8c46\u53cb';
-        const ownerEntry = openid ? ranking.find((item) => item.userId === openid) ?? null : null;
-        const ownerRank = ownerEntry ? ranking.findIndex((item) => item.userId === ownerEntry.userId) + 1 : 0;
-        const ownerTimeText = ownerEntry ? this.formatClearTimeText(ownerEntry.bestClearTime) : '--';
-        const ownerRankText = ownerEntry ? `${ownerRank}` : '--';
-        const profile = this.resolveDisplayProfile(openid, ownerEntry?.nickname, ownerEntry?.avatarUrl, fallbackNickname);
-
-        this.applyOwnerSummary(profile.nickname, ownerRankText, ownerTimeText, profile.avatarUrl, renderToken);
-    }
-
-    // 列表渲染
-    // 渲染难度排行榜列表内容。
-    private async renderRankingList(ranking: DifficultySummary[], renderToken: number): Promise<void> {
+    // 统一走虚拟列表准备流程来渲染排行榜列表内容。
+    private async renderRankingItems<T>(
+        ranking: T[],
+        renderToken: number,
+        updateWindow: (ranking: T[], renderToken: number, force?: boolean) => void
+    ): Promise<void> {
         if (!(await this.prepareVirtualListRender(renderToken))) {
             return;
         }
 
-        this.updateVirtualDifficultyWindow(ranking, renderToken, true);
+        updateWindow(ranking, renderToken, true);
     }
 
-    // 渲染关卡排行榜列表内容。
-    private async renderLevelRankingList(ranking: LevelBest[], renderToken: number): Promise<void> {
-        if (!(await this.prepareVirtualListRender(renderToken))) {
-            return;
-        }
-
-        this.updateVirtualLevelWindow(ranking, renderToken, true);
-    }
-
-    // 渲染“加载中”或“暂无排行”的占位内容。
+    // 渲染“加载中...”或“暂无排行”的占位内容。
     private async renderPlaceholder(message: string, renderToken: number): Promise<void> {
         if (!(await this.prepareVirtualListRender(renderToken))) {
             return;
@@ -449,55 +456,58 @@ export class ChartController extends Component {
         this.updateListLayout();
     }
 
-    // 数据刷新
+    // ==================== 数据刷新 ====================
     // 请求云端并更新指定难度的排行榜缓存。
     private async refreshDifficultyRanking(difficulty: DifficultyMode): Promise<void> {
-        const existingTask = this.refreshTasks.get(difficulty);
-        if (existingTask) {
-            await existingTask;
-            return;
-        }
-
-        const task = (async () => {
-            try {
-                const playerService = PlayerService.instance;
-                if (!playerService) {
-                    console.warn(`ChartController: PlayerService is not ready for ${difficulty} ranking refresh`);
-                    return;
-                }
-
-                const ranking = await playerService.getDifficultyRanking(difficulty, RANKING_LIMIT);
-                const cache: DifficultyRankingCache = {
+        await this.refreshRankingCache(
+            this.refreshTasks,
+            difficulty,
+            async () => await PlayerService.instance?.getDifficultyRanking(difficulty, RANKING_LIMIT) ?? [],
+            (ranking) => {
+                this.rankingCache.set(difficulty, {
                     data: ranking,
                     updatedAt: Date.now(),
-                };
-
-                this.rankingCache.set(difficulty, cache);
-
-                if (this.node.active && this.currentDifficulty === difficulty) {
-                    this.renderCurrentDifficulty();
-                }
-            } catch (error) {
-                console.warn(`ChartController: failed to refresh ${difficulty} ranking`, error);
-                if (this.node.active && this.currentDifficulty === difficulty && !this.rankingCache.has(difficulty)) {
-                    this.renderCurrentDifficulty();
-                }
-            }
-        })();
-
-        this.refreshTasks.set(difficulty, task);
-
-        try {
-            await task;
-        } finally {
-            this.refreshTasks.delete(difficulty);
-        }
+                });
+            },
+            () => this.node.active && this.currentViewMode === 'difficulty' && this.currentDifficulty === difficulty,
+            () => this.renderCurrentDifficulty(),
+            () => this.rankingCache.has(difficulty),
+            `${difficulty} ranking`
+        );
     }
 
     // 请求云端并更新当前关卡的排行榜缓存。
     private async refreshCurrentLevelRanking(): Promise<void> {
         const levelKey = this.getLevelRankingKey(this.currentDifficulty, this.currentLevelNo);
-        const existingTask = this.levelRefreshTasks.get(levelKey);
+        await this.refreshRankingCache(
+            this.levelRefreshTasks,
+            levelKey,
+            async () => await PlayerService.instance?.getLevelRanking(this.currentDifficulty, this.currentLevelNo, RANKING_LIMIT) ?? [],
+            (ranking) => {
+                this.levelRankingCache.set(levelKey, {
+                    data: ranking,
+                    updatedAt: Date.now(),
+                });
+            },
+            () => this.node.active && this.currentViewMode === 'level' && this.getLevelRankingKey(this.currentDifficulty, this.currentLevelNo) === levelKey,
+            () => this.renderCurrentLevelRanking(),
+            () => this.levelRankingCache.has(levelKey),
+            `${levelKey} ranking`
+        );
+    }
+
+    // 统一处理排行榜请求、缓存写入和当前界面回刷。
+    private async refreshRankingCache<K extends string, T>(
+        taskMap: Map<K, Promise<void>>,
+        taskKey: K,
+        fetchRanking: () => Promise<T[]>,
+        updateCache: (ranking: T[]) => void,
+        shouldRenderCurrent: () => boolean,
+        renderCurrent: () => void,
+        hasCache: () => boolean,
+        logLabel: string
+    ): Promise<void> {
+        const existingTask = taskMap.get(taskKey);
         if (existingTask) {
             await existingTask;
             return;
@@ -505,41 +515,35 @@ export class ChartController extends Component {
 
         const task = (async () => {
             try {
-                const playerService = PlayerService.instance;
-                if (!playerService) {
-                    console.warn(`ChartController: PlayerService is not ready for ${levelKey} ranking refresh`);
+                if (!PlayerService.instance) {
+                    console.warn(`ChartController: PlayerService is not ready for ${logLabel} refresh`);
                     return;
                 }
 
-                const ranking = await playerService.getLevelRanking(this.currentDifficulty, this.currentLevelNo, RANKING_LIMIT);
-                const cache: LevelRankingCache = {
-                    data: ranking,
-                    updatedAt: Date.now(),
-                };
+                const ranking = await fetchRanking();
+                updateCache(ranking);
 
-                this.levelRankingCache.set(levelKey, cache);
-
-                if (this.node.active && this.currentViewMode === 'level') {
-                    this.renderCurrentLevelRanking();
+                if (shouldRenderCurrent()) {
+                    renderCurrent();
                 }
             } catch (error) {
-                console.warn(`ChartController: failed to refresh ${levelKey} ranking`, error);
-                if (this.node.active && this.currentViewMode === 'level' && !this.levelRankingCache.has(levelKey)) {
-                    this.renderCurrentLevelRanking();
+                console.warn(`ChartController: failed to refresh ${logLabel}`, error);
+                if (shouldRenderCurrent() && !hasCache()) {
+                    renderCurrent();
                 }
             }
         })();
 
-        this.levelRefreshTasks.set(levelKey, task);
+        taskMap.set(taskKey, task);
 
         try {
             await task;
         } finally {
-            this.levelRefreshTasks.delete(levelKey);
+            taskMap.delete(taskKey);
         }
     }
 
-    // 页签与布局状态
+    // ==================== 页面状态与布局 ====================
     // 根据当前难度刷新三个页签的选中状态。
     private updateDifficultyTagState(): void {
         this.setTagSelected(this.simple_tag, this.currentDifficulty === DifficultyMode.SIMPLE);
@@ -615,7 +619,7 @@ export class ChartController extends Component {
         return this.content?.parent?.parent?.getComponent(ScrollView) ?? null;
     }
 
-    // 虚拟列表
+    // ==================== 虚拟列表 ====================
     // 根据滚动位置刷新虚拟列表当前可见窗口。
     private updateVirtualList(force: boolean = false): void {
         if (!this.node.active || !this.content || this.currentRankingTotalCount <= 0 || this.virtualItemNodes.length <= 0) {
@@ -847,22 +851,40 @@ export class ChartController extends Component {
         }
     }
 
-    // 头像与列表项绑定
+    // ==================== 头部卡片与列表项绑定 ====================
     // 将玩家摘要信息写入头部 UI。
-    private applyOwnerSummary(name: string, rank: string, valueText: string, avatarUrl: string, renderToken: number): void {
+    private applyOwnerSummary(
+        summaryOrName: ChartOwnerSummaryData | string,
+        rankOrRenderToken: string | number,
+        valueText?: string,
+        avatarUrl?: string,
+        renderToken?: number
+    ): void {
+        const summary = typeof summaryOrName === 'string'
+            ? {
+                nickname: summaryOrName,
+                rankText: typeof rankOrRenderToken === 'string' ? rankOrRenderToken : '--',
+                valueText: valueText || '--',
+                avatarUrl: avatarUrl || ''
+            }
+            : summaryOrName;
+        const currentRenderToken = typeof summaryOrName === 'string'
+            ? (renderToken ?? this.renderVersion)
+            : (typeof rankOrRenderToken === 'number' ? rankOrRenderToken : this.renderVersion);
+
         if (this.owner_name_label) {
-            this.owner_name_label.string = this.formatNicknameText(name);
+            this.owner_name_label.string = this.formatNicknameText(summary.nickname);
         }
         if (this.owner_number_label) {
-            this.owner_number_label.string = rank;
+            this.owner_number_label.string = summary.rankText;
         }
         if (this.owner_level_label) {
-            this.owner_level_label.string = valueText;
+            this.owner_level_label.string = summary.valueText;
         }
 
         this.resetOwnerAvatar();
-        if (avatarUrl) {
-            this.deferApplyAvatarToSprite(this.owner_avatar_sprite, avatarUrl, renderToken);
+        if (summary.avatarUrl) {
+            this.deferApplyAvatarToSprite(this.owner_avatar_sprite, summary.avatarUrl, currentRenderToken);
         }
     }
 
@@ -1001,6 +1023,7 @@ export class ChartController extends Component {
         return spriteFrame;
     }
 
+    // ==================== 用户资料与头像加载 ====================
     // 合并本地授权资料和云端资料，得到最终展示信息。
     private resolveDisplayProfile(
         userId: string,
@@ -1008,28 +1031,33 @@ export class ChartController extends Component {
         cloudAvatarUrl?: string | null,
         fallbackNickname?: string
     ): { nickname: string; avatarUrl: string } {
-        const localProfile = this.getPreferredLocalProfile(userId);
-        const nickname = localProfile?.nickname || cloudNickname?.trim() || fallbackNickname || this.getFallbackNickname(userId);
-        const avatarUrl = localProfile?.avatarUrl || cloudAvatarUrl || '';
-        return { nickname, avatarUrl };
+        const profile = ChartOwnerSummaryBuilder.resolveDisplayProfile(
+            userId,
+            cloudNickname,
+            cloudAvatarUrl,
+            this.getLocalProfileContext()
+        );
+        return {
+            nickname: profile.nickname || fallbackNickname || this.getFallbackNickname(userId),
+            avatarUrl: profile.avatarUrl
+        };
     }
 
     // 优先获取当前玩家已经授权的本地昵称和头像。
-    private getPreferredLocalProfile(userId: string): { nickname: string; avatarUrl: string } | null {
+    private getLocalProfileContext(): ChartLocalProfileContext | null {
         const gameManager = GameManager.getInstance();
         const wxManager = gameManager?.wxManager;
         const openid = gameManager?.openid ?? '';
-        if (!userId || userId !== openid || !gameManager?.hasLoadedUserInfo) {
+        if (!wxManager?.hasRealUserProfile() || !openid) {
             return null;
         }
 
-        const nickname = wxManager?.nickname?.trim() || '';
-        const avatarUrl = wxManager?.avatarUrl || '';
-        if (!nickname && !avatarUrl) {
-            return null;
-        }
-
-        return { nickname, avatarUrl };
+        return {
+            openid,
+            nickname: wxManager.nickname?.trim() || '',
+            avatarUrl: wxManager.avatarUrl || '',
+            hasRealProfile: wxManager.hasRealUserProfile()
+        };
     }
 
     // 执行一次远程头像下载并转成 SpriteFrame。
@@ -1079,7 +1107,8 @@ export class ChartController extends Component {
         return '.jpg';
     }
 
-    // 加载排行榜列表项 prefab 资源。
+    // ==================== 资源预热与对象池 ====================
+    // 加载排行榜列表项 Prefab 资源。
     private async loadChartUserPrefab(): Promise<Prefab | null> {
         if (this.chartUserPrefab) {
             return this.chartUserPrefab;
@@ -1137,7 +1166,6 @@ export class ChartController extends Component {
         return this.chartUserPrefab;
     }
 
-    // Prefab 预加载与节点复用
     // 预先实例化一批列表项节点放入对象池。
     private prewarmChartUserNodePool(prefab: Prefab): void {
         while (this.chartUserNodePool.length < VIRTUAL_LIST_NODE_COUNT) {
@@ -1174,7 +1202,7 @@ export class ChartController extends Component {
         }
     }
 
-    // 工具方法
+    // ==================== 工具方法 ====================
     // 生成关卡排行榜缓存使用的唯一 key。
     private getLevelRankingKey(difficulty: DifficultyMode, levelNo: number): string {
         return `${difficulty}#${levelNo}`;

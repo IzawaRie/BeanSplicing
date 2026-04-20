@@ -3,7 +3,6 @@ import { GameManager, GameState, DifficultyMode } from './GameManager';
 import { LevelConfig } from './LevelConfig';
 import { AudioManager } from './AudioManager';
 import { WXManager } from './WXManager';
-import { PlayerService } from './PlayerService';
 
 const { ccclass, property } = _decorator;
 
@@ -428,28 +427,10 @@ export class MenuManager extends Component {
         AudioManager.instance.playEffect('click_btn');
 
         if (!gameManager.canOpenChartDirectly) {
-            await this.syncChartProfileBeforeOpen();
+            await gameManager.ensureChartProfileReady();
         }
 
         gameManager.chart.openDifficultyRanking(gameManager.currentDifficulty, false);
-    }
-
-    private async syncChartProfileBeforeOpen(): Promise<void> {
-        const gameManager = GameManager.getInstance();
-        if (!gameManager?.wxManager) return;
-        if (gameManager.wxManager.nickname?.trim() || gameManager.wxManager.avatarUrl) {
-            gameManager.setHasLoadedUserInfo(true);
-            return;
-        }
-
-        try {
-            const userInfo = await gameManager.wxManager.getUserInfo();
-            if (gameManager.hasLoadedUserInfo) {
-                await PlayerService.instance?.syncAuthorizedProfile(userInfo?.nickname, userInfo?.avatarUrl);
-            }
-        } catch (error) {
-            console.warn('MenuManager: failed to sync chart profile before opening chart', error);
-        }
     }
 
     /**

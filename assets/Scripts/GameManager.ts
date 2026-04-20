@@ -94,28 +94,44 @@ export class GameManager extends Component {
         this._openid = openid;
     }
 
-    private _hasUserInfoPermission: boolean = false;
-    private _hasLoadedUserInfo: boolean = false;
-
-    public get hasUserInfoPermission(): boolean {
-        return this._hasUserInfoPermission;
-    }
-
-    public setHasUserInfoPermission(value: boolean): void {
-        this._hasUserInfoPermission = value;
-    }
-
-    public get hasLoadedUserInfo(): boolean {
-        return this._hasLoadedUserInfo;
-    }
-
-    public setHasLoadedUserInfo(value: boolean): void {
-        this._hasLoadedUserInfo = value;
-    }
-
     public get canOpenChartDirectly(): boolean {
-        const hasLocalUserProfile = !!(this.wxManager?.nickname?.trim() || this.wxManager?.avatarUrl);
-        return this._hasUserInfoPermission && (this._hasLoadedUserInfo || hasLocalUserProfile);
+        return this.hasReadyChartProfile();
+    }
+
+    /**
+     * 判断当前是否已经具备可直接用于排行榜展示的真实用户资料
+     */
+    public hasReadyChartProfile(): boolean {
+        return !!this.wxManager?.hasRealUserProfile();
+    }
+
+    /**
+     * 打开排行榜前，按需补齐当前玩家的真实昵称和头像
+     */
+    public async ensureChartProfileReady(): Promise<void> {
+        if (!this.wxManager) {
+            return;
+        }
+
+        if (this.hasReadyChartProfile()) {
+            return;
+        }
+
+        const hasUserInfoPermission = await this.wxManager.hasUserInfoPermission();
+        if (!hasUserInfoPermission) {
+            return;
+        }
+
+        try {
+            const userInfo = await this.wxManager.getUserInfo();
+            if (!this.wxManager.hasRealUserProfile()) {
+                return;
+            }
+
+            await PlayerService.instance?.syncAuthorizedProfile(userInfo?.nickname, userInfo?.avatarUrl);
+        } catch (error) {
+            console.warn('GameManager: failed to ensure chart profile before opening chart', error);
+        }
     }
 
     // 存储是否加载完成
@@ -225,20 +241,6 @@ export class GameManager extends Component {
         this.wxManager.getOpenId().then(async (openid) => {
             this.setOpenid(openid);
             console.log('GameManager openid:', this._openid);
-
-            const hasUserInfoPermission = await this.wxManager.hasUserInfoPermission();
-            this.setHasUserInfoPermission(hasUserInfoPermission);
-            if (hasUserInfoPermission) {
-                const hasLocalUserProfile = !!(this.wxManager?.nickname?.trim() || this.wxManager?.avatarUrl);
-                if (hasLocalUserProfile) {
-                    this.setHasLoadedUserInfo(true);
-                } else {
-                    const userInfo = await this.wxManager.getUserInfo();
-                    if (this.hasLoadedUserInfo) {
-                        await PlayerService.instance?.syncAuthorizedProfile(userInfo.nickname, userInfo.avatarUrl);
-                    }
-                }
-            }
 
             PlayerService.instance?.syncProgressWithCloud();
             PlayerService.instance?.updateLastLoginTime();

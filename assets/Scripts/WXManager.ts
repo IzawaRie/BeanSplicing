@@ -47,6 +47,8 @@ interface SubscribeTaskClientResult {
  */
 @ccclass('WXManager')
 export class WXManager extends Component {
+    private static readonly USER_NICKNAME_STORAGE_KEY = 'user_nickname';
+    private static readonly USER_AVATAR_URL_STORAGE_KEY = 'user_avatar_url';
 
     @property({ type: Node })
     testBtn: Node = null;
@@ -74,6 +76,7 @@ export class WXManager extends Component {
     private _imageUrl: string = 'https://mmocgame.qpic.cn/wechatgame/f4uuDhnRAxMTJF1dLAUnqlLAKiaIMZfsk7uHGIUribuCc8ibicOmTxAVDvvG6LMQLTMb/0';
 
     onLoad() {
+        this.restoreCachedUserProfile();
         this.showShareMenu();
         // imageUrlId、imageUrl：在微信公众平台「增长入口」→「小程序分享图」上传后获得的图片 ID 和图片 URL
         this.onShareAppMessage('快来和我一起拼豆！');
@@ -1070,10 +1073,61 @@ export class WXManager extends Component {
         return this._nickname;
     }
 
+
     // 用户头像 URL 缓存
     private _avatarUrl: string = '';
     public get avatarUrl(): string {
         return this._avatarUrl;
+    }
+
+    public hasRealUserProfile(): boolean {
+        return this.isRealUserProfile(this._nickname, this._avatarUrl);
+    }
+
+    private isFallbackNickname(nickname: string): boolean {
+        return /^豆友([A-Za-z0-9]{4})?$/.test((nickname || '').trim());
+    }
+
+    private isRealUserProfile(nickname: string, avatarUrl: string): boolean {
+        const safeNickname = (nickname || '').trim();
+        const safeAvatarUrl = (avatarUrl || '').trim();
+        return !!safeNickname && !this.isFallbackNickname(safeNickname) && !!safeAvatarUrl;
+    }
+
+    private restoreCachedUserProfile(): void {
+        if (typeof (wx) === 'undefined') {
+            return;
+        }
+
+        const nickname = String(wx.getStorageSync(WXManager.USER_NICKNAME_STORAGE_KEY) || '').trim();
+        const avatarUrl = String(wx.getStorageSync(WXManager.USER_AVATAR_URL_STORAGE_KEY) || '').trim();
+
+        const hasRealUserProfile = this.isRealUserProfile(nickname, avatarUrl);
+        this._nickname = hasRealUserProfile ? nickname : '';
+        this._avatarUrl = hasRealUserProfile ? avatarUrl : '';
+    }
+
+    private saveCachedUserProfile(): void {
+        if (typeof (wx) === 'undefined') {
+            return;
+        }
+
+        if (!this.isRealUserProfile(this._nickname, this._avatarUrl)) {
+            this.clearCachedUserProfile();
+            return;
+        }
+
+        wx.setStorageSync(WXManager.USER_NICKNAME_STORAGE_KEY, this._nickname.trim());
+        wx.setStorageSync(WXManager.USER_AVATAR_URL_STORAGE_KEY, this._avatarUrl.trim());
+    }
+
+    private clearCachedUserProfile(): void {
+        if (typeof (wx) === 'undefined') {
+            return;
+        }
+
+        wx.removeStorageSync(WXManager.USER_NICKNAME_STORAGE_KEY);
+        wx.removeStorageSync(WXManager.USER_AVATAR_URL_STORAGE_KEY);
     }
 
     /**
@@ -1082,7 +1136,6 @@ export class WXManager extends Component {
     public hasUserInfoPermission(): Promise<boolean> {
         return new Promise((resolve) => {
             if (typeof (wx) === 'undefined') {
-                GameManager.getInstance()?.setHasUserInfoPermission(false);
                 resolve(false);
                 return;
             }
@@ -1090,12 +1143,10 @@ export class WXManager extends Component {
             wx.getSetting({
                 success: (res) => {
                     const hasPermission = !!res.authSetting?.['scope.userInfo'];
-                    GameManager.getInstance()?.setHasUserInfoPermission(hasPermission);
                     resolve(hasPermission);
                 },
                 fail: (err) => {
                     console.warn('检查用户信息授权失败:', err);
-                    GameManager.getInstance()?.setHasUserInfoPermission(false);
                     resolve(false);
                 }
             });
@@ -1108,14 +1159,12 @@ export class WXManager extends Component {
      * @returns Promise<{ nickname: string; avatarUrl: string }>
      */
     public async getUserInfo(): Promise<{ nickname: string; avatarUrl: string }> {
-        const gameManager = GameManager.getInstance();
-        if (this._nickname.trim() || this._avatarUrl) {
-            gameManager?.setHasLoadedUserInfo(true);
+        if (this.hasRealUserProfile()) {
             return { nickname: this._nickname, avatarUrl: this._avatarUrl };
         }
 
         const resolveFallbackProfile = async (): Promise<{ nickname: string; avatarUrl: string }> => {
-            if (gameManager?.hasLoadedUserInfo && (this._nickname.trim() || this._avatarUrl)) {
+            if (this.hasRealUserProfile()) {
                 return { nickname: this._nickname, avatarUrl: this._avatarUrl };
             }
 
@@ -1123,7 +1172,7 @@ export class WXManager extends Component {
             const fallbackNickname = openid ? `豆友${openid.slice(-4)}` : '豆友';
             this._nickname = fallbackNickname;
             this._avatarUrl = '';
-            gameManager?.setHasLoadedUserInfo(false);
+            this.clearCachedUserProfile();
             return { nickname: this._nickname, avatarUrl: this._avatarUrl };
         };
 
@@ -1143,10 +1192,7 @@ export class WXManager extends Component {
                         const fallbackNickname = openid ? `豆友${openid.slice(-4)}` : '豆友';
                         this._nickname = userInfo.nickName?.trim() || fallbackNickname;
                         this._avatarUrl = userInfo.avatarUrl || '';
-                        const gameManager = GameManager.getInstance();
-                        gameManager?.setHasUserInfoPermission(true);
-                        gameManager?.setHasLoadedUserInfo(true);
-                        
+                        this.saveCachedUserProfile();
                         console.log('获取用户信息成功:', this._nickname, this._avatarUrl);
                         resolve({ nickname: this._nickname, avatarUrl: this._avatarUrl });
                         return;
