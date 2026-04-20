@@ -117,6 +117,17 @@ export class GameManager extends Component {
             return;
         }
 
+        if (!this._openid) {
+            const openid = await this.wxManager.getOpenId();
+            if (openid) {
+                this.setOpenid(openid);
+            }
+        }
+
+        if (!this._openid) {
+            return;
+        }
+
         const hasUserInfoPermission = await this.wxManager.hasUserInfoPermission();
         if (!hasUserInfoPermission) {
             return;
@@ -242,6 +253,7 @@ export class GameManager extends Component {
             this.setOpenid(openid);
             console.log('GameManager openid:', this._openid);
 
+            await this.ensureChartProfileReady();
             PlayerService.instance?.syncProgressWithCloud();
             PlayerService.instance?.updateLastLoginTime();
             this.scheduleOnce(() => {
