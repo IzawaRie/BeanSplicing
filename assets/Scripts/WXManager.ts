@@ -51,10 +51,10 @@ export class WXManager extends Component {
     @property({ type: Node })
     testBtn: Node = null;
 
-    subscribeTemplateId: string = 'dhpYKr-YayyWv_ibni2T5BmxwdhCkxoSbwWpijjrLtc';
+    subscribeTemplateId: string = 'dhpYKr-YayyWv_ibni2T5EOkwEjBQsk1QDPS1huZCvQ';
     subscribePage: string = '';
     subscribeTipField: string = 'thing2';
-    subscribeCurrentPowerField: string = 'character_string5';
+    subscribeCurrentPowerField: string = 'thing7';
     private hasAcceptedPowerRegenSubscribeCache: boolean = false;
     private powerRegenSubscribeMainSwitchCache: boolean | null = null;
     private powerRegenSubscribeStatusCache: SubscribeMessageStatus = '';
@@ -1500,10 +1500,10 @@ export class WXManager extends Component {
         }
 
         const tipField = this.subscribeTipField?.trim() || 'thing2';
-        const currentPowerField = this.subscribeCurrentPowerField?.trim() || 'character_string5';
+        const currentPowerField = this.subscribeCurrentPowerField?.trim() || 'thing7';
         const payload: Record<string, any> = {
-            [currentPowerField]: { value: '可领取' },
-            [tipField]: { value: '体力已恢复，记得回来闯关欧~' }
+            [currentPowerField]: { value: '体力值已经回复啦！' },
+            [tipField]: { value: '记得回来闯关欧~' }
         };
 
         console.log('[Subscribe] requestPowerRegenSubscribe payload ready', {
