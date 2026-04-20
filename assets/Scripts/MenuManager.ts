@@ -428,7 +428,7 @@ export class MenuManager extends Component {
         AudioManager.instance.playEffect('click_btn');
 
         if (!gameManager.canOpenChartDirectly) {
-            void this.syncChartProfileInBackground();
+            await void this.syncChartProfileInBackground();
         }
 
         gameManager.chart.openDifficultyRanking(gameManager.currentDifficulty, false);
