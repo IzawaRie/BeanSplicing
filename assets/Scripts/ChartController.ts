@@ -1,4 +1,4 @@
-import { _decorator, assetManager, Color, Component, EventTouch, ImageAsset, input, Input, instantiate, isValid, Label, Layout, Node, Prefab, resources, ScrollView, Sprite, SpriteFrame, Texture2D, UITransform, Vec2 } from 'cc';
+import { _decorator, assetManager, Color, Component, EventTouch, ImageAsset, input, Input, instantiate, isValid, Label, Layout, Node, Prefab, resources, ScrollView, Sprite, SpriteFrame, Texture2D, tween, Tween, UITransform, Vec2, Vec3 } from 'cc';
 import { DifficultyMode, GameManager } from './GameManager';
 import { ChartUser } from './ChartUser';
 import { DifficultySummary, LevelBest, PlayerService } from './PlayerService';
@@ -20,6 +20,15 @@ const CACHE_TTL_MS = 60 * 1000;
 const RANKING_LIMIT = 100;
 const CHART_USER_PREFAB_PATH = 'chart_user';
 const STORAGE_KEY_PREFIX = 'chart_ranking_cache_';
+const CHART_OPEN_SCALE_FROM = 0.5;
+const CHART_OPEN_SCALE_TO = 1;
+const CHART_OPEN_ANIMATION_DURATION = 0.18;
+const RANKING_RENDER_BATCH_SIZE = 6;
+const INITIAL_RANKING_RENDER_COUNT = 20;
+const LOAD_MORE_RANKING_COUNT = 10;
+const LOAD_MORE_TRIGGER_DISTANCE_MIN = 360;
+const LOAD_MORE_TRIGGER_VIEWPORT_FACTOR = 1.5;
+const AVATAR_APPLY_BATCH_SIZE = 3;
 
 @ccclass('ChartController')
 export class ChartController extends Component {
@@ -66,6 +75,12 @@ export class ChartController extends Component {
     private chartUserPrefabTask: Promise<Prefab | null> | null = null;
     private defaultOwnerAvatarSpriteFrame: SpriteFrame | null = null;
     private renderVersion = 0;
+    private pendingOpenForceRefresh = false;
+    private readonly chartUserNodePool: Node[] = [];
+    private renderedRankingCount = 0;
+    private loadingMoreRanking = false;
+    private activeRankingRenderToken = 0;
+    private currentRankingTotalCount = 0;
 
     onLoad() {
         this.defaultOwnerAvatarSpriteFrame = this.owner_avatar_sprite?.spriteFrame ?? null;
@@ -76,14 +91,18 @@ export class ChartController extends Component {
 
     onEnable() {
         input.on(Input.EventType.TOUCH_END, this.onTouchEnd, this);
+        const forceRefresh = this.pendingOpenForceRefresh;
+        this.pendingOpenForceRefresh = false;
+        this.playOpenAnimation();
+
         if (this.currentViewMode === 'level') {
             this.showLevelRankingOrLoading();
-            void this.refreshLevelRankingIfNeeded();
+            void this.refreshLevelRankingIfNeeded(forceRefresh);
             return;
         }
 
         this.showCachedOrLoading();
-        void this.refreshIfNeeded();
+        void this.refreshIfNeeded(forceRefresh);
     }
 
     onDisable() {
@@ -93,13 +112,25 @@ export class ChartController extends Component {
 
     onDestroy() {
         this.unbindButtonEvents();
+        this.clearChartUserNodePool();
+    }
+
+    update(): void {
+        this.checkAndLoadMoreRanking();
     }
 
     public openDifficultyRanking(difficulty: DifficultyMode = this.currentDifficulty, forceRefresh: boolean = false): void {
         this.currentViewMode = 'difficulty';
         this.currentDifficulty = difficulty;
         this.setDifficultyTagsVisible(true);
+        if (!this.node.active) {
+            this.pendingOpenForceRefresh = forceRefresh;
+            this.node.active = true;
+            return;
+        }
+
         this.node.active = true;
+        this.playOpenAnimation();
         this.showCachedOrLoading(difficulty);
         void this.refreshIfNeeded(forceRefresh, difficulty);
     }
@@ -109,7 +140,14 @@ export class ChartController extends Component {
         this.currentDifficulty = difficulty;
         this.currentLevelNo = Math.max(1, levelNo);
         this.setDifficultyTagsVisible(false);
+        if (!this.node.active) {
+            this.pendingOpenForceRefresh = forceRefresh;
+            this.node.active = true;
+            return;
+        }
+
         this.node.active = true;
+        this.playOpenAnimation();
         this.showLevelRankingOrLoading();
         void this.refreshLevelRankingIfNeeded(forceRefresh);
     }
@@ -125,9 +163,6 @@ export class ChartController extends Component {
         this.restoreCacheFromStorage(difficulty);
         const cache = this.rankingCache.get(difficulty);
         if (!force && cache && !this.isCacheExpired(cache.updatedAt)) {
-            if (this.node.active && this.currentDifficulty === difficulty) {
-                this.renderCurrentDifficulty();
-            }
             return;
         }
 
@@ -162,9 +197,6 @@ export class ChartController extends Component {
         const levelKey = this.getLevelRankingKey(this.currentDifficulty, this.currentLevelNo);
         const cache = this.levelRankingCache.get(levelKey);
         if (!force && cache && !this.isCacheExpired(cache.updatedAt)) {
-            if (this.node.active && this.currentViewMode === 'level') {
-                this.renderCurrentLevelRanking();
-            }
             return;
         }
 
@@ -255,17 +287,36 @@ export class ChartController extends Component {
         this.node.active = false;
     }
 
+    private playOpenAnimation(): void {
+        const animationTarget = this.node;
+        if (!animationTarget) return;
+
+        Tween.stopAllByTarget(animationTarget);
+        animationTarget.setScale(new Vec3(CHART_OPEN_SCALE_FROM, CHART_OPEN_SCALE_FROM, 1));
+        tween(animationTarget)
+            .to(
+                CHART_OPEN_ANIMATION_DURATION,
+                { scale: new Vec3(CHART_OPEN_SCALE_TO, CHART_OPEN_SCALE_TO, 1) },
+                { easing: 'backOut' }
+            )
+            .start();
+    }
+
     private renderCurrentDifficulty(): void {
         const renderToken = ++this.renderVersion;
         const cache = this.rankingCache.get(this.currentDifficulty);
         const ranking = cache?.data ?? [];
         const visibleRanking = ranking.filter((item) => item.highestLevel > 0);
         const hasCache = !!cache;
+        this.activeRankingRenderToken = renderToken;
+        this.currentRankingTotalCount = visibleRanking.length;
+        this.renderedRankingCount = 0;
+        this.loadingMoreRanking = false;
 
         this.renderOwnerSummary(ranking, renderToken);
 
         if (visibleRanking.length > 0) {
-            void this.renderRankingList(visibleRanking, renderToken);
+            void this.renderRankingList(visibleRanking, renderToken, true);
             return;
         }
 
@@ -279,11 +330,15 @@ export class ChartController extends Component {
         const cache = this.levelRankingCache.get(levelKey);
         const ranking = cache?.data ?? [];
         const hasCache = !!cache;
+        this.activeRankingRenderToken = renderToken;
+        this.currentRankingTotalCount = ranking.length;
+        this.renderedRankingCount = 0;
+        this.loadingMoreRanking = false;
 
         this.renderLevelOwnerSummary(ranking, renderToken);
 
         if (ranking.length > 0) {
-            void this.renderLevelRankingList(ranking, renderToken);
+            void this.renderLevelRankingList(ranking, renderToken, true);
             return;
         }
 
@@ -352,17 +407,37 @@ export class ChartController extends Component {
         }
     }
 
-    private async renderRankingList(ranking: DifficultySummary[], renderToken: number): Promise<void> {
+    private async renderRankingList(
+        ranking: DifficultySummary[],
+        renderToken: number,
+        reset: boolean = false
+    ): Promise<void> {
         const prefab = await this.loadChartUserPrefab();
         if (!prefab || renderToken !== this.renderVersion || !isValid(this.content)) {
             return;
         }
 
-        this.content.destroyAllChildren();
+        if (reset) {
+            this.recycleRenderedItems();
+            this.renderedRankingCount = 0;
+        }
 
-        for (let index = 0; index < ranking.length; index++) {
+        const startIndex = this.renderedRankingCount;
+        const appendCount = reset ? INITIAL_RANKING_RENDER_COUNT : LOAD_MORE_RANKING_COUNT;
+        const endIndex = Math.min(startIndex + appendCount, ranking.length);
+        const pendingAvatars: Array<{ item: ChartUser; avatarUrl: string }> = [];
+
+        if (startIndex >= endIndex) {
+            return;
+        }
+
+        for (let index = startIndex; index < endIndex; index++) {
+            if (renderToken !== this.renderVersion || !isValid(this.content)) {
+                return;
+            }
+
             const itemData = ranking[index];
-            const itemNode = instantiate(prefab);
+            const itemNode = this.obtainChartUserNode(prefab);
             this.content.addChild(itemNode);
 
             const item = itemNode.getComponent(ChartUser);
@@ -374,25 +449,53 @@ export class ChartController extends Component {
 
             const avatarUrl = localProfile?.avatarUrl || itemData.avatarUrl || '';
             if (avatarUrl) {
-                void this.applyAvatarToChartUser(item, avatarUrl, renderToken);
+                pendingAvatars.push({ item, avatarUrl });
+            }
+
+            if ((index - startIndex + 1) % RANKING_RENDER_BATCH_SIZE === 0) {
+                await this.waitForNextTick();
             }
         }
 
+        this.renderedRankingCount = endIndex;
         this.updateListLayout();
-        this.scrollToTop();
+        if (reset) {
+            this.scrollToTop();
+        }
+        void this.applyAvatarBatchToChartUsers(pendingAvatars, renderToken);
     }
 
-    private async renderLevelRankingList(ranking: LevelBest[], renderToken: number): Promise<void> {
+    private async renderLevelRankingList(
+        ranking: LevelBest[],
+        renderToken: number,
+        reset: boolean = false
+    ): Promise<void> {
         const prefab = await this.loadChartUserPrefab();
         if (!prefab || renderToken !== this.renderVersion || !isValid(this.content)) {
             return;
         }
 
-        this.content.destroyAllChildren();
+        if (reset) {
+            this.recycleRenderedItems();
+            this.renderedRankingCount = 0;
+        }
 
-        for (let index = 0; index < ranking.length; index++) {
+        const startIndex = this.renderedRankingCount;
+        const appendCount = reset ? INITIAL_RANKING_RENDER_COUNT : LOAD_MORE_RANKING_COUNT;
+        const endIndex = Math.min(startIndex + appendCount, ranking.length);
+        const pendingAvatars: Array<{ item: ChartUser; avatarUrl: string }> = [];
+
+        if (startIndex >= endIndex) {
+            return;
+        }
+
+        for (let index = startIndex; index < endIndex; index++) {
+            if (renderToken !== this.renderVersion || !isValid(this.content)) {
+                return;
+            }
+
             const itemData = ranking[index];
-            const itemNode = instantiate(prefab);
+            const itemNode = this.obtainChartUserNode(prefab);
             this.content.addChild(itemNode);
 
             const item = itemNode.getComponent(ChartUser);
@@ -404,12 +507,20 @@ export class ChartController extends Component {
 
             const avatarUrl = localProfile?.avatarUrl || itemData.avatarUrl || '';
             if (avatarUrl) {
-                void this.applyAvatarToChartUser(item, avatarUrl, renderToken);
+                pendingAvatars.push({ item, avatarUrl });
+            }
+
+            if ((index - startIndex + 1) % RANKING_RENDER_BATCH_SIZE === 0) {
+                await this.waitForNextTick();
             }
         }
 
+        this.renderedRankingCount = endIndex;
         this.updateListLayout();
-        this.scrollToTop();
+        if (reset) {
+            this.scrollToTop();
+        }
+        void this.applyAvatarBatchToChartUsers(pendingAvatars, renderToken);
     }
 
     private async renderPlaceholder(message: string, renderToken: number): Promise<void> {
@@ -418,8 +529,11 @@ export class ChartController extends Component {
             return;
         }
 
-        this.content.destroyAllChildren();
-        const itemNode = instantiate(prefab);
+        this.renderedRankingCount = 0;
+        this.currentRankingTotalCount = 0;
+        this.loadingMoreRanking = false;
+        this.recycleRenderedItems();
+        const itemNode = this.obtainChartUserNode(prefab);
         this.content.addChild(itemNode);
 
         const item = itemNode.getComponent(ChartUser);
@@ -577,8 +691,73 @@ export class ChartController extends Component {
     }
 
     private scrollToTop(): void {
-        const scrollView = this.content?.parent?.parent?.getComponent(ScrollView);
+        const scrollView = this.getScrollView();
         scrollView?.scrollToTop(0.05);
+    }
+
+    private getScrollView(): ScrollView | null {
+        return this.content?.parent?.parent?.getComponent(ScrollView) ?? null;
+    }
+
+    private getCurrentRankingLength(): number {
+        return this.currentRankingTotalCount;
+    }
+
+    private getLoadMoreTriggerDistance(scrollView: ScrollView): number {
+        const viewNode = ((scrollView as any).view as Node | null) ?? this.chart_bg;
+        const viewHeight = viewNode?.getComponent(UITransform)?.height ?? 0;
+        return Math.max(LOAD_MORE_TRIGGER_DISTANCE_MIN, viewHeight * LOAD_MORE_TRIGGER_VIEWPORT_FACTOR);
+    }
+
+    private checkAndLoadMoreRanking(): void {
+        if (!this.node.active || this.loadingMoreRanking) {
+            return;
+        }
+
+        if (this.renderedRankingCount <= 0 || this.renderedRankingCount >= this.getCurrentRankingLength()) {
+            return;
+        }
+
+        const scrollView = this.getScrollView();
+        if (!scrollView || !isValid(scrollView.node)) {
+            return;
+        }
+
+        const maxOffset = scrollView.getMaxScrollOffset();
+        const currentOffset = scrollView.getScrollOffset();
+        const triggerDistance = this.getLoadMoreTriggerDistance(scrollView);
+        if (maxOffset.y - currentOffset.y > triggerDistance) {
+            return;
+        }
+
+        void this.loadMoreCurrentRanking();
+    }
+
+    private async loadMoreCurrentRanking(): Promise<void> {
+        if (this.loadingMoreRanking) {
+            return;
+        }
+
+        const renderToken = this.activeRankingRenderToken;
+        if (!renderToken || renderToken !== this.renderVersion) {
+            return;
+        }
+
+        this.loadingMoreRanking = true;
+        try {
+            if (this.currentViewMode === 'level') {
+                const levelKey = this.getLevelRankingKey(this.currentDifficulty, this.currentLevelNo);
+                const ranking = this.levelRankingCache.get(levelKey)?.data ?? [];
+                await this.renderLevelRankingList(ranking, renderToken, false);
+                return;
+            }
+
+            const ranking = (this.rankingCache.get(this.currentDifficulty)?.data ?? [])
+                .filter((item) => item.highestLevel > 0);
+            await this.renderRankingList(ranking, renderToken, false);
+        } finally {
+            this.loadingMoreRanking = false;
+        }
     }
 
     private resetOwnerAvatar(): void {
@@ -594,6 +773,24 @@ export class ChartController extends Component {
         }
 
         item.setAvatarSpriteFrame(spriteFrame);
+    }
+
+    private async applyAvatarBatchToChartUsers(
+        pendingAvatars: Array<{ item: ChartUser; avatarUrl: string }>,
+        renderToken: number
+    ): Promise<void> {
+        for (let index = 0; index < pendingAvatars.length; index++) {
+            if (renderToken !== this.renderVersion) {
+                return;
+            }
+
+            const pendingAvatar = pendingAvatars[index];
+            await this.applyAvatarToChartUser(pendingAvatar.item, pendingAvatar.avatarUrl, renderToken);
+
+            if ((index + 1) % AVATAR_APPLY_BATCH_SIZE === 0) {
+                await this.waitForNextTick();
+            }
+        }
     }
 
     private async applyAvatarToSprite(sprite: Sprite | null, avatarUrl: string, renderToken: number): Promise<void> {
@@ -736,6 +933,54 @@ export class ChartController extends Component {
         });
 
         return await this.chartUserPrefabTask;
+    }
+
+    private obtainChartUserNode(prefab: Prefab): Node {
+        while (this.chartUserNodePool.length > 0) {
+            const cachedNode = this.chartUserNodePool.pop() ?? null;
+            if (!cachedNode || !isValid(cachedNode)) {
+                continue;
+            }
+
+            cachedNode.active = true;
+            return cachedNode;
+        }
+
+        return instantiate(prefab);
+    }
+
+    private recycleRenderedItems(): void {
+        if (!this.content) {
+            return;
+        }
+
+        const children = [...this.content.children];
+        for (const child of children) {
+            if (!isValid(child)) {
+                continue;
+            }
+
+            child.removeFromParent();
+            child.active = false;
+            this.chartUserNodePool.push(child);
+        }
+    }
+
+    private clearChartUserNodePool(): void {
+        while (this.chartUserNodePool.length > 0) {
+            const cachedNode = this.chartUserNodePool.pop() ?? null;
+            if (!cachedNode || !isValid(cachedNode)) {
+                continue;
+            }
+
+            cachedNode.destroy();
+        }
+    }
+
+    private waitForNextTick(): Promise<void> {
+        return new Promise((resolve) => {
+            setTimeout(resolve, 0);
+        });
     }
 
     private restoreAllCachesFromStorage(): void {

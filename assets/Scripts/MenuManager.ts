@@ -434,7 +434,7 @@ export class MenuManager extends Component {
             }
         }
 
-        gameManager.chart.openDifficultyRanking(gameManager.currentDifficulty, true);
+        gameManager.chart.openDifficultyRanking(gameManager.currentDifficulty, false);
     }
 
     /**
