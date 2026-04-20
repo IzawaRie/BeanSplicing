@@ -35,6 +35,9 @@ export class MenuManager extends Component {
     @property({ type: Node })
     chart_btn: Node = null;
 
+    @property({ type: Node })
+    sub_btn: Node = null;
+
     @property({ type: Label })
     power_label: Label = null;
 
@@ -166,6 +169,9 @@ export class MenuManager extends Component {
         }
         if (this.chart_btn) {
             this.chart_btn.on(Node.EventType.TOUCH_END, this.onChartBtnClick, this);
+        }
+        if (this.sub_btn) {
+            this.sub_btn.on(Node.EventType.TOUCH_END, this.onSubBtnClick, this);
         }
 
         // 加载星星预制体
@@ -434,6 +440,19 @@ export class MenuManager extends Component {
     }
 
     /**
+     * 点击订阅按钮，打开订阅面板
+     */
+    private onSubBtnClick(): void {
+        const gameManager = GameManager.getInstance();
+        if (!gameManager?.subscribe || (gameManager.gameState != GameState.WAITING)) return;
+        if (gameManager.isWindowBlocking()) return;
+
+        gameManager.vibrateShort();
+        AudioManager.instance.playEffect('click_btn');
+        gameManager.subscribe.openPanel();
+    }
+
+    /**
      * 显示进度面板
      */
     public showProgressPanel(): void {
@@ -557,6 +576,9 @@ export class MenuManager extends Component {
         }
         if (this.chart_btn) {
             this.chart_btn.off(Node.EventType.TOUCH_END, this.onChartBtnClick, this);
+        }
+        if (this.sub_btn) {
+            this.sub_btn.off(Node.EventType.TOUCH_END, this.onSubBtnClick, this);
         }
     }
 }

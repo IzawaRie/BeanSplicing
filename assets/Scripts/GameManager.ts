@@ -11,6 +11,7 @@ import { AudioManager } from './AudioManager';
 import { WindowController } from './WindowController';
 import { PlayerService } from './PlayerService';
 import { ChartController } from './ChartController';
+import { SubscribeController } from './SubscribeController';
 const { ccclass, property } = _decorator;
 
 /**
@@ -63,6 +64,9 @@ export class GameManager extends Component {
     
     @property({ type: WindowController })
     window: WindowController = null;
+
+    @property({ type: SubscribeController })
+    subscribe: SubscribeController = null;
 
     // 游戏状态
     private _gameState: GameState = GameState.WAITING;
@@ -237,7 +241,9 @@ export class GameManager extends Component {
         return this.isWindowOpen ||
                (this.setting?.node?.active ?? false) ||
                (this.window?.node?.active ?? false) ||
-               (this.chart?.node?.active ?? false);
+               (this.chart?.node?.active ?? false) ||
+               (this.subscribe?.node?.active ?? false) ||
+               (this.subscribe?.node?.parent?.active ?? false);
     }
 
     onLoad() {
