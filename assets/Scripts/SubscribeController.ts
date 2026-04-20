@@ -101,7 +101,7 @@ export class SubscribeController extends Component {
             });
 
             if (result?.success) {
-                gameManager.power += 30;
+                gameManager.power += 10;
             }
             
             if (gameManager.menuManager?.sub_btn) {
