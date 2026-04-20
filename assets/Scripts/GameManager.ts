@@ -244,8 +244,7 @@ export class GameManager extends Component {
         this.menuManager.levelConfig = LevelConfig.getInstance();
         PatternBundle.getInstance().loadBundle();
         void this.initStorage().then(async () => {
-            const hasSubscribedPowerRegen = await this.wxManager?.hasAcceptedPowerRegenSubscribe();
-            this.menuManager?.setSubscribeButtonVisible(!hasSubscribedPowerRegen);
+            this.wxManager?.hasAcceptedPowerRegenSubscribe();
         });
     }
 

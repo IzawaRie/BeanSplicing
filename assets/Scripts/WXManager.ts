@@ -55,6 +55,7 @@ export class WXManager extends Component {
     subscribePage: string = '';
     subscribeTipField: string = 'thing2';
     subscribeCurrentPowerField: string = 'character_string5';
+    private hasAcceptedPowerRegenSubscribeCache: boolean = false;
 
     // 激励视频广告实例
     private rewardedVideoAd: any = null;
@@ -1230,12 +1231,14 @@ export class WXManager extends Component {
         const templateId = this.subscribeTemplateId?.trim() || '';
         if (!templateId) {
             console.warn('[Subscribe] hasAcceptedPowerRegenSubscribe aborted: subscribeTemplateId is empty');
+            this.hasAcceptedPowerRegenSubscribeCache = false;
             return false;
         }
 
         const settingResult = await this.getSubscribeMessageSettings([templateId]);
         if (!settingResult.success) {
             console.warn('[Subscribe] hasAcceptedPowerRegenSubscribe failed to get setting', settingResult.error);
+            this.hasAcceptedPowerRegenSubscribeCache = false;
             return false;
         }
 
@@ -1249,6 +1252,7 @@ export class WXManager extends Component {
             hasAccepted
         });
 
+        this.hasAcceptedPowerRegenSubscribeCache = hasAccepted;
         return hasAccepted;
     }
 
@@ -1413,6 +1417,7 @@ export class WXManager extends Component {
             };
         }
 
+        this.hasAcceptedPowerRegenSubscribeCache = true;
         const taskResult = await this.createSubscribeTask(options);
         if (!taskResult?.success) {
             console.warn('[Subscribe] requestAndCreateSubscribeTask aborted: create task failed', taskResult);
@@ -1495,16 +1500,48 @@ export class WXManager extends Component {
             payload
         });
 
-        const result = await this.requestAndCreateSubscribeTask({
+        const taskOptions: CreateSubscribeTaskOptions = {
             templateId,
             page: this.subscribePage?.trim() || '',
             payload,
             sendAt,
             scene: `power_regen_${source}`,
             dedupeKey: `power_regen_${sendAt}`
+        };
+
+        const hasAcceptedPowerRegenSubscribe = this.hasAcceptedPowerRegenSubscribeCache;
+        console.log('[Subscribe] requestPowerRegenSubscribe mode', {
+            hasAcceptedPowerRegenSubscribe
         });
 
-        console.log('[Subscribe] requestPowerRegenSubscribe result', result);
-        return result;
+        const result = hasAcceptedPowerRegenSubscribe
+            ? await this.createSubscribeTask(taskOptions)
+            : await this.requestAndCreateSubscribeTask(taskOptions);
+
+        const normalizedResult: SubscribeTaskClientResult = hasAcceptedPowerRegenSubscribe
+            ? (result?.success
+                ? {
+                    success: true,
+                    subscribeStatus: 'accept',
+                    subscribeResult: {
+                        [templateId]: 'accept'
+                    },
+                    taskResult: result,
+                    duplicated: !!result?.duplicated,
+                    taskId: result?.taskId || ''
+                }
+                : {
+                    success: false,
+                    subscribeStatus: 'accept',
+                    subscribeResult: {
+                        [templateId]: 'accept'
+                    },
+                    taskResult: result,
+                    error: result?.error || 'create subscribe task failed'
+                })
+            : result;
+
+        console.log('[Subscribe] requestPowerRegenSubscribe result', normalizedResult);
+        return normalizedResult;
     }
 }
