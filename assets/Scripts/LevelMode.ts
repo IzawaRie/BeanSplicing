@@ -122,6 +122,10 @@ export class LevelMode extends GameMode {
     private readonly _IDLE_FLASH_THRESHOLD: number = 10; // 10 秒阈值
     private readonly _IDLE_FLASH_PROGRESS: number = 0.8; // 80% 进度阈值
 
+    private readonly _RESULT_DELAY_SECONDS: number = 2;
+    private _isResultDelayPending: boolean = false;
+    private _resultDelayToken: number = 0;
+
     public tutorialController: TutorialController = null;
 
     get modeType(): GameModeType { return GameModeType.LEVEL; }
@@ -683,17 +687,14 @@ export class LevelMode extends GameMode {
 
         // 检查所有可用 block 的目标颜色与当前颜色是否一致
         const isSuccess = this.checkAllBlocksColorMatch();
-        if(!isSuccess) AudioManager.instance.stopBgm();
-        if (this.resultPanel?.node) {
-            this.resultPanel.setResult(isSuccess);
-            this.resultPanel.node.active = true;
-        }
+        this.showResultWithDelay(isSuccess);
     }
 
     /**
      * 倒计时结束时的处理
      */
     private onTimeUp(): void {
+        this.cancelPendingResultDelay();
         this.endGame();
 
         // 检查是否所有可用 block 都已熨烫且颜色正确
@@ -701,11 +702,35 @@ export class LevelMode extends GameMode {
         const colorMatch = this.checkAllBlocksColorMatch();
         const isSuccess = allIroned && colorMatch;
 
-        if(!isSuccess) AudioManager.instance.stopBgm();
+        if (!isSuccess) AudioManager.instance.stopBgm();
         if (this.resultPanel?.node) {
             this.resultPanel.setResult(isSuccess);
             this.resultPanel.node.active = true;
         }
+    }
+
+    private showResultWithDelay(isSuccess: boolean): void {
+        if (this._isResultDelayPending) return;
+
+        this._isResultDelayPending = true;
+        const resultDelayToken = ++this._resultDelayToken;
+
+        this.scheduleOnce(() => {
+            if (resultDelayToken !== this._resultDelayToken) return;
+
+            this._isResultDelayPending = false;
+
+            if (!isSuccess) AudioManager.instance.stopBgm();
+            if (this.resultPanel?.node) {
+                this.resultPanel.setResult(isSuccess);
+                this.resultPanel.node.active = true;
+            }
+        }, this._RESULT_DELAY_SECONDS);
+    }
+
+    private cancelPendingResultDelay(): void {
+        this._resultDelayToken++;
+        this._isResultDelayPending = false;
     }
 
     /**
@@ -800,6 +825,7 @@ export class LevelMode extends GameMode {
      * 开始游戏
      */
     public startGame(): void {
+        this.cancelPendingResultDelay();
         const gameManager = GameManager.getInstance();
         gameManager.gameState = GameState.PLAYING;
         this.selectedColorIndex = 1;
@@ -829,6 +855,7 @@ export class LevelMode extends GameMode {
      * 重置游戏
      */
     public resetGame(): void {
+        this.cancelPendingResultDelay();
         GameManager.getInstance().gameState = GameState.PLAYING;
         this.selectedColorIndex = 1;
     }

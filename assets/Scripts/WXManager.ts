@@ -1502,7 +1502,7 @@ export class WXManager extends Component {
         const tipField = this.subscribeTipField?.trim() || 'thing2';
         const currentPowerField = this.subscribeCurrentPowerField?.trim() || 'thing7';
         const payload: Record<string, any> = {
-            [currentPowerField]: { value: '体力值已经回复啦！' },
+            [currentPowerField]: { value: '体力值已经恢复啦！' },
             [tipField]: { value: '记得回来闯关欧~' }
         };
 
