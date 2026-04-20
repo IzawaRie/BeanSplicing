@@ -75,11 +75,30 @@ exports.main = async (event = {}, context) => {
 
       const existingTask = existingRes.data?.[0] || null;
       if (existingTask) {
+        const updatedTaskData = {
+          page,
+          payload,
+          sendAt,
+          updatedAt: now,
+          errorCode: '',
+          errorMessage: '',
+          miniprogramState,
+          scene,
+          dedupeKey
+        };
+
+        await db.collection(TASK_COLLECTION).doc(existingTask._id).update({
+          data: updatedTaskData
+        });
+
         return {
           success: true,
           duplicated: true,
           taskId: existingTask._id,
-          task: existingTask
+          task: {
+            ...existingTask,
+            ...updatedTaskData
+          }
         };
       }
     }

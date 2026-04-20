@@ -1506,7 +1506,7 @@ export class WXManager extends Component {
             payload,
             sendAt,
             scene: `power_regen_${source}`,
-            dedupeKey: `power_regen_${sendAt}`
+            dedupeKey: 'power_regen'
         };
 
         const hasAcceptedPowerRegenSubscribe = this.hasAcceptedPowerRegenSubscribeCache;
