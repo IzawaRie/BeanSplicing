@@ -428,15 +428,19 @@ export class MenuManager extends Component {
         AudioManager.instance.playEffect('click_btn');
 
         if (!gameManager.canOpenChartDirectly) {
-            await void this.syncChartProfileInBackground();
+            await this.syncChartProfileBeforeOpen();
         }
 
         gameManager.chart.openDifficultyRanking(gameManager.currentDifficulty, false);
     }
 
-    private async syncChartProfileInBackground(): Promise<void> {
+    private async syncChartProfileBeforeOpen(): Promise<void> {
         const gameManager = GameManager.getInstance();
         if (!gameManager?.wxManager) return;
+        if (gameManager.wxManager.nickname?.trim() || gameManager.wxManager.avatarUrl) {
+            gameManager.setHasLoadedUserInfo(true);
+            return;
+        }
 
         try {
             const userInfo = await gameManager.wxManager.getUserInfo();
@@ -444,7 +448,7 @@ export class MenuManager extends Component {
                 await PlayerService.instance?.syncAuthorizedProfile(userInfo?.nickname, userInfo?.avatarUrl);
             }
         } catch (error) {
-            console.warn('MenuManager: failed to sync chart profile in background', error);
+            console.warn('MenuManager: failed to sync chart profile before opening chart', error);
         }
     }
 

@@ -1108,8 +1108,13 @@ export class WXManager extends Component {
      * @returns Promise<{ nickname: string; avatarUrl: string }>
      */
     public async getUserInfo(): Promise<{ nickname: string; avatarUrl: string }> {
+        const gameManager = GameManager.getInstance();
+        if (this._nickname.trim() || this._avatarUrl) {
+            gameManager?.setHasLoadedUserInfo(true);
+            return { nickname: this._nickname, avatarUrl: this._avatarUrl };
+        }
+
         const resolveFallbackProfile = async (): Promise<{ nickname: string; avatarUrl: string }> => {
-            const gameManager = GameManager.getInstance();
             if (gameManager?.hasLoadedUserInfo && (this._nickname.trim() || this._avatarUrl)) {
                 return { nickname: this._nickname, avatarUrl: this._avatarUrl };
             }

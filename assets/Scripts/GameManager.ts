@@ -114,7 +114,8 @@ export class GameManager extends Component {
     }
 
     public get canOpenChartDirectly(): boolean {
-        return this._hasUserInfoPermission && this._hasLoadedUserInfo;
+        const hasLocalUserProfile = !!(this.wxManager?.nickname?.trim() || this.wxManager?.avatarUrl);
+        return this._hasUserInfoPermission && (this._hasLoadedUserInfo || hasLocalUserProfile);
     }
 
     // 存储是否加载完成
@@ -228,9 +229,14 @@ export class GameManager extends Component {
             const hasUserInfoPermission = await this.wxManager.hasUserInfoPermission();
             this.setHasUserInfoPermission(hasUserInfoPermission);
             if (hasUserInfoPermission) {
-                const userInfo = await this.wxManager.getUserInfo();
-                if (this.hasLoadedUserInfo) {
-                    await PlayerService.instance?.syncAuthorizedProfile(userInfo.nickname, userInfo.avatarUrl);
+                const hasLocalUserProfile = !!(this.wxManager?.nickname?.trim() || this.wxManager?.avatarUrl);
+                if (hasLocalUserProfile) {
+                    this.setHasLoadedUserInfo(true);
+                } else {
+                    const userInfo = await this.wxManager.getUserInfo();
+                    if (this.hasLoadedUserInfo) {
+                        await PlayerService.instance?.syncAuthorizedProfile(userInfo.nickname, userInfo.avatarUrl);
+                    }
                 }
             }
 
