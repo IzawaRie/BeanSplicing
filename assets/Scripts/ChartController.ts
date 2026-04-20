@@ -898,11 +898,11 @@ export class ChartController extends Component {
     // 异步加载并应用列表项头像。
     private async applyAvatarToChartUser(item: ChartUser, avatarUrl: string, renderToken: number): Promise<void> {
         const spriteFrame = await this.loadAvatarSpriteFrame(avatarUrl);
-        if (!spriteFrame || renderToken !== this.renderVersion || !isValid(item?.node)) {
+        if (!spriteFrame || renderToken !== this.renderVersion || !isValid(item?.node) || !item.isExpectingAvatar(avatarUrl)) {
             return;
         }
 
-        item.setAvatarSpriteFrame(spriteFrame);
+        item.setAvatarSpriteFrame(spriteFrame, avatarUrl);
     }
 
     // 绑定单个难度排行榜列表项的数据和头像。
@@ -913,9 +913,14 @@ export class ChartController extends Component {
         }
 
         const profile = this.resolveDisplayProfile(itemData.userId, itemData.nickname, itemData.avatarUrl);
-        item.applyRankingData(dataIndex + 1, profile.nickname, this.formatLevelText(itemData.highestLevel));
+        item.applyRankingData(dataIndex + 1, profile.nickname, this.formatLevelText(itemData.highestLevel), profile.avatarUrl);
 
         if (profile.avatarUrl) {
+            const cachedSpriteFrame = this.getCachedAvatarSpriteFrame(profile.avatarUrl);
+            if (cachedSpriteFrame) {
+                item.setAvatarSpriteFrame(cachedSpriteFrame, profile.avatarUrl);
+                return;
+            }
             this.deferApplyAvatarToChartUser(item, profile.avatarUrl, renderToken);
         }
     }
@@ -928,9 +933,14 @@ export class ChartController extends Component {
         }
 
         const profile = this.resolveDisplayProfile(itemData.userId, itemData.nickname, itemData.avatarUrl);
-        item.applyRankingData(dataIndex + 1, profile.nickname, this.formatClearTimeText(itemData.bestClearTime));
+        item.applyRankingData(dataIndex + 1, profile.nickname, this.formatClearTimeText(itemData.bestClearTime), profile.avatarUrl);
 
         if (profile.avatarUrl) {
+            const cachedSpriteFrame = this.getCachedAvatarSpriteFrame(profile.avatarUrl);
+            if (cachedSpriteFrame) {
+                item.setAvatarSpriteFrame(cachedSpriteFrame, profile.avatarUrl);
+                return;
+            }
             this.deferApplyAvatarToChartUser(item, profile.avatarUrl, renderToken);
         }
     }
@@ -981,11 +991,11 @@ export class ChartController extends Component {
     private async loadAvatarSpriteFrame(avatarUrl: string): Promise<SpriteFrame | null> {
         if (!avatarUrl) return null;
 
+        const cachedSpriteFrame = this.getCachedAvatarSpriteFrame(avatarUrl);
+        if (cachedSpriteFrame) {
+            return cachedSpriteFrame;
+        }
         if (this.avatarFrameCache.has(avatarUrl)) {
-            const cachedSpriteFrame = this.avatarFrameCache.get(avatarUrl) ?? null;
-            if (cachedSpriteFrame) {
-                return cachedSpriteFrame;
-            }
             this.avatarFrameCache.delete(avatarUrl);
         }
 
@@ -1021,6 +1031,20 @@ export class ChartController extends Component {
             this.avatarFrameCache.delete(avatarUrl);
         }
         return spriteFrame;
+    }
+
+    private getCachedAvatarSpriteFrame(avatarUrl: string): SpriteFrame | null {
+        if (!avatarUrl || !this.avatarFrameCache.has(avatarUrl)) {
+            return null;
+        }
+
+        const cachedSpriteFrame = this.avatarFrameCache.get(avatarUrl) ?? null;
+        if (cachedSpriteFrame) {
+            return cachedSpriteFrame;
+        }
+
+        this.avatarFrameCache.delete(avatarUrl);
+        return null;
     }
 
     // ==================== 用户资料与头像加载 ====================

@@ -28,15 +28,17 @@ export class ChartUser extends Component {
     owner_level_label: Label = null;
 
     private defaultAvatarSpriteFrame: SpriteFrame | null = null;
+    private expectedAvatarUrl = '';
+    private appliedAvatarUrl = '';
 
     onLoad() {
         this.defaultAvatarSpriteFrame = this.owner_avatar_sprite?.spriteFrame ?? null;
     }
 
-    public applyRankingData(rank: number, nickname: string, levelText: string): void {
+    public applyRankingData(rank: number, nickname: string, levelText: string, avatarUrl: string = ''): void {
         this.setAvatarVisible(true);
-        this.resetAvatar();
         this.setUserBorderVisible(true);
+        this.prepareAvatar(avatarUrl);
 
         const isTop1 = rank === 1;
         const isTop2 = rank === 2;
@@ -80,18 +82,48 @@ export class ChartUser extends Component {
             this.owner_level_label.string = '';
         }
 
+        this.expectedAvatarUrl = '';
+        this.appliedAvatarUrl = '';
         this.setAvatarVisible(false);
         this.resetAvatar();
     }
 
-    public setAvatarSpriteFrame(spriteFrame: SpriteFrame | null): void {
+    public setAvatarSpriteFrame(spriteFrame: SpriteFrame | null, avatarUrl: string = ''): void {
         if (!this.owner_avatar_sprite || !spriteFrame) return;
+        const normalizedAvatarUrl = (avatarUrl || '').trim();
+        if (normalizedAvatarUrl && normalizedAvatarUrl !== this.expectedAvatarUrl) {
+            return;
+        }
+
         this.owner_avatar_sprite.spriteFrame = spriteFrame;
+        this.appliedAvatarUrl = normalizedAvatarUrl || this.expectedAvatarUrl;
     }
 
     public resetAvatar(): void {
         if (!this.owner_avatar_sprite) return;
         this.owner_avatar_sprite.spriteFrame = this.defaultAvatarSpriteFrame;
+    }
+
+    public isExpectingAvatar(avatarUrl: string): boolean {
+        return this.expectedAvatarUrl === (avatarUrl || '').trim();
+    }
+
+    private prepareAvatar(avatarUrl: string): void {
+        const normalizedAvatarUrl = (avatarUrl || '').trim();
+        if (normalizedAvatarUrl === this.expectedAvatarUrl) {
+            return;
+        }
+
+        this.expectedAvatarUrl = normalizedAvatarUrl;
+        if (!normalizedAvatarUrl) {
+            this.appliedAvatarUrl = '';
+            this.resetAvatar();
+            return;
+        }
+
+        if (this.appliedAvatarUrl !== normalizedAvatarUrl) {
+            this.resetAvatar();
+        }
     }
 
     private setAvatarVisible(visible: boolean): void {
@@ -110,4 +142,3 @@ export class ChartUser extends Component {
         return ` ${nickname}`;
     }
 }
-
