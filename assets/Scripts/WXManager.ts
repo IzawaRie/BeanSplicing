@@ -732,9 +732,6 @@ export class WXManager extends Component {
     }
 
     /**
-     * 设置体力下次恢复时间（时间戳，毫秒）
-     */
-    /**
      * 保存金币数量到本地缓存
      */
     public setCoins(coins: number): void {
@@ -760,6 +757,9 @@ export class WXManager extends Component {
         });
     }
 
+    /**
+     * 设置体力下次恢复时间（时间戳，毫秒）
+     */
     public setPowerNextRegenTime(time: number): void {
         if (typeof (wx) === 'undefined') return;
         wx.setStorageSync('power_next_regen', time);

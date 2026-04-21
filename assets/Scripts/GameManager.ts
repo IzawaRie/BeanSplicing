@@ -480,7 +480,10 @@ export class GameManager extends Component {
         this._mediumLevel = await this.wxManager.getStorageLevelByDifficulty(DifficultyMode.MEDIUM) ?? 1;
         this._hardLevel   = await this.wxManager.getStorageLevelByDifficulty(DifficultyMode.HARD)   ?? 1;
         this._coinCount = Math.max(0, Math.floor((await this.wxManager.getCoins()) ?? 0));
-
+        if (this.menuManager?.coin_label) {
+            this.menuManager.coin_label.string = `${this._coinCount}`;
+        }
+        
         const shake = await this.wxManager.getShake();
         if(shake == null){
             this.isShake = true;

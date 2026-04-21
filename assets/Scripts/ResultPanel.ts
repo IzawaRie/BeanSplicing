@@ -800,6 +800,9 @@ export class ResultPanel extends Component {
         // 获取 LevelMode
         const levelMode = gameManager.levelMode;
         if (levelMode) {
+            if (levelMode.coin_border) {
+                levelMode.coin_border.active = true;
+            }
             // 恢复画布透明度
             levelMode.drawer_opacity.opacity = 255;
             // 重置30秒警告状态
