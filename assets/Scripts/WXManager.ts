@@ -63,6 +63,8 @@ export class WXManager extends Component {
     // 激励视频广告实例
     private rewardedVideoAd: any = null;
     private interstitialAd: any = null;
+    private readonly INTERSTITIAL_MIN_INTERVAL: number = 5 * 60 * 1000;
+    private readonly INTERSTITIAL_LAST_SHOW_STORAGE_KEY: string = 'interstitial_last_show_at';
     // 激励视频广告位 id（在微信公众平台广告位配置获取）
     private readonly VIDEO_AD_UNIT_ID: string = 'adunit-f7349bec4122701f';
     private readonly INTERSTITIAL_AD_UNIT_ID: string = 'adunit-613709c057d35ead';
@@ -248,9 +250,24 @@ export class WXManager extends Component {
             return;
         }
 
-        this.interstitialAd.show().catch(() => {
+        const now = Date.now();
+        const lastShowAt = Number(wx.getStorageSync(this.INTERSTITIAL_LAST_SHOW_STORAGE_KEY)) || 0;
+        if (lastShowAt > 0 && now - lastShowAt < this.INTERSTITIAL_MIN_INTERVAL) {
+            console.log('[Interstitial] skip show due to cooldown', {
+                now,
+                lastShowAt,
+                remainingMs: this.INTERSTITIAL_MIN_INTERVAL - (now - lastShowAt)
+            });
+            return;
+        }
+
+        this.interstitialAd.show().then(() => {
+            wx.setStorageSync(this.INTERSTITIAL_LAST_SHOW_STORAGE_KEY, now);
+        }).catch(() => {
             this.interstitialAd.load().then(() => {
-                return this.interstitialAd.show();
+                return this.interstitialAd.show().then(() => {
+                    wx.setStorageSync(this.INTERSTITIAL_LAST_SHOW_STORAGE_KEY, now);
+                });
             }).catch((err: any) => {
                 console.warn('插屏广告显示失败:', err);
             });
