@@ -382,6 +382,28 @@ export class LevelMode extends GameMode {
         }
     }
 
+    /**
+     * 新一局开始时重置所有 block 的金币触发尝试状态。
+     */
+    private resetBlockCoinSpawnAttempts(): void {
+        const blocks = this.gridDrawer?.getAllBlocks();
+        if (!blocks) {
+            return;
+        }
+
+        for (let row = 0; row < blocks.length; row++) {
+            for (let col = 0; col < blocks[row].length; col++) {
+                const block = blocks[row][col];
+                if (!block) {
+                    continue;
+                }
+
+                const controller = block.getComponent(BlockController);
+                controller?.resetCoinSpawnAttempt();
+            }
+        }
+    }
+
     public async spawnCoin(startPosition: Vec3 = new Vec3()): Promise<Node | null> {
         if (!this.node || !this.node.isValid) {
             return null;
@@ -723,6 +745,11 @@ export class LevelMode extends GameMode {
             return;
         }
 
+        const blockController = block.getComponent(BlockController);
+        if (!blockController?.markCoinSpawnAttempt()) {
+            return;
+        }
+
         const normalizedProbability = Math.max(0, Math.min(1, probability));
         if (Math.random() >= normalizedProbability) {
             return;
@@ -797,6 +824,7 @@ export class LevelMode extends GameMode {
         WXManager.instance?.setCaptureRestricted();
         void this.preloadCoinPrefab();
         this.finishLevelCoinSession();
+        this.resetBlockCoinSpawnAttempts();
         // 显示原生模板广告
         WXManager.instance?.showNativeAd();
         // 隐藏设置按钮
@@ -1660,6 +1688,5 @@ export class LevelMode extends GameMode {
         });
     }
 }
-
 
 

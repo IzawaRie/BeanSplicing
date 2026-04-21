@@ -32,6 +32,7 @@ export class BlockController extends Component {
     // Block 状态
     private _state: BlockState = BlockState.NO_CIRCLE;
     private _ironOpacityStage: number = 0;
+    private _hasTriedCoinSpawn: boolean = false;
 
     /**
      * 设置 block 的行列信息
@@ -78,6 +79,27 @@ export class BlockController extends Component {
     get state(): BlockState { return this._state; }
     set state(value: BlockState) { this._state = value; }
     get ironOpacityStage(): number { return this._ironOpacityStage; }
+    get hasTriedCoinSpawn(): boolean { return this._hasTriedCoinSpawn; }
+
+    /**
+     * 标记当前 block 已尝试触发金币。
+     * 无论概率是否命中，只要尝试过就不会再重复触发。
+     */
+    public markCoinSpawnAttempt(): boolean {
+        if (this._hasTriedCoinSpawn) {
+            return false;
+        }
+
+        this._hasTriedCoinSpawn = true;
+        return true;
+    }
+
+    /**
+     * 新一局开始时重置金币触发尝试状态。
+     */
+    public resetCoinSpawnAttempt(): void {
+        this._hasTriedCoinSpawn = false;
+    }
 
     onLoad() {
         // 注册触摸结束事件
