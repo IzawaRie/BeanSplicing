@@ -585,7 +585,7 @@ export class CircleController extends Component {
                     triggeredLevels.add(0);
                     AudioManager.instance.playEffect('boop', 1.5);
                     gameManager.vibrateShort();
-                    gameManager.levelMode?.trySpawnCoinForIronedBlock(block, gameManager.levelMode.highlightCoinSpawnProbability);
+                    gameManager.levelMode?.trySpawnCoinForHighlightedBlock(block, gameManager.levelMode.highlightCoinSpawnProbability);
                 }
             } else {
                 setTimeout(() => {
@@ -594,7 +594,7 @@ export class CircleController extends Component {
                         triggeredLevels.add(level);
                         AudioManager.instance.playEffect('boop', 1.5);
                         gameManager.vibrateShort();
-                        gameManager.levelMode?.trySpawnCoinForIronedBlock(block, gameManager.levelMode.highlightCoinSpawnProbability);
+                        gameManager.levelMode?.trySpawnCoinForHighlightedBlock(block, gameManager.levelMode.highlightCoinSpawnProbability);
                     }
                 }, delay * 1000);
             }

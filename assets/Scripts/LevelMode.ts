@@ -383,7 +383,7 @@ export class LevelMode extends GameMode {
     }
 
     /**
-     * 新一局开始时重置所有 block 的金币触发尝试状态。
+     * 新一局开始时重置所有 block 的高亮/熨烫金币触发尝试状态。
      */
     private resetBlockCoinSpawnAttempts(): void {
         const blocks = this.gridDrawer?.getAllBlocks();
@@ -399,7 +399,7 @@ export class LevelMode extends GameMode {
                 }
 
                 const controller = block.getComponent(BlockController);
-                controller?.resetCoinSpawnAttempt();
+                controller?.resetCoinSpawnAttempts();
             }
         }
     }
@@ -740,13 +740,38 @@ export class LevelMode extends GameMode {
         }
     }
 
+    public trySpawnCoinForHighlightedBlock(block: Node | null, probability: number): void {
+        if (!block || !block.isValid || !this.node || !this.node.isValid) {
+            return;
+        }
+
+        const blockController = block.getComponent(BlockController);
+        if (!blockController?.markHighlightCoinSpawnAttempt()) {
+            return;
+        }
+
+        const normalizedProbability = Math.max(0, Math.min(1, probability));
+        if (Math.random() >= normalizedProbability) {
+            return;
+        }
+
+        const rootTransform = this.node.getComponent(UITransform);
+        if (!rootTransform) {
+            return;
+        }
+
+        const blockWorldPosition = block.getWorldPosition();
+        const localPosition = rootTransform.convertToNodeSpaceAR(blockWorldPosition);
+        void this.spawnCoin(new Vec3(localPosition.x, localPosition.y, 0));
+    }
+
     public trySpawnCoinForIronedBlock(block: Node | null, probability: number): void {
         if (!block || !block.isValid || !this.node || !this.node.isValid) {
             return;
         }
 
         const blockController = block.getComponent(BlockController);
-        if (!blockController?.markCoinSpawnAttempt()) {
+        if (!blockController?.markIronCoinSpawnAttempt()) {
             return;
         }
 
@@ -1688,5 +1713,4 @@ export class LevelMode extends GameMode {
         });
     }
 }
-
 

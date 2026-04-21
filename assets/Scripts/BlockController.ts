@@ -32,7 +32,8 @@ export class BlockController extends Component {
     // Block 状态
     private _state: BlockState = BlockState.NO_CIRCLE;
     private _ironOpacityStage: number = 0;
-    private _hasTriedCoinSpawn: boolean = false;
+    private _hasTriedHighlightCoinSpawn: boolean = false;
+    private _hasTriedIronCoinSpawn: boolean = false;
 
     /**
      * 设置 block 的行列信息
@@ -79,26 +80,41 @@ export class BlockController extends Component {
     get state(): BlockState { return this._state; }
     set state(value: BlockState) { this._state = value; }
     get ironOpacityStage(): number { return this._ironOpacityStage; }
-    get hasTriedCoinSpawn(): boolean { return this._hasTriedCoinSpawn; }
+    get hasTriedHighlightCoinSpawn(): boolean { return this._hasTriedHighlightCoinSpawn; }
+    get hasTriedIronCoinSpawn(): boolean { return this._hasTriedIronCoinSpawn; }
 
     /**
-     * 标记当前 block 已尝试触发金币。
+     * 标记当前 block 已尝试触发高亮金币。
      * 无论概率是否命中，只要尝试过就不会再重复触发。
      */
-    public markCoinSpawnAttempt(): boolean {
-        if (this._hasTriedCoinSpawn) {
+    public markHighlightCoinSpawnAttempt(): boolean {
+        if (this._hasTriedHighlightCoinSpawn) {
             return false;
         }
 
-        this._hasTriedCoinSpawn = true;
+        this._hasTriedHighlightCoinSpawn = true;
+        return true;
+    }
+
+    /**
+     * 标记当前 block 已尝试触发熨烫金币。
+     * 无论概率是否命中，只要尝试过就不会再重复触发。
+     */
+    public markIronCoinSpawnAttempt(): boolean {
+        if (this._hasTriedIronCoinSpawn) {
+            return false;
+        }
+
+        this._hasTriedIronCoinSpawn = true;
         return true;
     }
 
     /**
      * 新一局开始时重置金币触发尝试状态。
      */
-    public resetCoinSpawnAttempt(): void {
-        this._hasTriedCoinSpawn = false;
+    public resetCoinSpawnAttempts(): void {
+        this._hasTriedHighlightCoinSpawn = false;
+        this._hasTriedIronCoinSpawn = false;
     }
 
     onLoad() {
