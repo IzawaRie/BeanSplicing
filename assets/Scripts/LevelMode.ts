@@ -358,7 +358,11 @@ export class LevelMode extends GameMode {
         this.refreshLevelCoinLabel();
     }
 
-    private finishLevelCoinSession(): void {
+    private finishLevelCoinSession(isSuccess: boolean = false): void {
+        if (isSuccess && this._levelCoinCount > 0) {
+            GameManager.getInstance()?.addCoins(this._levelCoinCount);
+        }
+
         this._levelCoinToken++;
         this.resetLevelCoinCount();
 
@@ -989,6 +993,10 @@ export class LevelMode extends GameMode {
         return this._currentLevelId;
     }
 
+    public get levelCoinCount(): number {
+        return this._levelCoinCount;
+    }
+
     /**
      * 添加分数
      */
@@ -1041,7 +1049,7 @@ export class LevelMode extends GameMode {
             this.resultPanel.node.active = true;
         }
         this.setCoinBorderVisible(false);
-        this.finishLevelCoinSession();
+        this.finishLevelCoinSession(isSuccess);
     }
 
     private showResultWithDelay(isSuccess: boolean): void {
@@ -1061,7 +1069,7 @@ export class LevelMode extends GameMode {
                 this.resultPanel.node.active = true;
             }
             this.setCoinBorderVisible(false);
-            this.finishLevelCoinSession();
+            this.finishLevelCoinSession(isSuccess);
         }, this._RESULT_DELAY_SECONDS);
     }
 

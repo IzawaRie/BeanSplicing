@@ -44,6 +44,9 @@ export class MenuManager extends Component {
     @property({ type: Label })
     power_tip: Label = null;
 
+    @property({ type: Label })
+    coin_label: Label = null;
+
     private starPrefab: Prefab = null;
     private spawnedStars: Node[] = [];
     private spawnInterval: number = 12;  // 每秒刷新

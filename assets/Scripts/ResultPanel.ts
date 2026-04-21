@@ -1,4 +1,4 @@
-import { _decorator, Component, Label, Node, Sprite, SpriteFrame, Texture2D, ImageAsset, UITransform, tween, Vec3, UIOpacity } from 'cc';
+import { _decorator, Component, Label, Node, Sprite, SpriteFrame, Texture2D, ImageAsset, UITransform, tween, Tween, Vec3, UIOpacity } from 'cc';
 import { GameManager, GameState, DifficultyMode } from './GameManager';
 import { BlockController, BlockState } from './BlockController';
 import { AudioManager } from './AudioManager';
@@ -80,6 +80,9 @@ export class ResultPanel extends Component {
     @property(Label)
     time_number: Label = null;
 
+    @property({ type: Label })
+    coin_label: Label = null;
+
     /** 标记当前结果是否为成功 */
     private _isSuccess: boolean = false;
 
@@ -103,6 +106,8 @@ export class ResultPanel extends Component {
     private _resultLevelNo: number = 1;
 
     private _saveLevelDataTask: Promise<void> | null = null;
+    private _coinTweenState: { value: number } | null = null;
+    private readonly _COIN_COUNT_ANIM_DURATION: number = 2;
 
     /**
      * 设置成功状态，并更新界面文字
@@ -110,6 +115,8 @@ export class ResultPanel extends Component {
     public setResult(isSuccess: boolean): void {
         this._isSuccess = isSuccess;
         const gameManager = GameManager.getInstance();
+        const baseCoinCount = gameManager.coinCount;
+        const rewardCoinCount = isSuccess ? (gameManager.levelMode?.levelCoinCount ?? 0) : 0;
         const difficulty = gameManager.currentDifficulty;
         const playedLevelNo = gameManager.levelMode?.currentLevelId ?? gameManager.currentLevel;
         this._resultDifficulty = difficulty;
@@ -172,9 +179,50 @@ export class ResultPanel extends Component {
         }
 
         // 播放缩放入场动画，动画完成后生成结果图片
+        if (isSuccess && rewardCoinCount > 0) {
+            this.playCoinCountAnimation(baseCoinCount, baseCoinCount + rewardCoinCount);
+        } else {
+            this.setCoinLabelValue(baseCoinCount);
+        }
         this.playContentEnterAnimation();
         WXManager.instance?.setCaptureNone();
         WXManager.instance?.hideNativeGridAd();
+    }
+
+    private setCoinLabelValue(value: number): void {
+        if (this.coin_label) {
+            this.coin_label.string = `${Math.max(0, Math.floor(value))}`;
+        }
+    }
+
+    private playCoinCountAnimation(startValue: number, endValue: number): void {
+        if (this._coinTweenState) {
+            Tween.stopAllByTarget(this._coinTweenState);
+            this._coinTweenState = null;
+        }
+
+        this.setCoinLabelValue(startValue);
+        if (endValue <= startValue) {
+            this.setCoinLabelValue(endValue);
+            return;
+        }
+
+        const tweenState = { value: startValue };
+        this._coinTweenState = tweenState;
+        tween(tweenState)
+            .to(this._COIN_COUNT_ANIM_DURATION, { value: endValue }, {
+                easing: 'quadOut',
+                onUpdate: (target: { value: number }) => {
+                    this.setCoinLabelValue(target.value);
+                },
+            })
+            .call(() => {
+                this.setCoinLabelValue(endValue);
+                if (this._coinTweenState === tweenState) {
+                    this._coinTweenState = null;
+                }
+            })
+            .start();
     }
 
     /**
@@ -576,6 +624,10 @@ export class ResultPanel extends Component {
     }
 
     onDestroy() {
+        if (this._coinTweenState) {
+            Tween.stopAllByTarget(this._coinTweenState);
+            this._coinTweenState = null;
+        }
         this.nextLevelBtn?.off(Node.EventType.TOUCH_END, this.onNextLevelBtnClick, this);
         this.restartBtn?.off(Node.EventType.TOUCH_END, this.onRestartLevelBtnClick, this);
         this.restartBtn2?.off(Node.EventType.TOUCH_END, this.onAgainLevelBtnClick, this);

@@ -1,4 +1,4 @@
-import { _decorator, Component, Node } from 'cc';
+﻿import { _decorator, Component, Node } from 'cc';
 import { PatternBundle } from './PatternBundle';
 import { GameMode, GameModeType} from './GameMode';
 import { LevelMode } from './LevelMode';
@@ -102,6 +102,48 @@ export class GameManager extends Component {
         return this.hasReadyChartProfile();
     }
 
+    public get coinCount(): number {
+        return this._coinCount;
+    }
+
+    public set coinCount(value: number) {
+        this._coinCount = Math.max(0, Math.floor(value));
+        if (this.menuManager?.coin_label) {
+            this.menuManager.coin_label.string = `${this._coinCount}`;
+        }
+        this.scheduleCoinSave();
+    }
+
+    public addCoins(amount: number = 1): void {
+        if (amount <= 0) {
+            return;
+        }
+
+        this.coinCount = this._coinCount + amount;
+    }
+
+    private scheduleCoinSave(): void {
+        this._coinCacheDirty = true;
+        if (!this._storageLoaded) {
+            return;
+        }
+
+        if (this._coinSaveScheduled) {
+            return;
+        }
+
+        this._coinSaveScheduled = true;
+        this.scheduleOnce(() => {
+            this._coinSaveScheduled = false;
+            if (!this._coinCacheDirty) {
+                return;
+            }
+
+            this._coinCacheDirty = false;
+            this.wxManager?.setCoins(this._coinCount);
+        }, this.COIN_SAVE_DELAY_SECONDS);
+    }
+
     /**
      * 判断当前是否已经具备可直接用于排行榜展示的真实用户资料
      */
@@ -160,6 +202,10 @@ export class GameManager extends Component {
 
     // 能量
     private _power: number = 10;
+    private _coinCount: number = 0;
+    private _coinCacheDirty: boolean = false;
+    private _coinSaveScheduled: boolean = false;
+    private readonly COIN_SAVE_DELAY_SECONDS: number = 5;
 
     // 体力恢复间隔（30分钟，毫秒）
     private readonly POWER_REGEN_INTERVAL: number = 30 * 60 * 1000;
@@ -433,6 +479,7 @@ export class GameManager extends Component {
         this._simpleLevel = await this.wxManager.getStorageLevelByDifficulty(DifficultyMode.SIMPLE) ?? 1;
         this._mediumLevel = await this.wxManager.getStorageLevelByDifficulty(DifficultyMode.MEDIUM) ?? 1;
         this._hardLevel   = await this.wxManager.getStorageLevelByDifficulty(DifficultyMode.HARD)   ?? 1;
+        this._coinCount = Math.max(0, Math.floor((await this.wxManager.getCoins()) ?? 0));
 
         const shake = await this.wxManager.getShake();
         if(shake == null){

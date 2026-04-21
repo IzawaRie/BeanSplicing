@@ -734,6 +734,32 @@ export class WXManager extends Component {
     /**
      * 设置体力下次恢复时间（时间戳，毫秒）
      */
+    /**
+     * 保存金币数量到本地缓存
+     */
+    public setCoins(coins: number): void {
+        if (typeof (wx) === 'undefined') return;
+        wx.setStorageSync('coins', coins);
+    }
+
+    /**
+     * 获取本地缓存的金币数量
+     */
+    public getCoins(): Promise<number | null> {
+        if (typeof (wx) === 'undefined') return Promise.resolve(null);
+        return new Promise((resolve) => {
+            wx.getStorage({
+                key: 'coins',
+                success(res) {
+                    resolve(res.data);
+                },
+                fail() {
+                    resolve(null);
+                }
+            });
+        });
+    }
+
     public setPowerNextRegenTime(time: number): void {
         if (typeof (wx) === 'undefined') return;
         wx.setStorageSync('power_next_regen', time);
