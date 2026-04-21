@@ -26,6 +26,9 @@ export class LevelMode extends GameMode {
     static readonly MODE_TYPE = GameModeType.LEVEL;
 
     @property({ type: Node })
+    up_content: Node = null;
+
+    @property({ type: Node })
     settingBtn: Node = null;
     
     @property({ type: ResultPanel })
@@ -554,8 +557,8 @@ export class LevelMode extends GameMode {
         // 显示原生模板广告
         WXManager.instance?.showNativeAd();
         // 隐藏设置按钮
-        if (this.settingBtn) {
-            this.settingBtn.active = false;
+        if (this.up_content) {
+            this.up_content.active = false;
         }
         this.currentScore = 0;
         this._currentLevelId = levelId;
@@ -666,8 +669,8 @@ export class LevelMode extends GameMode {
         WXManager.instance?.hideNativeAd();
 
         // 显示设置按钮
-        if (this.settingBtn) {
-            this.settingBtn.active = true;
+        if (this.up_content) {
+            this.up_content.active = true;
         }
 
         // 隐藏 daojishi_label 和 start_btn
