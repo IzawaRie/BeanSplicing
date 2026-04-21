@@ -108,6 +108,8 @@ export class ResultPanel extends Component {
     private _saveLevelDataTask: Promise<void> | null = null;
     private _coinTweenState: { value: number } | null = null;
     private readonly _COIN_COUNT_ANIM_DURATION: number = 2;
+    private _lastCoinBoopTime: number = 0;
+    private readonly _COIN_COUNT_BOOP_INTERVAL_MS: number = 100;
 
     /**
      * 设置成功状态，并更新界面文字
@@ -201,6 +203,7 @@ export class ResultPanel extends Component {
             this._coinTweenState = null;
         }
 
+        this._lastCoinBoopTime = 0;
         this.setCoinLabelValue(startValue);
         if (endValue <= startValue) {
             this.setCoinLabelValue(endValue);
@@ -213,6 +216,7 @@ export class ResultPanel extends Component {
             .to(this._COIN_COUNT_ANIM_DURATION, { value: endValue }, {
                 easing: 'quadOut',
                 onUpdate: (target: { value: number }) => {
+                    this.tryPlayCoinBoop(target.value);
                     this.setCoinLabelValue(target.value);
                 },
             })
@@ -223,6 +227,28 @@ export class ResultPanel extends Component {
                 }
             })
             .start();
+    }
+
+    /**
+     * 在金币数字发生变化时播放音效，并限制最短播放间隔。
+     */
+    private tryPlayCoinBoop(nextValue: number): void {
+        if (!this.coin_label) {
+            return;
+        }
+
+        const nextLabelValue = `${Math.max(0, Math.floor(nextValue))}`;
+        if (this.coin_label.string === nextLabelValue) {
+            return;
+        }
+
+        const now = Date.now();
+        if (this._lastCoinBoopTime > 0 && now - this._lastCoinBoopTime < this._COIN_COUNT_BOOP_INTERVAL_MS) {
+            return;
+        }
+
+        AudioManager.instance?.playEffect('boop');
+        this._lastCoinBoopTime = now;
     }
 
     /**

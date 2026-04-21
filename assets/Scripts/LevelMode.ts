@@ -434,7 +434,8 @@ export class LevelMode extends GameMode {
                 this.recycleCoinNode(coin);
             })
             .start();
-
+        
+        AudioManager.instance.playEffect('ding');
         return coin;
     }
     // ==================== 30 秒警告系统 ====================
