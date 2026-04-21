@@ -1,4 +1,4 @@
-﻿import { _decorator, Component, Label, Node, Sprite, tween, UIOpacity, Color, resources, Prefab, instantiate, UITransform, Widget } from 'cc';
+﻿import { _decorator, Component, Label, Node, Sprite, tween, UIOpacity, Color, resources, Prefab, instantiate, UITransform, Widget, Vec3 } from 'cc';
 import { GameMode, GameModeType} from './GameMode';
 import { GridDrawer } from './GridDrawer';
 import { IronController } from './IronController';
@@ -30,6 +30,9 @@ export class LevelMode extends GameMode {
 
     @property({ type: Node })
     settingBtn: Node = null;
+
+    @property({ type: Node })
+    coin_border: Node = null;
     
     @property({ type: ResultPanel })
     resultPanel: ResultPanel = null;
@@ -132,9 +135,25 @@ export class LevelMode extends GameMode {
     private readonly _IDLE_ACTION_THRESHOLD: number = 5;
     private _idleFlashMode: 'highlight' | 'iron' | null = null;
 
+    private _coinPrefab: Prefab | null = null;
+    private _coinPreloadPromise: Promise<void> | null = null;
+    private _coinLoadPromise: Promise<Prefab | null> | null = null;
+    private readonly _coinNodePool: Node[] = [];
+    private readonly _COIN_PREFAB_PATH: string = 'coin';
+    private readonly _COIN_THROW_OFFSET_X: number = 50;
+    private readonly _COIN_THROW_RISE_Y: number = 80;
+    private readonly _COIN_THROW_DROP_Y: number = -30;
+    private readonly _COIN_THROW_DURATION: number = 0.45;
+    private readonly _COIN_STAY_MIN_DURATION: number = 0.3;
+    private readonly _COIN_STAY_MAX_DURATION: number = 0.6;
+    private readonly _COIN_FLY_TO_BORDER_DURATION: number = 0.3;
+    private readonly _IRON_COIN_SPAWN_PROBABILITY: number = 0.1;
+    private readonly _HIGHLIGHT_COIN_SPAWN_PROBABILITY: number = 0.3;
+    
     public tutorialController: TutorialController = null;
 
     get modeType(): GameModeType { return GameModeType.LEVEL; }
+    public get highlightCoinSpawnProbability(): number { return this._HIGHLIGHT_COIN_SPAWN_PROBABILITY; }
 
     update(_deltaTime: number): void {
         const gameManager = GameManager.getInstance();
@@ -221,6 +240,155 @@ export class LevelMode extends GameMode {
         }
     }
 
+    private preloadCoinPrefab(): Promise<void> {
+        if (this._coinPrefab || this._coinPreloadPromise) {
+            return this._coinPreloadPromise ?? Promise.resolve();
+        }
+
+        this._coinPreloadPromise = new Promise((resolve) => {
+            resources.preload(this._COIN_PREFAB_PATH, Prefab, (err) => {
+                this._coinPreloadPromise = null;
+                if (err) {
+                    console.error('预加载 coin 预制体失败:', err);
+                }
+                resolve();
+            });
+        });
+
+        return this._coinPreloadPromise;
+    }
+
+    private async loadCoinPrefab(): Promise<Prefab | null> {
+        if (this._coinPrefab) {
+            return this._coinPrefab;
+        }
+
+        if (this._coinLoadPromise) {
+            return this._coinLoadPromise;
+        }
+
+        this._coinLoadPromise = (async () => {
+            await this.preloadCoinPrefab();
+
+            return new Promise<Prefab | null>((resolve) => {
+                resources.load(this._COIN_PREFAB_PATH, Prefab, (err, prefab) => {
+                    this._coinLoadPromise = null;
+                    if (err || !prefab) {
+                        console.error('加载 coin 预制体失败:', err);
+                        resolve(null);
+                        return;
+                    }
+
+                    this._coinPrefab = prefab;
+                    resolve(prefab);
+                });
+            });
+        })();
+
+        return this._coinLoadPromise;
+    }
+
+    private async obtainCoinNode(): Promise<Node | null> {
+        while (this._coinNodePool.length > 0) {
+            const cachedCoin = this._coinNodePool.pop() ?? null;
+            if (!cachedCoin || !cachedCoin.isValid) {
+                continue;
+            }
+
+            cachedCoin.active = true;
+            cachedCoin.setScale(Vec3.ONE);
+            cachedCoin.setParent(this.node);
+            return cachedCoin;
+        }
+
+        const coinPrefab = await this.loadCoinPrefab();
+        if (!coinPrefab || !this.node || !this.node.isValid) {
+            return null;
+        }
+
+        const coin = instantiate(coinPrefab);
+        coin.setParent(this.node);
+        return coin;
+    }
+
+    private recycleCoinNode(coin: Node | null): void {
+        if (!coin || !coin.isValid) {
+            return;
+        }
+
+        tween(coin).stop();
+        coin.active = false;
+        coin.setScale(Vec3.ONE);
+        coin.setPosition(0, 0, 0);
+
+        this._coinNodePool.push(coin);
+    }
+
+    private getCoinBorderLocalPosition(): Vec3 {
+        if (!this.coin_border || !this.coin_border.isValid) {
+            return new Vec3(0, 0, 0);
+        }
+
+        const rootTransform = this.node?.getComponent(UITransform);
+        if (!rootTransform) {
+            return new Vec3(0, 0, 0);
+        }
+
+        const borderWorldPosition = this.coin_border.getWorldPosition();
+        const localPosition = rootTransform.convertToNodeSpaceAR(borderWorldPosition);
+        return new Vec3(localPosition.x, localPosition.y, 0);
+    }
+
+    public async spawnCoin(startPosition: Vec3 = new Vec3()): Promise<Node | null> {
+        if (!this.node || !this.node.isValid) {
+            return null;
+        }
+
+        const coin = await this.obtainCoinNode();
+        if (!coin) {
+            return null;
+        }
+
+        coin.setPosition(startPosition);
+        coin.setScale(Vec3.ONE);
+
+        const direction = Math.random() < 0.5 ? -1 : 1;
+        const randomDistance = 20 + Math.random() * (this._COIN_THROW_OFFSET_X - 20);
+        const offsetX = direction * randomDistance;
+        const peakPosition = new Vec3(
+            startPosition.x + offsetX * 0.5,
+            startPosition.y + this._COIN_THROW_RISE_Y,
+            startPosition.z,
+        );
+        const endPosition = new Vec3(
+            startPosition.x + offsetX,
+            startPosition.y + this._COIN_THROW_DROP_Y,
+            startPosition.z,
+        );
+        const borderPosition = this.getCoinBorderLocalPosition();
+        const stayDuration = this._COIN_STAY_MIN_DURATION + Math.random() * (this._COIN_STAY_MAX_DURATION - this._COIN_STAY_MIN_DURATION);
+
+        tween(coin)
+            .to(this._COIN_THROW_DURATION * 0.45, {
+                position: peakPosition,
+                scale: new Vec3(1.05, 1.05, 1),
+            }, { easing: 'quadOut' })
+            .to(this._COIN_THROW_DURATION * 0.55, {
+                position: endPosition,
+                scale: new Vec3(0.9, 0.9, 1),
+            }, { easing: 'quadIn' })
+            .delay(stayDuration)
+            .to(this._COIN_FLY_TO_BORDER_DURATION, {
+                position: borderPosition,
+                scale: new Vec3(0.7, 0.7, 1),
+            }, { easing: 'sineIn' })
+            .call(() => {
+                this.recycleCoinNode(coin);
+            })
+            .start();
+
+        return coin;
+    }
     // ==================== 30 秒警告系统 ====================
 
     /**
@@ -490,11 +658,35 @@ export class LevelMode extends GameMode {
      * 当 block 被熨烫时调用
      * @param count 熨烫的 block 数量
      */
-    public onBlocksIroned(count: number): void {
+    public onBlocksIroned(count: number, ironedBlocks: Node[] = []): void {
         this._highlightedCount -= count;
         this._ironedCount += count;
         this.resetIronIdleFlashTimer();
         this.updateProgressUI();
+
+        for (const block of ironedBlocks) {
+            this.trySpawnCoinForIronedBlock(block, this._IRON_COIN_SPAWN_PROBABILITY);
+        }
+    }
+
+    public trySpawnCoinForIronedBlock(block: Node | null, probability: number): void {
+        if (!block || !block.isValid || !this.node || !this.node.isValid) {
+            return;
+        }
+
+        const normalizedProbability = Math.max(0, Math.min(1, probability));
+        if (Math.random() >= normalizedProbability) {
+            return;
+        }
+
+        const rootTransform = this.node.getComponent(UITransform);
+        if (!rootTransform) {
+            return;
+        }
+
+        const blockWorldPosition = block.getWorldPosition();
+        const localPosition = rootTransform.convertToNodeSpaceAR(blockWorldPosition);
+        void this.spawnCoin(new Vec3(localPosition.x, localPosition.y, 0));
     }
 
     /**
@@ -554,6 +746,7 @@ export class LevelMode extends GameMode {
      */
     startLevel(levelId: number, patternPath: string = ''): void {
         WXManager.instance?.setCaptureRestricted();
+        void this.preloadCoinPrefab();
         // 显示原生模板广告
         WXManager.instance?.showNativeAd();
         // 隐藏设置按钮
@@ -1407,3 +1600,6 @@ export class LevelMode extends GameMode {
         });
     }
 }
+
+
+

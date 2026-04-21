@@ -37789,6 +37789,9 @@
     "settingBtn": {
       "__id__": 549
     },
+    "coin_border": {
+      "__id__": 553
+    },
     "resultPanel": {
       "__id__": 1047
     },

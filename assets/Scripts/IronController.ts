@@ -6,21 +6,21 @@ const { ccclass, property } = _decorator;
 
 @ccclass('IronController')
 export class IronController extends Component {
-    // 原始位置
+    // 初始位置
     private originalPos: { x: number, y: number, z: number } = { x: 0, y: 0, z: 0 };
 
-    // 拖动状态
+    // 是否正在拖动
     private isDragging: boolean = false;
 
     // 熨烫音效节流：上次播放时间（毫秒）
     private lastShaTime: number = 0;
-    // 熨烫音效最小间隔（毫秒）
+    // 熨烫音效最小播放间隔（毫秒）
     private readonly SHA_COOLDOWN: number = 100;
     private readonly IRON_STAGE_INTERVAL: number = 500;
     private readonly activeIronTargets = new Map<Node, number>();
 
     onLoad() {
-        // 保存原始位置
+        // 保存初始位置
         const pos = this.node.position;
         this.originalPos = { x: pos.x, y: pos.y, z: pos.z };
 
@@ -45,7 +45,7 @@ export class IronController extends Component {
     }
 
     /**
-     * 重置位置
+     * 重置熨斗位置
      */
     public resetPosition(): void {
         this.activeIronTargets.clear();
@@ -56,7 +56,7 @@ export class IronController extends Component {
     }
 
     /**
-     * 判断游戏是否进行中
+     * 判断当前是否处于可操作中的游戏状态
      */
     private isGameActive(): boolean {
         const gameManager = GameManager.getInstance();
@@ -68,7 +68,7 @@ export class IronController extends Component {
      */
     private onTouchStart(event: EventTouch) {
         if (!this.isGameActive()) return;
-        // 引导期间正确放置了 circle，结束引导
+        // 新手引导期间开始拖动熨斗时，暂停引导
         const gameManager = GameManager.getInstance();
         gameManager.levelMode.tutorialController?.pauseTutorial();
         this.node.getChildByName('mask').active = false;
@@ -92,7 +92,7 @@ export class IronController extends Component {
     }
 
     /**
-     * 根据熨斗的 UITransform 范围，检测范围内所有已高亮的 block 并熨烫
+     * 根据熨斗的 UITransform 范围，处理覆盖到的可熨烫 block
      */
     private handleBlocksInIronRange(): void {
         const gameManager = GameManager.getInstance();
@@ -102,7 +102,7 @@ export class IronController extends Component {
         const blocks = gridDrawer.getAllBlocks();
         if (!blocks) return;
 
-        // 获取熨斗节点的世界坐标和尺寸
+        // 获取熨斗节点的世界坐标和碰撞范围
         const ironWorldPos = this.node.getWorldPosition();
         const ironTransform = this.node.getComponent(UITransform);
         if (!ironTransform) return;
@@ -118,6 +118,7 @@ export class IronController extends Component {
         const overlappingBlocks = new Set<Node>();
         let ironedCount = 0;
         let progressedCount = 0;
+        const completedBlocks: Node[] = [];
         for (let row = 0; row < blocks.length; row++) {
             for (let col = 0; col < blocks[row].length; col++) {
                 const block = blocks[row][col];
@@ -126,15 +127,15 @@ export class IronController extends Component {
                 const blockController = block.getComponent(BlockController);
                 if (!blockController) continue;
 
-                // 只处理已高亮或熨烫中的 block
+                // 只处理可继续熨烫的 block
                 if (blockController.state !== BlockState.HAS_CIRCLE && blockController.state !== BlockState.IRONING) continue;
 
-                // 获取 block 世界坐标和尺寸
+                // 获取 block 的世界坐标和尺寸
                 const blockWorldPos = block.getWorldPosition();
                 const blockTransform = block.getComponent(UITransform);
                 if (!blockTransform) continue;
 
-                // 获取父节点缩放
+                // 叠加父节点缩放，得到真实显示尺寸
                 let scaleX = 1;
                 let scaleY = 1;
                 let parent = block.parent;
@@ -151,7 +152,7 @@ export class IronController extends Component {
                 const blockMinY = blockWorldPos.y - blockHalfH;
                 const blockMaxY = blockWorldPos.y + blockHalfH;
 
-                // 检测 AABB 碰撞（熨斗范围与 block 范围是否重叠）
+                // AABB 碰撞检测：判断熨斗区域与 block 区域是否重叠
                 const isOverlapping = !(ironMaxX < blockMinX || ironMinX > blockMaxX ||
                                         ironMaxY < blockMinY || ironMinY > blockMaxY);
 
@@ -166,6 +167,7 @@ export class IronController extends Component {
                         }
                         if (result.completed) {
                             ironedCount++;
+                            completedBlocks.push(block);
                             this.activeIronTargets.delete(block);
                         } else if (result.progressed) {
                             this.activeIronTargets.set(block, now + this.IRON_STAGE_INTERVAL);
@@ -183,11 +185,11 @@ export class IronController extends Component {
 
         // 更新进度
         if (ironedCount > 0) {
-            gameManager.levelMode.onBlocksIroned(ironedCount);
+            gameManager.levelMode.onBlocksIroned(ironedCount, completedBlocks);
         }
 
         if (progressedCount > 0) {
-            // 节流播放音效
+            // 节流播放熨烫音效
             const now = Date.now();
             if (now - this.lastShaTime >= this.SHA_COOLDOWN) {
                 this.lastShaTime = now;
@@ -195,7 +197,7 @@ export class IronController extends Component {
             }
         }
 
-        // 检查是否所有 block 都已熨烫
+        // 检查是否所有 block 都已熨烫完成
         gameManager.levelMode.checkAllBlocksIroned();
     }
 
@@ -213,15 +215,15 @@ export class IronController extends Component {
     }
 
     /**
-     * 处理单个 block：如果有上色的 circle，则隐藏 circle 并显示 block 的 sprite
-     * @returns 当前是否推进了熨烫进度，以及是否达到完全熨烫
+     * 处理单个 block 的熨烫进度
+     * @returns 是否推进了熨烫进度，以及是否完成熨烫
      */
     private processBlock(block: Node): { progressed: boolean; completed: boolean } {
-        // 获取 BlockController 检查状态
+        // 获取 BlockController 并检查状态
         const blockController = block.getComponent(BlockController);
         if (!blockController) return { progressed: false, completed: false };
 
-        // 检查是否可以熨烫（HAS_CIRCLE / IRONING 状态）
+        // 只有 HAS_CIRCLE / IRONING 状态才允许继续熨烫
         if (!blockController.canIron()) return { progressed: false, completed: false };
 
         const circleNode = block.getChildByName('circle');
@@ -242,12 +244,12 @@ export class IronController extends Component {
             circleSprite.enabled = false;
         }
 
-        // 显示 block_sp 下的 sprite 组件
+        // 显示 block_sp 节点上的 sprite，并同步当前熨烫透明度
         const blockSpNode = block.getChildByName('block_sp');
         if (blockSpNode) {
             const blockSprite = blockSpNode.getComponent(Sprite);
             if (blockSprite) {
-                // 使用当前颜色设置 block sprite
+                // 使用当前颜色更新 block sprite
                 blockSprite.color = new Color(
                     blockController.currentColorR,
                     blockController.currentColorG,
