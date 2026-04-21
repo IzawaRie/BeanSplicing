@@ -88,6 +88,9 @@ export class LevelMode extends GameMode {
     @property({ type: Node })
     tutorial_tip: Node = null;
 
+    @property({ type: Label })
+    coin_label: Label = null;
+
     private currentScore: number = 0;
     private _currentLevelId: number = 1;
     private _patternPath: string = '';
@@ -149,7 +152,10 @@ export class LevelMode extends GameMode {
     private readonly _COIN_FLY_TO_BORDER_DURATION: number = 0.3;
     private readonly _IRON_COIN_SPAWN_PROBABILITY: number = 0.1;
     private readonly _HIGHLIGHT_COIN_SPAWN_PROBABILITY: number = 0.3;
-    
+    private _levelCoinCount: number = 0;
+    private _levelCoinToken: number = 0;
+    private readonly _activeCoinNodes: Set<Node> = new Set();
+
     public tutorialController: TutorialController = null;
 
     get modeType(): GameModeType { return GameModeType.LEVEL; }
@@ -232,6 +238,7 @@ export class LevelMode extends GameMode {
     }
 
     start(){
+        this.refreshLevelCoinLabel();
         if (this.settingBtn) {
             this.settingBtn.on(Node.EventType.TOUCH_END, this.onSettingBtnClick, this);
         }
@@ -316,6 +323,7 @@ export class LevelMode extends GameMode {
             return;
         }
 
+        this._activeCoinNodes.delete(coin);
         tween(coin).stop();
         coin.active = false;
         coin.setScale(Vec3.ONE);
@@ -339,6 +347,37 @@ export class LevelMode extends GameMode {
         return new Vec3(localPosition.x, localPosition.y, 0);
     }
 
+    private refreshLevelCoinLabel(): void {
+        if (this.coin_label) {
+            this.coin_label.string = `${this._levelCoinCount}`;
+        }
+    }
+
+    private resetLevelCoinCount(): void {
+        this._levelCoinCount = 0;
+        this.refreshLevelCoinLabel();
+    }
+
+    private finishLevelCoinSession(): void {
+        this._levelCoinToken++;
+        this.resetLevelCoinCount();
+
+        for (const coin of Array.from(this._activeCoinNodes)) {
+            this.recycleCoinNode(coin);
+        }
+    }
+
+    private addLevelCoin(amount: number = 1): void {
+        this._levelCoinCount += amount;
+        this.refreshLevelCoinLabel();
+    }
+
+    private setCoinBorderVisible(visible: boolean): void {
+        if (this.coin_border) {
+            this.coin_border.active = visible;
+        }
+    }
+
     public async spawnCoin(startPosition: Vec3 = new Vec3()): Promise<Node | null> {
         if (!this.node || !this.node.isValid) {
             return null;
@@ -349,6 +388,8 @@ export class LevelMode extends GameMode {
             return null;
         }
 
+        const coinToken = this._levelCoinToken;
+        this._activeCoinNodes.add(coin);
         coin.setPosition(startPosition);
         coin.setScale(Vec3.ONE);
 
@@ -383,6 +424,9 @@ export class LevelMode extends GameMode {
                 scale: new Vec3(0.7, 0.7, 1),
             }, { easing: 'sineIn' })
             .call(() => {
+                if (coinToken === this._levelCoinToken) {
+                    this.addLevelCoin();
+                }
                 this.recycleCoinNode(coin);
             })
             .start();
@@ -747,6 +791,7 @@ export class LevelMode extends GameMode {
     startLevel(levelId: number, patternPath: string = ''): void {
         WXManager.instance?.setCaptureRestricted();
         void this.preloadCoinPrefab();
+        this.finishLevelCoinSession();
         // 显示原生模板广告
         WXManager.instance?.showNativeAd();
         // 隐藏设置按钮
@@ -865,6 +910,8 @@ export class LevelMode extends GameMode {
         if (this.up_content) {
             this.up_content.active = true;
         }
+
+        this.setCoinBorderVisible(true);
 
         // 隐藏 daojishi_label 和 start_btn
         if (this.daojishi_label) {
@@ -993,6 +1040,8 @@ export class LevelMode extends GameMode {
             this.resultPanel.setResult(isSuccess);
             this.resultPanel.node.active = true;
         }
+        this.setCoinBorderVisible(false);
+        this.finishLevelCoinSession();
     }
 
     private showResultWithDelay(isSuccess: boolean): void {
@@ -1011,6 +1060,8 @@ export class LevelMode extends GameMode {
                 this.resultPanel.setResult(isSuccess);
                 this.resultPanel.node.active = true;
             }
+            this.setCoinBorderVisible(false);
+            this.finishLevelCoinSession();
         }, this._RESULT_DELAY_SECONDS);
     }
 
