@@ -2,7 +2,7 @@
   "ver": "1.0.26",
   "importer": "image",
   "imported": true,
-  "uuid": "d12b04ce-2365-4f85-a001-9407ed7f2044",
+  "uuid": "944e376f-3f8e-4d10-a3e7-0f08eb34c737",
   "files": [
     ".json",
     ".png"
@@ -10,20 +10,20 @@
   "subMetas": {
     "6c48a": {
       "importer": "texture",
-      "uuid": "d12b04ce-2365-4f85-a001-9407ed7f2044@6c48a",
-      "displayName": "power_border",
+      "uuid": "944e376f-3f8e-4d10-a3e7-0f08eb34c737@6c48a",
+      "displayName": "power_bg",
       "id": "6c48a",
       "name": "texture",
       "userData": {
         "wrapModeS": "clamp-to-edge",
         "wrapModeT": "clamp-to-edge",
+        "imageUuidOrDatabaseUri": "944e376f-3f8e-4d10-a3e7-0f08eb34c737",
+        "isUuid": true,
+        "visible": false,
         "minfilter": "linear",
         "magfilter": "linear",
         "mipfilter": "none",
-        "anisotropy": 0,
-        "isUuid": true,
-        "imageUuidOrDatabaseUri": "d12b04ce-2365-4f85-a001-9407ed7f2044",
-        "visible": false
+        "anisotropy": 0
       },
       "ver": "1.0.22",
       "imported": true,
@@ -34,22 +34,22 @@
     },
     "f9941": {
       "importer": "sprite-frame",
-      "uuid": "d12b04ce-2365-4f85-a001-9407ed7f2044@f9941",
-      "displayName": "power_border",
+      "uuid": "944e376f-3f8e-4d10-a3e7-0f08eb34c737@f9941",
+      "displayName": "power_bg",
       "id": "f9941",
       "name": "spriteFrame",
       "userData": {
         "trimType": "auto",
         "trimThreshold": 1,
         "rotated": false,
-        "offsetX": 1.5,
+        "offsetX": 0,
         "offsetY": 0,
-        "trimX": 7,
-        "trimY": 3,
-        "width": 501,
-        "height": 176,
-        "rawWidth": 512,
-        "rawHeight": 182,
+        "trimX": 0,
+        "trimY": 0,
+        "width": 248,
+        "height": 88,
+        "rawWidth": 248,
+        "rawHeight": 88,
         "borderTop": 0,
         "borderBottom": 0,
         "borderLeft": 0,
@@ -61,17 +61,17 @@
         "meshType": 0,
         "vertices": {
           "rawPosition": [
-            -250.5,
-            -88,
+            -124,
+            -44,
             0,
-            250.5,
-            -88,
+            124,
+            -44,
             0,
-            -250.5,
-            88,
+            -124,
+            44,
             0,
-            250.5,
-            88,
+            124,
+            44,
             0
           ],
           "indexes": [
@@ -83,38 +83,38 @@
             3
           ],
           "uv": [
-            7,
-            179,
-            508,
-            179,
-            7,
-            3,
-            508,
-            3
+            0,
+            88,
+            248,
+            88,
+            0,
+            0,
+            248,
+            0
           ],
           "nuv": [
-            0.013671875,
-            0.016483516483516484,
-            0.9921875,
-            0.016483516483516484,
-            0.013671875,
-            0.9835164835164835,
-            0.9921875,
-            0.9835164835164835
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            1,
+            1
           ],
           "minPos": [
-            -250.5,
-            -88,
+            -124,
+            -44,
             0
           ],
           "maxPos": [
-            250.5,
-            88,
+            124,
+            44,
             0
           ]
         },
         "isUuid": true,
-        "imageUuidOrDatabaseUri": "d12b04ce-2365-4f85-a001-9407ed7f2044@6c48a",
+        "imageUuidOrDatabaseUri": "944e376f-3f8e-4d10-a3e7-0f08eb34c737@6c48a",
         "atlasUuid": ""
       },
       "ver": "1.0.12",
@@ -126,10 +126,10 @@
     }
   },
   "userData": {
-    "hasAlpha": true,
     "type": "sprite-frame",
-    "fixAlphaTransparencyArtifacts": true,
-    "redirect": "d12b04ce-2365-4f85-a001-9407ed7f2044@f9941",
+    "hasAlpha": true,
+    "fixAlphaTransparencyArtifacts": false,
+    "redirect": "944e376f-3f8e-4d10-a3e7-0f08eb34c737@f9941",
     "compressSettings": {
       "useCompressTexture": true,
       "presetId": "f8EvLUCe1JwJIx0yIbW8bk"
