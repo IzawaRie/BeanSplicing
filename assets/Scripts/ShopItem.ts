@@ -1,6 +1,7 @@
 import { _decorator, Color, Component, Label, Node, resources, Sprite, SpriteFrame, UITransform } from 'cc';
 import { GameManager } from './GameManager';
 import { ShopDisplayItem } from './ShopConfig';
+import { AudioManager } from './AudioManager';
 const { ccclass, property } = _decorator;
 
 @ccclass('ShopItem')
@@ -90,6 +91,7 @@ export class ShopItem extends Component {
             return;
         }
 
+        AudioManager.instance.playEffect('click_btn');
         GameManager.getInstance()?.shop?.purchaseShopItem(this._currentData);
     }
 

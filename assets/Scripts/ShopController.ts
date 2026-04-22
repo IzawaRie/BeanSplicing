@@ -3,6 +3,7 @@ import { ShopCategoryId, ShopConfig, ShopDisplayItem, ShopRuntimeData } from './
 import { ShopItem } from './ShopItem';
 import { GameManager } from './GameManager';
 import { WXManager } from './WXManager';
+import { AudioManager } from './AudioManager';
 const { ccclass, property } = _decorator;
 
 enum ShopCategoryTab {
@@ -66,19 +67,23 @@ export class ShopController extends Component {
     }
 
     private onCloseBtnClick(): void {
+        AudioManager.instance.playEffect('click_btn');
         this.node.active = false;
         WXManager.instance?.showNativeAd();
     }
 
     private onSupplyTagClick(): void {
+        AudioManager.instance.playEffect('click_btn');
         this.selectTab(ShopCategoryTab.SUPPLY);
     }
 
     private onPropTagClick(): void {
+        AudioManager.instance.playEffect('click_btn');
         this.selectTab(ShopCategoryTab.PROP);
     }
 
     private onDecorationTagClick(): void {
+        AudioManager.instance.playEffect('click_btn');
         this.selectTab(ShopCategoryTab.DECORATION);
     }
 
