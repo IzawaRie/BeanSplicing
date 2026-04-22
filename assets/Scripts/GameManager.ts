@@ -12,6 +12,7 @@ import { WindowController } from './WindowController';
 import { PlayerService } from './PlayerService';
 import { ChartController } from './ChartController';
 import { SubscribeController } from './SubscribeController';
+import { ShopController } from './ShopController';
 const { ccclass, property } = _decorator;
 
 /**
@@ -68,6 +69,9 @@ export class GameManager extends Component {
     @property({ type: SubscribeController })
     subscribe: SubscribeController = null;
 
+    @property({ type: ShopController })
+    shop: ShopController = null;
+
     // 游戏状态
     private _gameState: GameState = GameState.WAITING;
 
@@ -110,6 +114,9 @@ export class GameManager extends Component {
         this._coinCount = Math.max(0, Math.floor(value));
         if (this.menuManager?.coin_label) {
             this.menuManager.coin_label.string = `${this._coinCount}`;
+        }
+        if (this.shop?.coin_label) {
+            this.shop.coin_label.string = `${this._coinCount}`;
         }
         this.scheduleCoinSave();
     }
@@ -483,7 +490,9 @@ export class GameManager extends Component {
         if (this.menuManager?.coin_label) {
             this.menuManager.coin_label.string = `${this._coinCount}`;
         }
-        
+        if (this.shop?.coin_label) {
+            this.shop.coin_label.string = `${this._coinCount}`;
+        }
         const shake = await this.wxManager.getShake();
         if(shake == null){
             this.isShake = true;
