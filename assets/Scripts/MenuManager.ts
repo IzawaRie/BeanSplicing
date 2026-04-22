@@ -468,6 +468,7 @@ export class MenuManager extends Component {
 
         gameManager.vibrateShort();
         AudioManager.instance.playEffect('click_btn');
+        WXManager.instance?.hideNativeAd();
         gameManager.shop.node.active = true;
     }
 

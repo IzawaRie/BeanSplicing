@@ -2,6 +2,7 @@ import { _decorator, Color, Component, Label, Node, Sprite } from 'cc';
 import { ShopCategoryId, ShopConfig, ShopDisplayItem, ShopRuntimeData } from './ShopConfig';
 import { ShopItem } from './ShopItem';
 import { GameManager } from './GameManager';
+import { WXManager } from './WXManager';
 const { ccclass, property } = _decorator;
 
 enum ShopCategoryTab {
@@ -66,6 +67,7 @@ export class ShopController extends Component {
 
     private onCloseBtnClick(): void {
         this.node.active = false;
+        WXManager.instance?.showNativeAd();
     }
 
     private onSupplyTagClick(): void {
