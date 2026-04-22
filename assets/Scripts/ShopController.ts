@@ -1,4 +1,5 @@
 import { _decorator, Color, Component, Label, Node, Sprite } from 'cc';
+import { ShopCategoryId, ShopConfig, ShopDisplayItem, ShopRuntimeData } from './ShopConfig';
 import { ShopItem } from './ShopItem';
 const { ccclass, property } = _decorator;
 
@@ -31,6 +32,7 @@ export class ShopController extends Component {
     private readonly _activeTagColor: Color = new Color(238, 221, 195, 255);
     private readonly _inactiveTagColor: Color = new Color(214, 203, 186, 255);
     private _currentTab: ShopCategoryTab = ShopCategoryTab.SUPPLY;
+    private _shopData: ShopRuntimeData | null = null;
 
     onEnable() {
         this.selectTab(ShopCategoryTab.SUPPLY);
@@ -40,8 +42,7 @@ export class ShopController extends Component {
         this.bindButtonEvents();
     }
 
-    update(deltaTime: number) {
-        
+    update(_deltaTime: number) {
     }
 
     onDestroy() {
@@ -79,9 +80,9 @@ export class ShopController extends Component {
     }
 
     private selectTab(tab: ShopCategoryTab): void {
-        console.log(`切换到标签: ${ShopCategoryTab[tab]}`);
         this._currentTab = tab;
         this.refreshTagStates();
+        this.refreshShopItems();
     }
 
     private refreshTagStates(): void {
@@ -90,11 +91,117 @@ export class ShopController extends Component {
         this.setTagColor(this.shop_tag3, this._currentTab === ShopCategoryTab.DECORATION ? this._activeTagColor : this._inactiveTagColor);
     }
 
-    private setTagColor(tagNode: Node, color: Color): void {
+    private setTagColor(tagNode: Node | null, color: Color): void {
         const tagBgNode = tagNode?.getChildByName('shop_tag_bg');
         const sprite = tagBgNode?.getComponent(Sprite);
         if (sprite) {
             sprite.color = color;
         }
+    }
+
+    public setShopData(shopData: ShopRuntimeData | null): void {
+        if (!this.isShopDataValid(shopData)) {
+            this._shopData = null;
+            this.refreshShopItems();
+            return;
+        }
+
+        this._shopData = {
+            supply: [...shopData.supply],
+            prop: [...shopData.prop],
+            decoration: [...shopData.decoration],
+        };
+        this.refreshShopItems();
+    }
+
+    public hasShopData(): boolean {
+        return this.isShopDataValid(this._shopData);
+    }
+
+    public isShopDataValid(shopData: ShopRuntimeData | null | undefined): shopData is ShopRuntimeData {
+        if (!shopData) {
+            return false;
+        }
+
+        return this.isShopItemArrayValid(shopData.supply)
+            && this.isShopItemArrayValid(shopData.prop)
+            && this.isShopItemArrayValid(shopData.decoration);
+    }
+
+    public async generateRandomShopData(): Promise<ShopRuntimeData | null> {
+        const slotCount = this.shop_items.length;
+        const supply = await this.buildCategoryShopItems('supply', slotCount);
+        const prop: ShopDisplayItem[] = [];
+        const decoration: ShopDisplayItem[] = [];
+        const shopData: ShopRuntimeData = { supply, prop, decoration };
+        return this.isShopDataValid(shopData) ? shopData : null;
+    }
+
+    private refreshShopItems(): void {
+        const currentItems = this.getCurrentTabItems();
+        for (let i = 0; i < this.shop_items.length; i++) {
+            this.shop_items[i]?.setData(currentItems[i] ?? null);
+        }
+    }
+
+    private getCurrentTabItems(): ShopDisplayItem[] {
+        if (!this._shopData) {
+            return [];
+        }
+
+        switch (this._currentTab) {
+            case ShopCategoryTab.SUPPLY:
+                return this._shopData.supply;
+            case ShopCategoryTab.PROP:
+                return this._shopData.prop;
+            case ShopCategoryTab.DECORATION:
+                return this._shopData.decoration;
+            default:
+                return [];
+        }
+    }
+
+    private async buildCategoryShopItems(categoryId: ShopCategoryId, slotCount: number): Promise<ShopDisplayItem[]> {
+        const sourceItems = await ShopConfig.getInstance().getCategoryItems(categoryId);
+        if (slotCount <= 0 || sourceItems.length <= 0) {
+            return [];
+        }
+
+        const shuffledItems = [...sourceItems];
+        for (let i = shuffledItems.length - 1; i > 0; i--) {
+            const randomIndex = Math.floor(Math.random() * (i + 1));
+            const currentItem = shuffledItems[i];
+            shuffledItems[i] = shuffledItems[randomIndex];
+            shuffledItems[randomIndex] = currentItem;
+        }
+
+        return shuffledItems.slice(0, slotCount).map((item) => ({
+            id: item.id,
+            name: item.name,
+            price: this.randomInt(item.priceRange.min, item.priceRange.max),
+            imagePath: item.imagePath,
+            categoryId,
+        }));
+    }
+
+    private isShopItemArrayValid(items: ShopDisplayItem[] | null | undefined): items is ShopDisplayItem[] {
+        if (!Array.isArray(items)) {
+            return false;
+        }
+
+        return items.every((item) =>
+            !!item
+            && typeof item.id === 'string'
+            && typeof item.name === 'string'
+            && typeof item.price === 'number'
+            && typeof item.imagePath === 'string'
+            && typeof item.categoryId === 'string'
+        );
+    }
+
+    private randomInt(min: number, max: number): number {
+        const safeMin = Math.floor(Math.min(min, max));
+        const safeMax = Math.floor(Math.max(min, max));
+        return safeMin + Math.floor(Math.random() * (safeMax - safeMin + 1));
     }
 }

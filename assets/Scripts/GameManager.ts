@@ -493,6 +493,7 @@ export class GameManager extends Component {
         if (this.shop?.coin_label) {
             this.shop.coin_label.string = `${this._coinCount}`;
         }
+        await this.initializeShopData();
         const shake = await this.wxManager.getShake();
         if(shake == null){
             this.isShake = true;
@@ -581,6 +582,27 @@ export class GameManager extends Component {
         this._storageLoaded = true;
 
         this.checkNewbieGuide();
+    }
+
+    private async initializeShopData(): Promise<void> {
+        if (!this.shop || !this.wxManager) {
+            return;
+        }
+
+        const cachedShopData = await this.wxManager.getShopData();
+        if (this.shop.isShopDataValid(cachedShopData)) {
+            this.shop.setShopData(cachedShopData);
+            return;
+        }
+
+        const generatedShopData = await this.shop.generateRandomShopData();
+        if (!generatedShopData) {
+            return;
+        }
+
+        console.log('Generated new shop data:', generatedShopData);
+        this.shop.setShopData(generatedShopData);
+        this.wxManager.setShopData(generatedShopData);
     }
 
     /**

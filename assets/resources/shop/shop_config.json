@@ -5,49 +5,52 @@
       "name": "补给",
       "items": [
         {
-          "id": "coin_pack_small",
-          "name": "小金币包",
+          "id": "skill_fix",
+          "name": "修复技能",
+          "effectType": "skill",
+          "effectKey": "fix_skill",
+          "effectValue": 1,
           "priceRange": {
             "min": 100,
             "max": 199
           },
-          "imagePath": "shop/items/coin_pack_small"
+          "imagePath": "shop/items/skill_fix"
         },
         {
-          "id": "coin_pack_medium",
-          "name": "中金币包",
+          "id": "skill_time_freeze",
+          "name": "冻结技能",
+          "effectType": "skill",
+          "effectKey": "time_skill",
+          "effectValue": 1,
           "priceRange": {
             "min": 200,
             "max": 399
           },
-          "imagePath": "shop/items/coin_pack_medium"
+          "imagePath": "shop/items/skill_time_freeze"
         },
         {
-          "id": "coin_pack_large",
-          "name": "大金币包",
+          "id": "skill_palette",
+          "name": "图案技能",
+          "effectType": "skill",
+          "effectKey": "palette_skill",
+          "effectValue": 1,
           "priceRange": {
-            "min": 400,
-            "max": 699
+            "min": 220,
+            "max": 420
           },
-          "imagePath": "shop/items/coin_pack_large"
+          "imagePath": "shop/items/skill_palette"
         },
         {
-          "id": "power_pack_small",
-          "name": "小体力包",
+          "id": "power_value",
+          "name": "能量值",
+          "effectType": "power",
+          "effectKey": "power",
+          "effectValue": 5,
           "priceRange": {
             "min": 150,
             "max": 249
           },
-          "imagePath": "shop/items/power_pack_small"
-        },
-        {
-          "id": "power_pack_large",
-          "name": "大体力包",
-          "priceRange": {
-            "min": 300,
-            "max": 499
-          },
-          "imagePath": "shop/items/power_pack_large"
+          "imagePath": "shop/items/power"
         }
       ]
     },

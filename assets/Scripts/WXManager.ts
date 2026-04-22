@@ -1,6 +1,7 @@
 import { _decorator, Component, Node } from 'cc';
 import { GameManager, DifficultyMode } from './GameManager';
 import { callFunction } from './CloudbaseService';
+import { ShopRuntimeData } from './ShopConfig';
 const { ccclass, property} = _decorator;
 
 // 微信小游戏全局对象类型声明
@@ -749,6 +750,26 @@ export class WXManager extends Component {
                 key: 'coins',
                 success(res) {
                     resolve(res.data);
+                },
+                fail() {
+                    resolve(null);
+                }
+            });
+        });
+    }
+
+    public setShopData(shopData: ShopRuntimeData): void {
+        if (typeof (wx) === 'undefined') return;
+        wx.setStorageSync('shop_data', shopData);
+    }
+
+    public getShopData(): Promise<ShopRuntimeData | null> {
+        if (typeof (wx) === 'undefined') return Promise.resolve(null);
+        return new Promise((resolve) => {
+            wx.getStorage({
+                key: 'shop_data',
+                success(res) {
+                    resolve((res.data as ShopRuntimeData) ?? null);
                 },
                 fail() {
                     resolve(null);
