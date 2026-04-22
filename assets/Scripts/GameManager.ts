@@ -97,13 +97,16 @@ export class GameManager extends Component {
     // 窗口是否打开
     public isWindowOpen: boolean = false;
 
-    // 用户 openid
-    private _openid: string | null = null;
     public get openid(): string | null {
-        return this._openid;
+        const openid = this.userInfo?.openid?.trim() || '';
+        return openid || null;
     }
     public setOpenid(openid: string | null): void {
-        this._openid = openid;
+        if (!this.userInfo) {
+            return;
+        }
+
+        this.userInfo.openid = openid;
     }
 
     public get canOpenChartDirectly(): boolean {
@@ -144,7 +147,7 @@ export class GameManager extends Component {
      * 判断当前是否已经具备可直接用于排行榜展示的真实用户资料
      */
     public hasReadyChartProfile(): boolean {
-        return !!this.wxManager?.hasRealUserProfile();
+        return (this.userInfo?.hasRealUserProfile() ?? false) || !!this.wxManager?.hasRealUserProfile();
     }
 
     /**
@@ -159,14 +162,14 @@ export class GameManager extends Component {
             return;
         }
 
-        if (!this._openid) {
+        if (!this.openid) {
             const openid = await this.wxManager.getOpenId();
             if (openid) {
                 this.setOpenid(openid);
             }
         }
 
-        if (!this._openid) {
+        if (!this.openid) {
             return;
         }
 
@@ -177,7 +180,7 @@ export class GameManager extends Component {
 
         try {
             const userInfo = await this.wxManager.getUserInfo();
-            if (!this.wxManager.hasRealUserProfile()) {
+            if (!this.userInfo?.hasRealUserProfile()) {
                 return;
             }
 
@@ -299,7 +302,7 @@ export class GameManager extends Component {
         // 获取用户 openid；如果用户已授权用户信息，再拉取用户信息，否则直接同步云数据
         this.wxManager.getOpenId().then(async (openid) => {
             this.setOpenid(openid);
-            console.log('GameManager openid:', this._openid);
+            console.log('GameManager openid:', this.openid);
 
             await this.ensureChartProfileReady();
             PlayerService.instance?.syncProgressWithCloud();

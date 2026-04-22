@@ -1,4 +1,5 @@
 import { DifficultySummary, LevelBest } from './PlayerService';
+import { UserInfo } from './UserInfo';
 
 export interface ChartDisplayProfile {
     nickname: string;
@@ -86,10 +87,7 @@ export class ChartOwnerSummaryBuilder {
     }
 
     public static getFallbackNickname(userId: string): string {
-        if (!userId) {
-            return '豆友';
-        }
-        return `豆友${userId.slice(-4)}`;
+        return UserInfo.getFallbackNickname(userId);
     }
 
     private static getPreferredLocalProfile(

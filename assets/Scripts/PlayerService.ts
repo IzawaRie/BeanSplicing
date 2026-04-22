@@ -114,11 +114,11 @@ export class PlayerService extends Component {
      * 获取用于云端展示的玩家信息
      */
     private getPlayerProfile(openid: string): { nickname: string; avatarUrl: string } {
-        const wxMgr = WXManager.instance;
+        const userInfo = GameManager.getInstance()?.userInfo;
         const fallbackNickname = `豆友${openid.slice(-4)}`;
-        return {
-            nickname: wxMgr?.nickname?.trim() || fallbackNickname,
-            avatarUrl: wxMgr?.avatarUrl || ''
+        return userInfo?.getDisplayProfile() ?? {
+            nickname: fallbackNickname,
+            avatarUrl: ''
         };
     }
 

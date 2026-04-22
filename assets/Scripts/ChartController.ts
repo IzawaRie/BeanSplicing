@@ -3,6 +3,7 @@ import { DifficultyMode, GameManager } from './GameManager';
 import { ChartUser } from './ChartUser';
 import { ChartLocalProfileContext, ChartOwnerSummaryBuilder, ChartOwnerSummaryData } from './ChartOwnerSummary';
 import { DifficultySummary, LevelBest, PlayerService } from './PlayerService';
+import { UserInfo } from './UserInfo';
 const { ccclass, property } = _decorator;
 
 interface DifficultyRankingCache {
@@ -1062,26 +1063,14 @@ export class ChartController extends Component {
             this.getLocalProfileContext()
         );
         return {
-            nickname: profile.nickname || fallbackNickname || this.getFallbackNickname(userId),
+            nickname: profile.nickname || fallbackNickname || UserInfo.getFallbackNickname(userId),
             avatarUrl: profile.avatarUrl
         };
     }
 
     // 优先获取当前玩家已经授权的本地昵称和头像。
     private getLocalProfileContext(): ChartLocalProfileContext | null {
-        const gameManager = GameManager.getInstance();
-        const wxManager = gameManager?.wxManager;
-        const openid = gameManager?.openid ?? '';
-        if (!wxManager?.hasRealUserProfile() || !openid) {
-            return null;
-        }
-
-        return {
-            openid,
-            nickname: wxManager.nickname?.trim() || '',
-            avatarUrl: wxManager.avatarUrl || '',
-            hasRealProfile: wxManager.hasRealUserProfile()
-        };
+        return GameManager.getInstance()?.userInfo?.toChartLocalProfileContext() ?? null;
     }
 
     // 执行一次远程头像下载并转成 SpriteFrame。
@@ -1239,8 +1228,7 @@ export class ChartController extends Component {
 
     // 为缺失昵称的玩家生成默认昵称。
     private getFallbackNickname(userId: string): string {
-        if (!userId) return '\u8c46\u53cb';
-        return `\u8c46\u53cb${userId.slice(-4)}`;
+        return UserInfo.getFallbackNickname(userId);
     }
 
     // 将最高关卡格式化为展示文本。

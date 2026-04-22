@@ -2,6 +2,7 @@ import { _decorator, Component, Node } from 'cc';
 import { GameManager, DifficultyMode } from './GameManager';
 import { callFunction } from './CloudbaseService';
 import { ShopRuntimeData } from './ShopConfig';
+import { UserInfo } from './UserInfo';
 const { ccclass, property} = _decorator;
 
 // 微信小游戏全局对象类型声明
@@ -89,6 +90,29 @@ export class WXManager extends Component {
     }
 
     // ========== 激励视频广告 ==========
+    private getUserInfoModel(): UserInfo | null {
+        return GameManager.getInstance()?.userInfo ?? null;
+    }
+
+    private ensureUserProfileLoadedFromCache(): UserInfo | null {
+        const userInfo = this.getUserInfoModel();
+        if (!userInfo || typeof (wx) === 'undefined') {
+            return userInfo;
+        }
+
+        if (userInfo.nickname || userInfo.avatarUrl) {
+            return userInfo;
+        }
+
+        const nickname = String(wx.getStorageSync(WXManager.USER_NICKNAME_STORAGE_KEY) || '').trim();
+        const avatarUrl = String(wx.getStorageSync(WXManager.USER_AVATAR_URL_STORAGE_KEY) || '').trim();
+        if (UserInfo.isRealUserProfile(nickname, avatarUrl)) {
+            userInfo.setProfile(nickname, avatarUrl);
+        }
+
+        return userInfo;
+    }
+
     private skillRewardedVideoClosed: ((success: boolean) => void) | null = null;
 
     /**
@@ -1211,20 +1235,26 @@ export class WXManager extends Component {
     // ========== 用户信息 ==========
 
     // 用户昵称缓存
-    private _nickname: string = '';
     public get nickname(): string {
-        return this._nickname;
+        return this.ensureUserProfileLoadedFromCache()?.nickname ?? '';
+    }
+
+    private get _nickname(): string {
+        return this.nickname;
     }
 
 
     // 用户头像 URL 缓存
-    private _avatarUrl: string = '';
     public get avatarUrl(): string {
-        return this._avatarUrl;
+        return this.ensureUserProfileLoadedFromCache()?.avatarUrl ?? '';
+    }
+
+    private get _avatarUrl(): string {
+        return this.avatarUrl;
     }
 
     public hasRealUserProfile(): boolean {
-        return this.isRealUserProfile(this._nickname, this._avatarUrl);
+        return this.ensureUserProfileLoadedFromCache()?.hasRealUserProfile() ?? false;
     }
 
     private isFallbackNickname(nickname: string): boolean {
@@ -1238,30 +1268,35 @@ export class WXManager extends Component {
     }
 
     private restoreCachedUserProfile(): void {
-        if (typeof (wx) === 'undefined') {
+        const userInfo = this.getUserInfoModel();
+        if (!userInfo || typeof (wx) === 'undefined') {
             return;
         }
 
         const nickname = String(wx.getStorageSync(WXManager.USER_NICKNAME_STORAGE_KEY) || '').trim();
         const avatarUrl = String(wx.getStorageSync(WXManager.USER_AVATAR_URL_STORAGE_KEY) || '').trim();
 
-        const hasRealUserProfile = this.isRealUserProfile(nickname, avatarUrl);
-        this._nickname = hasRealUserProfile ? nickname : '';
-        this._avatarUrl = hasRealUserProfile ? avatarUrl : '';
-    }
-
-    private saveCachedUserProfile(): void {
-        if (typeof (wx) === 'undefined') {
+        if (UserInfo.isRealUserProfile(nickname, avatarUrl)) {
+            userInfo.setProfile(nickname, avatarUrl);
             return;
         }
 
-        if (!this.isRealUserProfile(this._nickname, this._avatarUrl)) {
+        userInfo.clearProfile();
+    }
+
+    private saveCachedUserProfile(): void {
+        const userInfo = this.getUserInfoModel();
+        if (!userInfo || typeof (wx) === 'undefined') {
+            return;
+        }
+
+        if (!userInfo.hasRealUserProfile()) {
             this.clearCachedUserProfile();
             return;
         }
 
-        wx.setStorageSync(WXManager.USER_NICKNAME_STORAGE_KEY, this._nickname.trim());
-        wx.setStorageSync(WXManager.USER_AVATAR_URL_STORAGE_KEY, this._avatarUrl.trim());
+        wx.setStorageSync(WXManager.USER_NICKNAME_STORAGE_KEY, userInfo.nickname.trim());
+        wx.setStorageSync(WXManager.USER_AVATAR_URL_STORAGE_KEY, userInfo.avatarUrl.trim());
     }
 
     private clearCachedUserProfile(): void {
@@ -1302,21 +1337,21 @@ export class WXManager extends Component {
      * @returns Promise<{ nickname: string; avatarUrl: string }>
      */
     public async getUserInfo(): Promise<{ nickname: string; avatarUrl: string }> {
+        const localUserInfo = this.ensureUserProfileLoadedFromCache();
         if (this.hasRealUserProfile()) {
-            return { nickname: this._nickname, avatarUrl: this._avatarUrl };
+            return localUserInfo?.getDisplayProfile() ?? { nickname: '', avatarUrl: '' };
         }
 
         const resolveFallbackProfile = async (): Promise<{ nickname: string; avatarUrl: string }> => {
             if (this.hasRealUserProfile()) {
-                return { nickname: this._nickname, avatarUrl: this._avatarUrl };
+                return this.ensureUserProfileLoadedFromCache()?.getDisplayProfile() ?? { nickname: '', avatarUrl: '' };
             }
 
             const openid = await this.getOpenId();
             const fallbackNickname = openid ? `豆友${openid.slice(-4)}` : '豆友';
-            this._nickname = fallbackNickname;
-            this._avatarUrl = '';
+            localUserInfo?.setProfile(fallbackNickname, '');
             this.clearCachedUserProfile();
-            return { nickname: this._nickname, avatarUrl: this._avatarUrl };
+            return localUserInfo?.getDisplayProfile() ?? { nickname: fallbackNickname, avatarUrl: '' };
         };
 
         if (typeof (wx) === 'undefined') {
@@ -1333,11 +1368,10 @@ export class WXManager extends Component {
                     if (userInfo) {
                         const openid = await this.getOpenId();
                         const fallbackNickname = openid ? `豆友${openid.slice(-4)}` : '豆友';
-                        this._nickname = userInfo.nickName?.trim() || fallbackNickname;
-                        this._avatarUrl = userInfo.avatarUrl || '';
+                        localUserInfo?.setProfile(userInfo.nickName?.trim() || fallbackNickname, userInfo.avatarUrl || '');
                         this.saveCachedUserProfile();
                         console.log('获取用户信息成功:', this._nickname, this._avatarUrl);
-                        resolve({ nickname: this._nickname, avatarUrl: this._avatarUrl });
+                        resolve(localUserInfo?.getDisplayProfile() ?? { nickname: fallbackNickname, avatarUrl: userInfo.avatarUrl || '' });
                         return;
                     }
 
