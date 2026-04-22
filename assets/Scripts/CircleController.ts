@@ -545,12 +545,21 @@ export class CircleController extends Component {
         const totalDelta = levelMap.reduce((sum, item) => sum + item.delta, 0);
 
         // 对单个 block 应用高亮/取消高亮（动画执行，不改变 delta）
-        const applyHighlight = (block: Node) => {
+        const applyHighlight = (block: Node): boolean => {
             const blockController = block.getComponent(BlockController);
             const circleNode = block.getChildByName('circle');
-            if (!circleNode) return;
+            if (!blockController || !circleNode) {
+                return false;
+            }
             const sprite = circleNode.getComponent(Sprite);
-            if (!sprite) return;
+            if (!sprite) {
+                return false;
+            }
+
+            if (blockController.state === BlockState.IRONING || blockController.state === BlockState.IRONED) {
+                sprite.enabled = false;
+                return false;
+            }
 
             if (highlight) {
                 sprite.enabled = true;
@@ -570,6 +579,7 @@ export class CircleController extends Component {
                     blockController.state = BlockState.NO_CIRCLE;
                 }
             }
+            return true;
         };
 
         // 按层顺序，层内并行，层间延迟扩散
@@ -580,8 +590,8 @@ export class CircleController extends Component {
             const delay = level * delayPerLevel;
 
             if (delay === 0) {
-                applyHighlight(block);
-                if (!triggeredLevels.has(0)) {
+                const applied = applyHighlight(block);
+                if (applied && !triggeredLevels.has(0)) {
                     triggeredLevels.add(0);
                     AudioManager.instance.playEffect('boop', 1.5);
                     gameManager.vibrateShort();
@@ -589,8 +599,8 @@ export class CircleController extends Component {
                 }
             } else {
                 setTimeout(() => {
-                    applyHighlight(block);
-                    if (!triggeredLevels.has(level)) {
+                    const applied = applyHighlight(block);
+                    if (applied && !triggeredLevels.has(level)) {
                         triggeredLevels.add(level);
                         AudioManager.instance.playEffect('boop', 1.5);
                         gameManager.vibrateShort();
