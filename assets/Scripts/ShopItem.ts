@@ -1,4 +1,5 @@
-import { _decorator, Component, Label, Node, resources, Sprite, SpriteFrame, UITransform } from 'cc';
+import { _decorator, Color, Component, Label, Node, resources, Sprite, SpriteFrame, UITransform } from 'cc';
+import { GameManager } from './GameManager';
 import { ShopDisplayItem } from './ShopConfig';
 const { ccclass, property } = _decorator;
 
@@ -22,9 +23,12 @@ export class ShopItem extends Component {
     private _loadToken: number = 0;
     private _baseSpriteWidth: number = 0;
     private _baseSpriteHeight: number = 0;
+    private _currentData: ShopDisplayItem | null = null;
+    private _canPurchase: boolean = false;
 
     start() {
         this.captureBaseSpriteSize();
+        this.item_btn?.on(Node.EventType.TOUCH_END, this.onItemBtnClick, this);
     }
 
     update(deltaTime: number) {
@@ -34,16 +38,19 @@ export class ShopItem extends Component {
     public setData(data: ShopDisplayItem | null): void {
         this._loadToken++;
         this.captureBaseSpriteSize();
+        this._currentData = data;
 
         if (!data) {
             this.node.active = false;
             if (this.item_sp) {
                 this.item_sp.spriteFrame = null;
             }
+            this._canPurchase = false;
             return;
         }
 
         this.node.active = true;
+        this.refreshPurchaseState(data);
         if (this.item_ban) {
             this.item_ban.active = data.isPurchased === true;
         }
@@ -72,6 +79,40 @@ export class ShopItem extends Component {
             this.item_sp.spriteFrame = spriteFrame;
             this.applySpriteAspectRatio(spriteFrame);
         });
+    }
+
+    onDestroy() {
+        this.item_btn?.off(Node.EventType.TOUCH_END, this.onItemBtnClick, this);
+    }
+
+    private onItemBtnClick(): void {
+        if (!this._currentData || this._currentData.isPurchased || !this._canPurchase) {
+            return;
+        }
+
+        GameManager.getInstance()?.shop?.purchaseShopItem(this._currentData);
+    }
+
+    private refreshPurchaseState(data: ShopDisplayItem): void {
+        const currentCoins = GameManager.getInstance()?.coinCount ?? 0;
+        this._canPurchase = !data.isPurchased && currentCoins >= data.price;
+        const targetColor = this._canPurchase
+            ? new Color(255, 255, 255, 255)
+            : new Color(200, 200, 200, 255);
+
+        const buttonSprite = this.item_btn?.getComponent(Sprite);
+        if (buttonSprite) {
+            buttonSprite.color = targetColor;
+        }
+
+        if (this.item_btn) {
+            for (const child of this.item_btn.children) {
+                const label = child.getComponent(Label);
+                if (label) {
+                    label.color = targetColor;
+                }
+            }
+        }
     }
 
     private applySpriteAspectRatio(spriteFrame: SpriteFrame): void {

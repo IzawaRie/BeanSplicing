@@ -1,6 +1,7 @@
 import { _decorator, Color, Component, Label, Node, Sprite } from 'cc';
 import { ShopCategoryId, ShopConfig, ShopDisplayItem, ShopRuntimeData } from './ShopConfig';
 import { ShopItem } from './ShopItem';
+import { GameManager } from './GameManager';
 const { ccclass, property } = _decorator;
 
 enum ShopCategoryTab {
@@ -192,7 +193,56 @@ export class ShopController extends Component {
             imagePath: item.imagePath,
             categoryId,
             isPurchased: false,
+            effectType: item.effectType,
+            effectKey: item.effectKey,
+            effectValue: item.effectValue,
         }));
+    }
+
+    public purchaseShopItem(targetItem: ShopDisplayItem | null | undefined): void {
+        if (!targetItem || targetItem.isPurchased) {
+            return;
+        }
+
+        const gameManager = GameManager.getInstance();
+        if (!gameManager) {
+            return;
+        }
+
+        if (targetItem.effectType === 'skill') {
+            const skillValue = Math.max(0, Math.floor(targetItem.effectValue ?? 0));
+            if (skillValue <= 0 || !gameManager.userInfo) {
+                return;
+            }
+
+            switch (targetItem.effectKey) {
+                case 'fix_skill':
+                    gameManager.userInfo.fixSkillCount += skillValue;
+                    break;
+                case 'time_skill':
+                    gameManager.userInfo.timeSkillCount += skillValue;
+                    break;
+                case 'palette_skill':
+                    gameManager.userInfo.paletteSkillCount += skillValue;
+                    break;
+                default:
+                    return;
+            }
+        } else if (targetItem.effectType === 'power') {
+            const powerValue = Math.max(0, Math.floor(targetItem.effectValue ?? 0));
+            if (powerValue <= 0) {
+                return;
+            }
+
+            gameManager.power += powerValue;
+        } else {
+            return;
+        }
+
+        gameManager.coinCount -= targetItem.price;
+        targetItem.isPurchased = true;
+        this.refreshShopItems();
+        gameManager.wxManager?.setShopData(this.getShopDataSnapshot());
     }
 
     private normalizeShopItemArray(items: ShopDisplayItem[] | null | undefined): ShopDisplayItem[] | null {
@@ -218,10 +268,21 @@ export class ShopController extends Component {
                 imagePath: item.imagePath,
                 categoryId: item.categoryId,
                 isPurchased: item.isPurchased === true,
+                effectType: item.effectType,
+                effectKey: item.effectKey,
+                effectValue: typeof item.effectValue === 'number' ? item.effectValue : undefined,
             });
         }
 
         return normalizedItems;
+    }
+
+    private getShopDataSnapshot(): ShopRuntimeData {
+        return {
+            supply: this._shopData?.supply.map((item) => ({ ...item })) ?? [],
+            prop: this._shopData?.prop.map((item) => ({ ...item })) ?? [],
+            decoration: this._shopData?.decoration.map((item) => ({ ...item })) ?? [],
+        };
     }
 
     private randomInt(min: number, max: number): number {
