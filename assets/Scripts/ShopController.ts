@@ -1,4 +1,5 @@
 import { _decorator, Component, Label, Node } from 'cc';
+import { ShopItem } from './ShopItem';
 const { ccclass, property } = _decorator;
 
 @ccclass('ShopController')
@@ -15,8 +16,8 @@ export class ShopController extends Component {
     @property({ type: Node })
     close_btn: Node = null;
 
-    @property({ type: Node })
-    shop_items: Node[] = [];
+    @property({ type: ShopItem })
+    shop_items: ShopItem[] = [];
 
     @property({ type: Label })
     coin_label: Label = null;

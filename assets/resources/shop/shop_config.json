@@ -1,0 +1,121 @@
+{
+  "categories": [
+    {
+      "id": "supply",
+      "name": "补给",
+      "items": [
+        {
+          "id": "coin_pack_small",
+          "name": "小金币包",
+          "priceRange": {
+            "min": 100,
+            "max": 199
+          },
+          "imagePath": "shop/items/coin_pack_small"
+        },
+        {
+          "id": "coin_pack_medium",
+          "name": "中金币包",
+          "priceRange": {
+            "min": 200,
+            "max": 399
+          },
+          "imagePath": "shop/items/coin_pack_medium"
+        },
+        {
+          "id": "coin_pack_large",
+          "name": "大金币包",
+          "priceRange": {
+            "min": 400,
+            "max": 699
+          },
+          "imagePath": "shop/items/coin_pack_large"
+        },
+        {
+          "id": "power_pack_small",
+          "name": "小体力包",
+          "priceRange": {
+            "min": 150,
+            "max": 249
+          },
+          "imagePath": "shop/items/power_pack_small"
+        },
+        {
+          "id": "power_pack_large",
+          "name": "大体力包",
+          "priceRange": {
+            "min": 300,
+            "max": 499
+          },
+          "imagePath": "shop/items/power_pack_large"
+        }
+      ]
+    },
+    {
+      "id": "prop",
+      "name": "道具",
+      "items": [
+        {
+          "id": "revive_card",
+          "name": "复活卡",
+          "priceRange": {
+            "min": 500,
+            "max": 888
+          },
+          "imagePath": "shop/items/revive_card"
+        },
+        {
+          "id": "time_freeze_card",
+          "name": "时间冻结卡",
+          "priceRange": {
+            "min": 300,
+            "max": 450
+          },
+          "imagePath": "shop/items/time_freeze_card"
+        },
+        {
+          "id": "hint_card",
+          "name": "提示卡",
+          "priceRange": {
+            "min": 180,
+            "max": 280
+          },
+          "imagePath": "shop/items/hint_card"
+        }
+      ]
+    },
+    {
+      "id": "decoration",
+      "name": "装饰",
+      "items": [
+        {
+          "id": "iron_skin_sakura",
+          "name": "樱花熨斗皮肤",
+          "priceRange": {
+            "min": 600,
+            "max": 900
+          },
+          "imagePath": "shop/items/iron_skin_sakura"
+        },
+        {
+          "id": "coin_trail_star",
+          "name": "星光金币特效",
+          "priceRange": {
+            "min": 700,
+            "max": 980
+          },
+          "imagePath": "shop/items/coin_trail_star"
+        },
+        {
+          "id": "frame_cloud",
+          "name": "云朵头像框",
+          "priceRange": {
+            "min": 260,
+            "max": 420
+          },
+          "imagePath": "shop/items/frame_cloud"
+        }
+      ]
+    }
+  ]
+}
