@@ -758,6 +758,66 @@ export class WXManager extends Component {
         });
     }
 
+    public setFixSkillCount(count: number): void {
+        if (typeof (wx) === 'undefined') return;
+        wx.setStorageSync('fix_skill_count', count);
+    }
+
+    public getFixSkillCount(): Promise<number | null> {
+        if (typeof (wx) === 'undefined') return Promise.resolve(null);
+        return new Promise((resolve) => {
+            wx.getStorage({
+                key: 'fix_skill_count',
+                success(res) {
+                    resolve(res.data);
+                },
+                fail() {
+                    resolve(null);
+                }
+            });
+        });
+    }
+
+    public setTimeSkillCount(count: number): void {
+        if (typeof (wx) === 'undefined') return;
+        wx.setStorageSync('time_skill_count', count);
+    }
+
+    public getTimeSkillCount(): Promise<number | null> {
+        if (typeof (wx) === 'undefined') return Promise.resolve(null);
+        return new Promise((resolve) => {
+            wx.getStorage({
+                key: 'time_skill_count',
+                success(res) {
+                    resolve(res.data);
+                },
+                fail() {
+                    resolve(null);
+                }
+            });
+        });
+    }
+
+    public setPaletteSkillCount(count: number): void {
+        if (typeof (wx) === 'undefined') return;
+        wx.setStorageSync('palette_skill_count', count);
+    }
+
+    public getPaletteSkillCount(): Promise<number | null> {
+        if (typeof (wx) === 'undefined') return Promise.resolve(null);
+        return new Promise((resolve) => {
+            wx.getStorage({
+                key: 'palette_skill_count',
+                success(res) {
+                    resolve(res.data);
+                },
+                fail() {
+                    resolve(null);
+                }
+            });
+        });
+    }
+
     public setShopData(shopData: ShopRuntimeData): void {
         if (typeof (wx) === 'undefined') return;
         wx.setStorageSync('shop_data', shopData);

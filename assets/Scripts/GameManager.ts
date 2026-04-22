@@ -13,6 +13,7 @@ import { PlayerService } from './PlayerService';
 import { ChartController } from './ChartController';
 import { SubscribeController } from './SubscribeController';
 import { ShopController } from './ShopController';
+import { UserInfo } from './UserInfo';
 const { ccclass, property } = _decorator;
 
 /**
@@ -71,6 +72,9 @@ export class GameManager extends Component {
 
     @property({ type: ShopController })
     shop: ShopController = null;
+
+    @property({ type: UserInfo })
+    userInfo: UserInfo = null;
 
     // 游戏状态
     private _gameState: GameState = GameState.WAITING;
