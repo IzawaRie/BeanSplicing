@@ -227,6 +227,14 @@ export class ShopController extends Component {
     private randomInt(min: number, max: number): number {
         const safeMin = Math.floor(Math.min(min, max));
         const safeMax = Math.floor(Math.max(min, max));
-        return safeMin + Math.floor(Math.random() * (safeMax - safeMin + 1));
+        const roundedMin = Math.ceil(safeMin / 10) * 10;
+        const roundedMax = Math.floor(safeMax / 10) * 10;
+
+        if (roundedMin > roundedMax) {
+            return roundedMin;
+        }
+
+        const stepCount = Math.floor((roundedMax - roundedMin) / 10);
+        return roundedMin + Math.floor(Math.random() * (stepCount + 1)) * 10;
     }
 }

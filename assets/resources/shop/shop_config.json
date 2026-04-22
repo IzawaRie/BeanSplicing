@@ -11,8 +11,8 @@
           "effectKey": "fix_skill",
           "effectValue": 1,
           "priceRange": {
-            "min": 100,
-            "max": 199
+            "min": 400,
+            "max": 600
           },
           "imagePath": "shop/items/skill_fix"
         },
@@ -24,7 +24,7 @@
           "effectValue": 1,
           "priceRange": {
             "min": 200,
-            "max": 399
+            "max": 400
           },
           "imagePath": "shop/items/skill_time_freeze"
         },
@@ -35,20 +35,44 @@
           "effectKey": "palette_skill",
           "effectValue": 1,
           "priceRange": {
-            "min": 220,
-            "max": 420
+            "min": 350,
+            "max": 600
           },
           "imagePath": "shop/items/skill_palette"
         },
         {
-          "id": "power_value",
-          "name": "能量值",
+          "id": "power_value_small",
+          "name": "能量+3",
           "effectType": "power",
           "effectKey": "power",
-          "effectValue": 5,
+          "effectValue": 3,
           "priceRange": {
-            "min": 150,
-            "max": 249
+            "min": 250,
+            "max": 400
+          },
+          "imagePath": "shop/items/power"
+        },
+        {
+          "id": "power_value_medium",
+          "name": "能量+6",
+          "effectType": "power",
+          "effectKey": "power",
+          "effectValue": 6,
+          "priceRange": {
+            "min": 600,
+            "max": 800
+          },
+          "imagePath": "shop/items/power"
+        },
+        {
+          "id": "power_value_large",
+          "name": "能量+10",
+          "effectType": "power",
+          "effectKey": "power",
+          "effectValue": 10,
+          "priceRange": {
+            "min": 1000,
+            "max": 1200
           },
           "imagePath": "shop/items/power"
         }
