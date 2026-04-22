@@ -53,12 +53,12 @@ export class ShopItem extends Component {
         }
 
         const loadToken = this._loadToken;
-        resources.load(data.imagePath, SpriteFrame, (err, spriteFrame) => {
+        resources.load(`${data.imagePath}/spriteFrame`, SpriteFrame, (err, spriteFrame) => {
             if (loadToken !== this._loadToken || !this.item_sp) {
                 return;
             }
 
-            if (err) {
+            if (err || !spriteFrame) {
                 this.item_sp.spriteFrame = null;
                 return;
             }
@@ -67,5 +67,3 @@ export class ShopItem extends Component {
         });
     }
 }
-
-
