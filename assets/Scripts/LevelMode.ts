@@ -150,8 +150,8 @@ export class LevelMode extends GameMode {
     private readonly _COIN_STAY_MIN_DURATION: number = 0.3;
     private readonly _COIN_STAY_MAX_DURATION: number = 0.6;
     private readonly _COIN_FLY_TO_BORDER_DURATION: number = 0.3;
-    private readonly _IRON_COIN_SPAWN_PROBABILITY: number = 0.1;
-    private readonly _HIGHLIGHT_COIN_SPAWN_PROBABILITY: number = 0.3;
+    private readonly _IRON_COIN_SPAWN_PROBABILITY: number = 0.2;
+    private readonly _HIGHLIGHT_COIN_SPAWN_PROBABILITY: number = 0.5;
     private _levelCoinCount: number = 0;
     private _levelCoinToken: number = 0;
     private readonly _activeCoinNodes: Set<Node> = new Set();
@@ -365,6 +365,19 @@ export class LevelMode extends GameMode {
 
         this._levelCoinToken++;
         this.resetLevelCoinCount();
+
+        for (const coin of Array.from(this._activeCoinNodes)) {
+            this.recycleCoinNode(coin);
+        }
+    }
+
+    /**
+     * 暂停当前关卡金币会话。
+     * 用于失败结算时关闭金币掉落动画，但保留已经收集到的关卡金币数量，
+     * 以便点击“继续修复”后继续显示。
+     */
+    private pauseLevelCoinSession(): void {
+        this._levelCoinToken++;
 
         for (const coin of Array.from(this._activeCoinNodes)) {
             this.recycleCoinNode(coin);
@@ -1103,7 +1116,11 @@ export class LevelMode extends GameMode {
             this.resultPanel.node.active = true;
         }
         this.setCoinBorderVisible(false);
-        this.finishLevelCoinSession(isSuccess);
+        if (isSuccess) {
+            this.finishLevelCoinSession(true);
+        } else {
+            this.pauseLevelCoinSession();
+        }
     }
 
     private showResultWithDelay(isSuccess: boolean): void {
@@ -1123,7 +1140,11 @@ export class LevelMode extends GameMode {
                 this.resultPanel.node.active = true;
             }
             this.setCoinBorderVisible(false);
-            this.finishLevelCoinSession(isSuccess);
+            if (isSuccess) {
+                this.finishLevelCoinSession(true);
+            } else {
+                this.pauseLevelCoinSession();
+            }
         }, this._RESULT_DELAY_SECONDS);
     }
 
@@ -1713,4 +1734,3 @@ export class LevelMode extends GameMode {
         });
     }
 }
-

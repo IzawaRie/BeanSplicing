@@ -59,7 +59,7 @@ export class ShopItem extends Component {
             this.item_name.string = data.name;
         }
         if (this.item_price) {
-            this.item_price.string = `${data.price}`;
+            this.item_price.string = ` ${data.price}`;
         }
 
         if (!this.item_sp || !data.imagePath) {
