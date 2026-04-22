@@ -497,6 +497,11 @@ export class GameManager extends Component {
         if (this.shop?.coin_label) {
             this.shop.coin_label.string = `${this._coinCount}`;
         }
+        if (this.userInfo) {
+            this.userInfo.fixSkillCount = Math.max(0, Math.floor((await this.wxManager.getFixSkillCount()) ?? 0));
+            this.userInfo.timeSkillCount = Math.max(0, Math.floor((await this.wxManager.getTimeSkillCount()) ?? 0));
+            this.userInfo.paletteSkillCount = Math.max(0, Math.floor((await this.wxManager.getPaletteSkillCount()) ?? 0));
+        }
         await this.initializeShopData();
         const shake = await this.wxManager.getShake();
         if(shake == null){

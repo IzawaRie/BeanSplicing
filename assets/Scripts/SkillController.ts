@@ -1,4 +1,4 @@
-import { _decorator, Component, Node, tween, UIOpacity, Vec3 } from 'cc';
+import { _decorator, Component, Label, Node, tween, UIOpacity, Vec3 } from 'cc';
 import { GameManager, GameState } from './GameManager';
 import { LevelMode } from './LevelMode';
 import { AudioManager } from './AudioManager';
@@ -14,6 +14,20 @@ export class SkillController extends Component {
     time_skill: Node = null;
     @property(Node)
     fix_skill: Node = null;
+
+    @property(Node)
+    palette_camera: Node = null;
+    @property(Node)
+    time_camera: Node = null;
+    @property(Node)
+    fix_camera: Node = null;
+
+    @property(Node)
+    palette_number_bg: Node = null;
+    @property(Node)
+    time_number_bg: Node = null;
+    @property(Node)
+    fix_number_bg: Node = null;
 
     // 技能冷却状态
     private paletteCooldown: boolean = false;
@@ -122,6 +136,39 @@ export class SkillController extends Component {
             .start();
     }
 
+    private consumeStoredSkill(skillKey: 'palette' | 'time' | 'fix'): boolean {
+        const userInfo = GameManager.getInstance()?.userInfo;
+        if (!userInfo) {
+            return false;
+        }
+
+        switch (skillKey) {
+            case 'palette':
+                if (userInfo.paletteSkillCount <= 0) return false;
+                userInfo.paletteSkillCount -= 1;
+                break;
+            case 'time':
+                if (userInfo.timeSkillCount <= 0) return false;
+                userInfo.timeSkillCount -= 1;
+                break;
+            case 'fix':
+                if (userInfo.fixSkillCount <= 0) return false;
+                userInfo.fixSkillCount -= 1;
+                break;
+        }
+
+        this.refreshSkillInventoryDisplay();
+        return true;
+    }
+
+    private activateSkillWithCooldown(node: Node, activate: () => void, setCooldown: (value: boolean) => void): void {
+        activate();
+        setCooldown(true);
+        this.startCooldown(node, this.COOLDOWN_TIME, () => {
+            setCooldown(false);
+        });
+    }
+
     // ==================== 技能点击事件 ====================
 
     /**
@@ -135,16 +182,26 @@ export class SkillController extends Component {
 
         const levelMode = this.getLevelMode();
         if (!levelMode) return;
+        const gameManager = GameManager.getInstance();
+        if (!gameManager) return;
 
-        GameManager.getInstance().vibrateShort();
+        gameManager.vibrateShort();
         AudioManager.instance.playEffect('click_btn');
 
         // 按下动画
         this.playPressAnim(this.palette_skill);
 
+        if (this.consumeStoredSkill('palette')) {
+            this.activateSkillWithCooldown(
+                this.palette_skill,
+                () => levelMode.activatePaletteSkill(),
+                (value) => { this.paletteCooldown = value; }
+            );
+            return;
+        }
+
         // 暂停 BGM 和游戏
         AudioManager.instance.pauseBgm();
-        const gameManager = GameManager.getInstance();
         const prevState = gameManager.gameState;
         gameManager.gameState = GameState.PAUSED;
 
@@ -154,13 +211,11 @@ export class SkillController extends Component {
             AudioManager.instance.resumeBgm();
             gameManager.gameState = prevState;
             if (!success) return; // 中途退出，不执行技能
-            levelMode.activatePaletteSkill();
-
-            // 设置冷却
-            this.paletteCooldown = true;
-            this.startCooldown(this.palette_skill, this.COOLDOWN_TIME, () => {
-                this.paletteCooldown = false;
-            });
+            this.activateSkillWithCooldown(
+                this.palette_skill,
+                () => levelMode.activatePaletteSkill(),
+                (value) => { this.paletteCooldown = value; }
+            );
         });
     }
 
@@ -175,16 +230,26 @@ export class SkillController extends Component {
 
         const levelMode = this.getLevelMode();
         if (!levelMode) return;
+        const gameManager = GameManager.getInstance();
+        if (!gameManager) return;
 
-        GameManager.getInstance().vibrateShort();
+        gameManager.vibrateShort();
         AudioManager.instance.playEffect('click_btn');
 
         // 按下动画
         this.playPressAnim(this.time_skill);
 
+        if (this.consumeStoredSkill('time')) {
+            this.activateSkillWithCooldown(
+                this.time_skill,
+                () => levelMode.activateTimeFreeze(),
+                (value) => { this.timeCooldown = value; }
+            );
+            return;
+        }
+
         // 暂停 BGM 和游戏
         AudioManager.instance.pauseBgm();
-        const gameManager = GameManager.getInstance();
         const prevState = gameManager.gameState;
         gameManager.gameState = GameState.PAUSED;
 
@@ -194,13 +259,11 @@ export class SkillController extends Component {
             AudioManager.instance.resumeBgm();
             gameManager.gameState = prevState;
             if (!success) return; // 中途退出，不执行技能
-            levelMode.activateTimeFreeze();
-
-            // 设置冷却
-            this.timeCooldown = true;
-            this.startCooldown(this.time_skill, this.COOLDOWN_TIME, () => {
-                this.timeCooldown = false;
-            });
+            this.activateSkillWithCooldown(
+                this.time_skill,
+                () => levelMode.activateTimeFreeze(),
+                (value) => { this.timeCooldown = value; }
+            );
         });
     }
 
@@ -215,16 +278,26 @@ export class SkillController extends Component {
 
         const levelMode = this.getLevelMode();
         if (!levelMode) return;
+        const gameManager = GameManager.getInstance();
+        if (!gameManager) return;
 
-        GameManager.getInstance().vibrateShort();
+        gameManager.vibrateShort();
         AudioManager.instance.playEffect('click_btn');
 
         // 按下动画
         this.playPressAnim(this.fix_skill);
 
+        if (this.consumeStoredSkill('fix')) {
+            this.activateSkillWithCooldown(
+                this.fix_skill,
+                () => levelMode.activateFixSkill(),
+                (value) => { this.fixCooldown = value; }
+            );
+            return;
+        }
+
         // 暂停 BGM 和游戏
         AudioManager.instance.pauseBgm();
-        const gameManager = GameManager.getInstance();
         const prevState = gameManager.gameState;
         gameManager.gameState = GameState.PAUSED;
 
@@ -234,13 +307,11 @@ export class SkillController extends Component {
             AudioManager.instance.resumeBgm();
             gameManager.gameState = prevState;
             if (!success) return; // 中途退出，不执行技能
-            levelMode.activateFixSkill();
-
-            // 设置冷却
-            this.fixCooldown = true;
-            this.startCooldown(this.fix_skill, this.COOLDOWN_TIME, () => {
-                this.fixCooldown = false;
-            });
+            this.activateSkillWithCooldown(
+                this.fix_skill,
+                () => levelMode.activateFixSkill(),
+                (value) => { this.fixCooldown = value; }
+            );
         });
     }
 
@@ -270,5 +341,32 @@ export class SkillController extends Component {
         resetOpacity(this.palette_skill);
         resetOpacity(this.time_skill);
         resetOpacity(this.fix_skill);
+
+        this.refreshSkillInventoryDisplay();
+    }
+
+    public refreshSkillInventoryDisplay(): void {
+        const userInfo = GameManager.getInstance()?.userInfo;
+        this.refreshSingleSkillDisplay(this.palette_camera, this.palette_number_bg, userInfo?.paletteSkillCount ?? 0);
+        this.refreshSingleSkillDisplay(this.time_camera, this.time_number_bg, userInfo?.timeSkillCount ?? 0);
+        this.refreshSingleSkillDisplay(this.fix_camera, this.fix_number_bg, userInfo?.fixSkillCount ?? 0);
+    }
+
+    private refreshSingleSkillDisplay(cameraNode: Node | null, numberBgNode: Node | null, count: number): void {
+        const safeCount = Math.max(0, Math.floor(count));
+        const hasSkill = safeCount > 0;
+
+        if (cameraNode) {
+            cameraNode.active = !hasSkill;
+        }
+
+        if (numberBgNode) {
+            numberBgNode.active = hasSkill;
+            const numberNode = numberBgNode.getChildByName('number');
+            const numberLabel = numberNode?.getComponent(Label);
+            if (numberLabel) {
+                numberLabel.string = `${safeCount}`;
+            }
+        }
     }
 }
