@@ -838,6 +838,26 @@ export class WXManager extends Component {
         });
     }
 
+    public setShopRefreshTime(refreshTime: number): void {
+        if (typeof (wx) === 'undefined') return;
+        wx.setStorageSync('shop_refresh_time', refreshTime);
+    }
+
+    public getShopRefreshTime(): Promise<number | null> {
+        if (typeof (wx) === 'undefined') return Promise.resolve(null);
+        return new Promise((resolve) => {
+            wx.getStorage({
+                key: 'shop_refresh_time',
+                success(res) {
+                    resolve(typeof res.data === 'number' ? res.data : Number(res.data) || null);
+                },
+                fail() {
+                    resolve(null);
+                }
+            });
+        });
+    }
+
     /**
      * 设置体力下次恢复时间（时间戳，毫秒）
      */

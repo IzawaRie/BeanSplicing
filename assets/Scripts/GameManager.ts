@@ -217,6 +217,7 @@ export class GameManager extends Component {
     private _coinCacheDirty: boolean = false;
     private _coinSaveScheduled: boolean = false;
     private readonly COIN_SAVE_DELAY_SECONDS: number = 5;
+    private readonly SHOP_REFRESH_INTERVAL: number = 60 * 60 * 1000;
 
     // 体力恢复间隔（30分钟，毫秒）
     private readonly POWER_REGEN_INTERVAL: number = 30 * 60 * 1000;
@@ -598,22 +599,30 @@ export class GameManager extends Component {
             return;
         }
 
+        const now = Date.now();
+        const lastShopRefreshTime = await this.wxManager.getShopRefreshTime();
         const cachedShopData = await this.wxManager.getShopData();
         const normalizedCachedShopData = this.shop.normalizeShopData(cachedShopData);
-        if (normalizedCachedShopData) {
+        const shouldRefreshShop = !lastShopRefreshTime || now - lastShopRefreshTime >= this.SHOP_REFRESH_INTERVAL;
+
+        if (!shouldRefreshShop && normalizedCachedShopData) {
             this.shop.setShopData(normalizedCachedShopData);
             this.wxManager.setShopData(normalizedCachedShopData);
             return;
         }
 
         const generatedShopData = await this.shop.generateRandomShopData();
-        if (!generatedShopData) {
+        if (generatedShopData) {
+            this.shop.setShopData(generatedShopData);
+            this.wxManager.setShopData(generatedShopData);
+            this.wxManager.setShopRefreshTime(now);
             return;
         }
 
-        console.log('Generated new shop data:', generatedShopData);
-        this.shop.setShopData(generatedShopData);
-        this.wxManager.setShopData(generatedShopData);
+        if (normalizedCachedShopData) {
+            this.shop.setShopData(normalizedCachedShopData);
+            this.wxManager.setShopData(normalizedCachedShopData);
+        }
     }
 
     /**
