@@ -204,8 +204,8 @@ export class GameManager extends Component {
     private _coinCount: number = 0;
     private readonly SHOP_REFRESH_INTERVAL: number = 60 * 60 * 1000;
 
-    // 体力恢复间隔（30分钟，毫秒）
-    private readonly POWER_REGEN_INTERVAL: number = 30 * 60 * 1000;
+    // 体力恢复间隔（15分钟，毫秒）
+    private readonly POWER_REGEN_INTERVAL: number = 15 * 60 * 1000;
     // 每次恢复能量
     private readonly POWER_REGEN_AMOUNT: number = 1;
     // 体力上限
