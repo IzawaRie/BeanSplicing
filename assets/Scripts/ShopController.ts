@@ -100,16 +100,17 @@ export class ShopController extends Component {
     }
 
     public setShopData(shopData: ShopRuntimeData | null): void {
-        if (!this.isShopDataValid(shopData)) {
+        const normalizedShopData = this.normalizeShopData(shopData);
+        if (!normalizedShopData) {
             this._shopData = null;
             this.refreshShopItems();
             return;
         }
 
         this._shopData = {
-            supply: [...shopData.supply],
-            prop: [...shopData.prop],
-            decoration: [...shopData.decoration],
+            supply: [...normalizedShopData.supply],
+            prop: [...normalizedShopData.prop],
+            decoration: [...normalizedShopData.decoration],
         };
         this.refreshShopItems();
     }
@@ -119,13 +120,22 @@ export class ShopController extends Component {
     }
 
     public isShopDataValid(shopData: ShopRuntimeData | null | undefined): shopData is ShopRuntimeData {
+        return this.normalizeShopData(shopData) !== null;
+    }
+
+    public normalizeShopData(shopData: ShopRuntimeData | null | undefined): ShopRuntimeData | null {
         if (!shopData) {
-            return false;
+            return null;
         }
 
-        return this.isShopItemArrayValid(shopData.supply)
-            && this.isShopItemArrayValid(shopData.prop)
-            && this.isShopItemArrayValid(shopData.decoration);
+        const supply = this.normalizeShopItemArray(shopData.supply);
+        const prop = this.normalizeShopItemArray(shopData.prop);
+        const decoration = this.normalizeShopItemArray(shopData.decoration);
+        if (!supply || !prop || !decoration) {
+            return null;
+        }
+
+        return { supply, prop, decoration };
     }
 
     public async generateRandomShopData(): Promise<ShopRuntimeData | null> {
@@ -181,22 +191,37 @@ export class ShopController extends Component {
             price: this.randomInt(item.priceRange.min, item.priceRange.max),
             imagePath: item.imagePath,
             categoryId,
+            isPurchased: false,
         }));
     }
 
-    private isShopItemArrayValid(items: ShopDisplayItem[] | null | undefined): items is ShopDisplayItem[] {
+    private normalizeShopItemArray(items: ShopDisplayItem[] | null | undefined): ShopDisplayItem[] | null {
         if (!Array.isArray(items)) {
-            return false;
+            return null;
         }
 
-        return items.every((item) =>
-            !!item
-            && typeof item.id === 'string'
-            && typeof item.name === 'string'
-            && typeof item.price === 'number'
-            && typeof item.imagePath === 'string'
-            && typeof item.categoryId === 'string'
-        );
+        const normalizedItems: ShopDisplayItem[] = [];
+        for (const item of items) {
+            if (!item
+                || typeof item.id !== 'string'
+                || typeof item.name !== 'string'
+                || typeof item.price !== 'number'
+                || typeof item.imagePath !== 'string'
+                || typeof item.categoryId !== 'string') {
+                return null;
+            }
+
+            normalizedItems.push({
+                id: item.id,
+                name: item.name,
+                price: item.price,
+                imagePath: item.imagePath,
+                categoryId: item.categoryId,
+                isPurchased: item.isPurchased === true,
+            });
+        }
+
+        return normalizedItems;
     }
 
     private randomInt(min: number, max: number): number {

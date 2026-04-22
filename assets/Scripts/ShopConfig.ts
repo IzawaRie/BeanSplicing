@@ -30,6 +30,7 @@ export interface ShopDisplayItem {
     price: number;
     imagePath: string;
     categoryId: ShopCategoryId;
+    isPurchased: boolean;
 }
 
 export interface ShopRuntimeData {

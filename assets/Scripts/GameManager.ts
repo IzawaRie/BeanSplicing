@@ -590,8 +590,10 @@ export class GameManager extends Component {
         }
 
         const cachedShopData = await this.wxManager.getShopData();
-        if (this.shop.isShopDataValid(cachedShopData)) {
-            this.shop.setShopData(cachedShopData);
+        const normalizedCachedShopData = this.shop.normalizeShopData(cachedShopData);
+        if (normalizedCachedShopData) {
+            this.shop.setShopData(normalizedCachedShopData);
+            this.wxManager.setShopData(normalizedCachedShopData);
             return;
         }
 
