@@ -11,8 +11,8 @@
           "effectKey": "fix_skill",
           "effectValue": 1,
           "priceRange": {
-            "min": 400,
-            "max": 600
+            "min": 200,
+            "max": 400
           },
           "imagePath": "shop/items/skill_fix"
         },
@@ -23,8 +23,8 @@
           "effectKey": "time_skill",
           "effectValue": 1,
           "priceRange": {
-            "min": 200,
-            "max": 400
+            "min": 100,
+            "max": 300
           },
           "imagePath": "shop/items/skill_time_freeze"
         },
@@ -35,8 +35,8 @@
           "effectKey": "palette_skill",
           "effectValue": 1,
           "priceRange": {
-            "min": 350,
-            "max": 600
+            "min": 250,
+            "max": 450
           },
           "imagePath": "shop/items/skill_palette"
         },
@@ -47,8 +47,8 @@
           "effectKey": "power",
           "effectValue": 3,
           "priceRange": {
-            "min": 250,
-            "max": 400
+            "min": 150,
+            "max": 250
           },
           "imagePath": "shop/items/power"
         },
@@ -59,8 +59,8 @@
           "effectKey": "power",
           "effectValue": 6,
           "priceRange": {
-            "min": 600,
-            "max": 800
+            "min": 300,
+            "max": 500
           },
           "imagePath": "shop/items/power"
         },
@@ -71,8 +71,8 @@
           "effectKey": "power",
           "effectValue": 10,
           "priceRange": {
-            "min": 1000,
-            "max": 1200
+            "min": 600,
+            "max": 800
           },
           "imagePath": "shop/items/power"
         }
