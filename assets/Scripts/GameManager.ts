@@ -122,7 +122,7 @@ export class GameManager extends Component {
         if (this.shop?.coin_label) {
             this.shop.coin_label.string = `${this._coinCount}`;
         }
-        this.scheduleCoinSave();
+        this.saveCoinImmediately();
     }
 
     public addCoins(amount: number = 1): void {
@@ -133,26 +133,11 @@ export class GameManager extends Component {
         this.coinCount = this._coinCount + amount;
     }
 
-    private scheduleCoinSave(): void {
-        this._coinCacheDirty = true;
+    private saveCoinImmediately(): void {
         if (!this._storageLoaded) {
             return;
         }
-
-        if (this._coinSaveScheduled) {
-            return;
-        }
-
-        this._coinSaveScheduled = true;
-        this.scheduleOnce(() => {
-            this._coinSaveScheduled = false;
-            if (!this._coinCacheDirty) {
-                return;
-            }
-
-            this._coinCacheDirty = false;
-            this.wxManager?.setCoins(this._coinCount);
-        }, this.COIN_SAVE_DELAY_SECONDS);
+        this.wxManager?.setCoins(this._coinCount);
     }
 
     /**
@@ -214,9 +199,6 @@ export class GameManager extends Component {
     // 能量
     private _power: number = 10;
     private _coinCount: number = 0;
-    private _coinCacheDirty: boolean = false;
-    private _coinSaveScheduled: boolean = false;
-    private readonly COIN_SAVE_DELAY_SECONDS: number = 5;
     private readonly SHOP_REFRESH_INTERVAL: number = 60 * 60 * 1000;
 
     // 体力恢复间隔（30分钟，毫秒）
