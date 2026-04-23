@@ -158,7 +158,7 @@ export class GameManager extends Component {
             return;
         }
 
-        if (this.hasReadyChartProfile()) {
+        if (!isStartup && this.hasReadyChartProfile()) {
             return;
         }
 
