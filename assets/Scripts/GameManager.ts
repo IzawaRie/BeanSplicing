@@ -11,7 +11,6 @@ import { AudioManager } from './AudioManager';
 import { WindowController } from './WindowController';
 import { PlayerService } from './PlayerService';
 import { ChartController } from './ChartController';
-import { SubscribeController } from './SubscribeController';
 import { ShopController } from './ShopController';
 import { UserInfo } from './UserInfo';
 const { ccclass, property } = _decorator;
@@ -66,9 +65,6 @@ export class GameManager extends Component {
     
     @property({ type: WindowController })
     window: WindowController = null;
-
-    @property({ type: SubscribeController })
-    subscribe: SubscribeController = null;
 
     @property({ type: ShopController })
     shop: ShopController = null;
@@ -239,8 +235,6 @@ export class GameManager extends Component {
             this._powerNextRegenTime = Date.now() + this.POWER_REGEN_INTERVAL;
             this.wxManager.setPowerNextRegenTime(this._powerNextRegenTime);
         }
-
-        void this.wxManager?.createPowerRegenSubscribeTaskIfAccepted('game_manager_power_setter');
     }
 
     /**
@@ -292,9 +286,7 @@ export class GameManager extends Component {
                (this.window?.node?.active ?? false) ||
                (this.chart?.node?.active ?? false) ||
                (this.userInfo?.node?.active ?? false) ||
-               (this.shop?.node?.active ?? false) ||
-               (this.subscribe?.node?.active ?? false) ||
-               (this.subscribe?.node?.parent?.active ?? false);
+               (this.shop?.node?.active ?? false)
     }
 
     onLoad() {
@@ -320,16 +312,7 @@ export class GameManager extends Component {
 
         this.menuManager.levelConfig = LevelConfig.getInstance();
         PatternBundle.getInstance().loadBundle();
-        void this.initStorage().then(async () => {
-            if (!this.wxManager) {
-                return;
-            }
-
-            const subscribeState = await this.wxManager.getSubscribeTemplateAuthorizeState();
-            if (this.menuManager?.sub_btn) {
-                this.menuManager.sub_btn.active = subscribeState === 'unset';
-            }
-        });
+        void this.initStorage();
     }
 
     start() {
