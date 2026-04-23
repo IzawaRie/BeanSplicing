@@ -1,6 +1,6 @@
-import { _decorator, Component } from 'cc';
+import { _decorator, Node, Component, Label, Sprite } from 'cc';
 import { WXManager } from './WXManager';
-const { ccclass } = _decorator;
+const { ccclass, property } = _decorator;
 
 type LocalProfileContext = {
     openid: string;
@@ -11,6 +11,52 @@ type LocalProfileContext = {
 
 @ccclass('UserInfo')
 export class UserInfo extends Component {
+
+    @property({ type: Node })
+    man_sex_btn: Node = null;
+
+    @property({ type: Node })
+    woman_sex_btn: Node = null;
+
+    @property({ type: Label })
+    name_label: Label = null;
+
+    @property({ type: Label })
+    sex_label: Label = null;
+
+    @property({ type: Sprite })
+    avatar_kuang: Sprite = null;
+
+    @property({ type: Sprite })
+    avatar_mask: Sprite = null;
+
+    @property({ type: Sprite })
+    avatar_sprite: Sprite = null;
+
+    @property({ type: Label })
+    palette_label: Label = null;
+
+    @property({ type: Label })
+    time_label: Label = null;
+
+    @property({ type: Label })
+    fix_label: Label = null;
+
+    @property({ type: Node })
+    ac_content: Node = null;
+
+    @property({ type: Node })
+    avatar_content: Node = null;
+
+    @property({ type: Node })
+    kuang_content: Node = null;
+
+    @property({ type: Node })
+    niezi_content: Node = null;
+
+    @property({ type: Node })
+    yundou_content: Node = null;
+
     private _openid: string = '';
     private _nickname: string = '';
     private _avatarUrl: string = '';
