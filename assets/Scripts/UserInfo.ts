@@ -78,6 +78,7 @@ export class UserInfo extends Component {
 
     public set nickname(value: string) {
         this._nickname = (value || '').trim();
+        this.refreshNameLabel();
     }
 
     public get avatarUrl(): string {
@@ -91,11 +92,19 @@ export class UserInfo extends Component {
     public setProfile(nickname: string | null | undefined, avatarUrl: string | null | undefined): void {
         this._nickname = (nickname || '').trim();
         this._avatarUrl = (avatarUrl || '').trim();
+        this.refreshNameLabel();
     }
 
     public clearProfile(): void {
         this._nickname = '';
         this._avatarUrl = '';
+        this.refreshNameLabel();
+    }
+
+    private refreshNameLabel(): void {
+        if (this.name_label) {
+            this.name_label.string = this._nickname;
+        }
     }
 
     public hasRealUserProfile(): boolean {
