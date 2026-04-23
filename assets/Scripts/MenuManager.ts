@@ -41,6 +41,9 @@ export class MenuManager extends Component {
     @property({ type: Node })
     shop_btn: Node = null;
 
+    @property({ type: Node })
+    userinfo_btn: Node = null;
+
     @property({ type: Label })
     power_label: Label = null;
 
@@ -181,6 +184,9 @@ export class MenuManager extends Component {
         }
         if (this.shop_btn) {
             this.shop_btn.on(Node.EventType.TOUCH_END, this.onShopBtnClick, this);
+        }
+        if (this.userinfo_btn) {
+            this.userinfo_btn.on(Node.EventType.TOUCH_END, this.onUserInfoBtnClick, this);
         }
 
         // 加载星星预制体
@@ -472,6 +478,17 @@ export class MenuManager extends Component {
         gameManager.shop.node.active = true;
     }
 
+    private onUserInfoBtnClick(): void {
+        const gameManager = GameManager.getInstance();
+        if (!gameManager?.userInfo || (gameManager.gameState != GameState.WAITING)) return;
+        if (gameManager.isWindowBlocking()) return;
+
+        gameManager.vibrateShort();
+        AudioManager.instance.playEffect('click_btn');
+        WXManager.instance?.hideNativeAd();
+        gameManager.userInfo.node.active = true;
+    }
+
     /**
      * 显示进度面板
      */
@@ -602,6 +619,9 @@ export class MenuManager extends Component {
         }
         if (this.shop_btn) {
             this.shop_btn.off(Node.EventType.TOUCH_END, this.onShopBtnClick, this);
+        }
+        if (this.userinfo_btn) {
+            this.userinfo_btn.off(Node.EventType.TOUCH_END, this.onUserInfoBtnClick, this);
         }
     }
 }

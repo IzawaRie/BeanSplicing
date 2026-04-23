@@ -1,6 +1,9 @@
-import { _decorator, Node, Component, Label, Sprite } from 'cc';
+import { _decorator, Color, Node, Component, Label, Sprite, input, Input, EventTouch, UITransform, Vec2 } from 'cc';
+import { GameManager, GameState } from './GameManager';
 import { WXManager } from './WXManager';
 const { ccclass, property } = _decorator;
+
+type UserSex = 'male' | 'female';
 
 type LocalProfileContext = {
     openid: string;
@@ -11,6 +14,8 @@ type LocalProfileContext = {
 
 @ccclass('UserInfo')
 export class UserInfo extends Component {
+    private static readonly ACTIVE_BUTTON_COLOR = new Color(255, 255, 255, 255);
+    private static readonly INACTIVE_BUTTON_COLOR = new Color(200, 200, 200, 255);
 
     @property({ type: Node })
     man_sex_btn: Node = null;
@@ -23,6 +28,9 @@ export class UserInfo extends Component {
 
     @property({ type: Label })
     sex_label: Label = null;
+
+    @property({ type: Node })
+    border_bg: Node = null;
 
     @property({ type: Sprite })
     avatar_kuang: Sprite = null;
@@ -63,6 +71,26 @@ export class UserInfo extends Component {
     private _fixSkillCount: number = 0;
     private _timeSkillCount: number = 0;
     private _paletteSkillCount: number = 0;
+    private _sex: UserSex = 'male';
+
+    onLoad(): void {
+        this.refreshNameLabel();
+        this.bindSexButtonEvents();
+        this.initializeSexState();
+    }
+
+    onEnable(): void {
+        input.on(Input.EventType.TOUCH_END, this.onTouchEnd, this);
+    }
+
+    onDisable(): void {
+        input.off(Input.EventType.TOUCH_END, this.onTouchEnd, this);
+    }
+
+    onDestroy(): void {
+        input.off(Input.EventType.TOUCH_END, this.onTouchEnd, this);
+        this.unbindSexButtonEvents();
+    }
 
     public get openid(): string {
         return this._openid;
@@ -70,6 +98,17 @@ export class UserInfo extends Component {
 
     public set openid(value: string | null) {
         this._openid = (value || '').trim();
+    }
+
+    public get sex(): UserSex {
+        return this._sex;
+    }
+
+    public set sex(value: UserSex) {
+        const normalizedSex: UserSex = value === 'female' ? 'female' : 'male';
+        this._sex = normalizedSex;
+        this.refreshSexDisplay();
+        WXManager.instance?.setUserSex(normalizedSex);
     }
 
     public get nickname(): string {
@@ -105,6 +144,81 @@ export class UserInfo extends Component {
         if (this.name_label) {
             this.name_label.string = this._nickname;
         }
+    }
+
+    private initializeSexState(): void {
+        const cachedSex = WXManager.instance?.getUserSex();
+        this._sex = cachedSex === 'female' ? 'female' : 'male';
+        this.refreshSexDisplay();
+    }
+
+    private bindSexButtonEvents(): void {
+        this.man_sex_btn?.on(Node.EventType.TOUCH_END, this.onManSexBtnClick, this);
+        this.woman_sex_btn?.on(Node.EventType.TOUCH_END, this.onWomanSexBtnClick, this);
+    }
+
+    private unbindSexButtonEvents(): void {
+        this.man_sex_btn?.off(Node.EventType.TOUCH_END, this.onManSexBtnClick, this);
+        this.woman_sex_btn?.off(Node.EventType.TOUCH_END, this.onWomanSexBtnClick, this);
+    }
+
+    private onManSexBtnClick(): void {
+        this.sex = 'male';
+    }
+
+    private onWomanSexBtnClick(): void {
+        this.sex = 'female';
+    }
+
+    private onTouchEnd(event: EventTouch): void {
+        const touch = event.touch;
+        if (!touch || !this.node.activeInHierarchy) {
+            return;
+        }
+
+        const touchPos = touch.getUILocation();
+        if (this.isTouchInContentPanel(touchPos)) {
+            return;
+        }
+
+        this.closePanel();
+    }
+
+    private refreshSexDisplay(): void {
+        if (this.sex_label) {
+            this.sex_label.string = this._sex === 'female' ? '女' : '男';
+        }
+
+        this.refreshSexButtonColor(this.man_sex_btn, this._sex === 'male');
+        this.refreshSexButtonColor(this.woman_sex_btn, this._sex === 'female');
+    }
+
+    private refreshSexButtonColor(buttonNode: Node | null, selected: boolean): void {
+        const sprite = buttonNode?.getComponent(Sprite);
+        if (sprite) {
+            sprite.color = selected ? UserInfo.ACTIVE_BUTTON_COLOR : UserInfo.INACTIVE_BUTTON_COLOR;
+        }
+    }
+
+    public closePanel(): void {
+        this.node.active = false;
+        const gameManager = GameManager.getInstance();
+        if (gameManager?.gameState === GameState.WAITING) {
+            WXManager.instance?.showNativeAd();
+        }
+    }
+
+    private isTouchInContentPanel(touchPos: Vec2): boolean {
+        if (!this.border_bg) {
+            return false;
+        }
+
+        const contentTransform = this.border_bg.getComponent(UITransform);
+        if (!contentTransform) {
+            return false;
+        }
+
+        return contentTransform.getBoundingBoxToWorld().contains(touchPos);
     }
 
     public hasRealUserProfile(): boolean {

@@ -291,6 +291,7 @@ export class GameManager extends Component {
                (this.setting?.node?.active ?? false) ||
                (this.window?.node?.active ?? false) ||
                (this.chart?.node?.active ?? false) ||
+               (this.userInfo?.node?.active ?? false) ||
                (this.shop?.node?.active ?? false) ||
                (this.subscribe?.node?.active ?? false) ||
                (this.subscribe?.node?.parent?.active ?? false);

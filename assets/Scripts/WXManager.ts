@@ -53,6 +53,7 @@ interface SubscribeTaskClientResult {
 export class WXManager extends Component {
     private static readonly USER_NICKNAME_STORAGE_KEY = 'user_nickname';
     private static readonly USER_AVATAR_URL_STORAGE_KEY = 'user_avatar_url';
+    private static readonly USER_SEX_STORAGE_KEY = 'user_sex';
 
     @property({ type: Node })
     testBtn: Node = null;
@@ -826,6 +827,24 @@ export class WXManager extends Component {
     public setPaletteSkillCount(count: number): void {
         if (typeof (wx) === 'undefined') return;
         wx.setStorageSync('palette_skill_count', count);
+    }
+
+    public getUserSex(): string {
+        if (typeof (wx) === 'undefined') {
+            return 'male';
+        }
+
+        const sex = String(wx.getStorageSync(WXManager.USER_SEX_STORAGE_KEY) || '').trim();
+        return sex === 'female' ? 'female' : 'male';
+    }
+
+    public setUserSex(sex: string): void {
+        if (typeof (wx) === 'undefined') {
+            return;
+        }
+
+        const normalizedSex = sex === 'female' ? 'female' : 'male';
+        wx.setStorageSync(WXManager.USER_SEX_STORAGE_KEY, normalizedSex);
     }
 
     public getPaletteSkillCount(): Promise<number | null> {
