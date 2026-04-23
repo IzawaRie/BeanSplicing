@@ -2,7 +2,7 @@
   "ver": "1.0.26",
   "importer": "image",
   "imported": true,
-  "uuid": "4dde5ab8-c6f5-4958-9a8a-9b8c5ee585e8",
+  "uuid": "394cd57e-5fc8-463b-bdfe-c8d73b7e85ee",
   "files": [
     ".json",
     ".png"
@@ -10,20 +10,20 @@
   "subMetas": {
     "6c48a": {
       "importer": "texture",
-      "uuid": "4dde5ab8-c6f5-4958-9a8a-9b8c5ee585e8@6c48a",
-      "displayName": "yundou2",
+      "uuid": "394cd57e-5fc8-463b-bdfe-c8d73b7e85ee@6c48a",
+      "displayName": "phb_avatar_woman",
       "id": "6c48a",
       "name": "texture",
       "userData": {
-        "wrapModeS": "repeat",
-        "wrapModeT": "repeat",
+        "wrapModeS": "clamp-to-edge",
+        "wrapModeT": "clamp-to-edge",
+        "imageUuidOrDatabaseUri": "394cd57e-5fc8-463b-bdfe-c8d73b7e85ee",
+        "isUuid": true,
+        "visible": false,
         "minfilter": "linear",
         "magfilter": "linear",
         "mipfilter": "none",
-        "anisotropy": 0,
-        "isUuid": true,
-        "imageUuidOrDatabaseUri": "4dde5ab8-c6f5-4958-9a8a-9b8c5ee585e8",
-        "visible": false
+        "anisotropy": 0
       },
       "ver": "1.0.22",
       "imported": true,
@@ -34,22 +34,22 @@
     },
     "f9941": {
       "importer": "sprite-frame",
-      "uuid": "4dde5ab8-c6f5-4958-9a8a-9b8c5ee585e8@f9941",
-      "displayName": "yundou2",
+      "uuid": "394cd57e-5fc8-463b-bdfe-c8d73b7e85ee@f9941",
+      "displayName": "phb_avatar_woman",
       "id": "f9941",
       "name": "spriteFrame",
       "userData": {
         "trimType": "auto",
         "trimThreshold": 1,
         "rotated": false,
-        "offsetX": -0.5,
-        "offsetY": -3,
-        "trimX": 8,
-        "trimY": 30,
-        "width": 495,
-        "height": 458,
-        "rawWidth": 512,
-        "rawHeight": 512,
+        "offsetX": 0.5,
+        "offsetY": -4,
+        "trimX": 14,
+        "trimY": 8,
+        "width": 58,
+        "height": 77,
+        "rawWidth": 85,
+        "rawHeight": 85,
         "borderTop": 0,
         "borderBottom": 0,
         "borderLeft": 0,
@@ -61,17 +61,17 @@
         "meshType": 0,
         "vertices": {
           "rawPosition": [
-            -247.5,
-            -229,
+            -29,
+            -38.5,
             0,
-            247.5,
-            -229,
+            29,
+            -38.5,
             0,
-            -247.5,
-            229,
+            -29,
+            38.5,
             0,
-            247.5,
-            229,
+            29,
+            38.5,
             0
           ],
           "indexes": [
@@ -83,38 +83,38 @@
             3
           ],
           "uv": [
-            8,
-            482,
-            503,
-            482,
-            8,
-            24,
-            503,
-            24
+            14,
+            77,
+            72,
+            77,
+            14,
+            0,
+            72,
+            0
           ],
           "nuv": [
-            0.015625,
-            0.046875,
-            0.982421875,
-            0.046875,
-            0.015625,
-            0.94140625,
-            0.982421875,
-            0.94140625
+            0.16470588235294117,
+            0,
+            0.8470588235294118,
+            0,
+            0.16470588235294117,
+            0.9058823529411765,
+            0.8470588235294118,
+            0.9058823529411765
           ],
           "minPos": [
-            -247.5,
-            -229,
+            -29,
+            -38.5,
             0
           ],
           "maxPos": [
-            247.5,
-            229,
+            29,
+            38.5,
             0
           ]
         },
         "isUuid": true,
-        "imageUuidOrDatabaseUri": "4dde5ab8-c6f5-4958-9a8a-9b8c5ee585e8@6c48a",
+        "imageUuidOrDatabaseUri": "394cd57e-5fc8-463b-bdfe-c8d73b7e85ee@6c48a",
         "atlasUuid": ""
       },
       "ver": "1.0.12",
@@ -126,13 +126,9 @@
     }
   },
   "userData": {
-    "hasAlpha": true,
     "type": "sprite-frame",
-    "fixAlphaTransparencyArtifacts": true,
-    "redirect": "4dde5ab8-c6f5-4958-9a8a-9b8c5ee585e8@f9941",
-    "compressSettings": {
-      "useCompressTexture": true,
-      "presetId": "f8EvLUCe1JwJIx0yIbW8bk"
-    }
+    "hasAlpha": true,
+    "fixAlphaTransparencyArtifacts": false,
+    "redirect": "394cd57e-5fc8-463b-bdfe-c8d73b7e85ee@f9941"
   }
 }
