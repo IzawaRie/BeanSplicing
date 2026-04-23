@@ -1,0 +1,28 @@
+{
+  "avatarFrames": [
+    {
+      "id": 1,
+      "resourcePath": "items/avatar_frame/avatar_frame_1"
+    },
+    {
+      "id": 2,
+      "resourcePath": "items/avatar_frame/avatar_frame_2"
+    },
+    {
+      "id": 3,
+      "resourcePath": "items/avatar_frame/avatar_frame_3"
+    },
+    {
+      "id": 4,
+      "resourcePath": "items/avatar_frame/avatar_frame_4"
+    },
+    {
+      "id": 5,
+      "resourcePath": "items/avatar_frame/avatar_frame_5"
+    },
+    {
+      "id": 6,
+      "resourcePath": "items/avatar_frame/avatar_frame_6"
+    }
+  ]
+}

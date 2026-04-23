@@ -14,8 +14,8 @@ type LocalProfileContext = {
 
 @ccclass('UserInfo')
 export class UserInfo extends Component {
-    private static readonly ACTIVE_BUTTON_COLOR = new Color(255, 255, 255, 255);
-    private static readonly INACTIVE_BUTTON_COLOR = new Color(200, 200, 200, 255);
+    private static readonly ACTIVE_BUTTON_COLOR = new Color(252, 158, 121, 255);
+    private static readonly INACTIVE_BUTTON_COLOR = new Color(255, 255, 255, 255);
 
     @property({ type: Node })
     man_sex_btn: Node = null;
@@ -98,6 +98,7 @@ export class UserInfo extends Component {
 
     public set openid(value: string | null) {
         this._openid = (value || '').trim();
+        this.refreshNameLabel();
     }
 
     public get sex(): UserSex {
@@ -142,7 +143,7 @@ export class UserInfo extends Component {
 
     private refreshNameLabel(): void {
         if (this.name_label) {
-            this.name_label.string = this._nickname;
+            this.name_label.string = ` ${this._nickname || UserInfo.getFallbackNickname(this._openid)}`;
         }
     }
 
@@ -186,7 +187,7 @@ export class UserInfo extends Component {
 
     private refreshSexDisplay(): void {
         if (this.sex_label) {
-            this.sex_label.string = this._sex === 'female' ? '女' : '男';
+            this.sex_label.string = this._sex === 'female' ? ' 女' : ' 男';
         }
 
         this.refreshSexButtonColor(this.man_sex_btn, this._sex === 'male');
@@ -194,9 +195,15 @@ export class UserInfo extends Component {
     }
 
     private refreshSexButtonColor(buttonNode: Node | null, selected: boolean): void {
+        const targetColor = selected ? UserInfo.ACTIVE_BUTTON_COLOR : UserInfo.INACTIVE_BUTTON_COLOR;
         const sprite = buttonNode?.getComponent(Sprite);
         if (sprite) {
-            sprite.color = selected ? UserInfo.ACTIVE_BUTTON_COLOR : UserInfo.INACTIVE_BUTTON_COLOR;
+            sprite.color = targetColor;
+        }
+
+        const labels = buttonNode?.getComponentsInChildren(Label) ?? [];
+        for (const label of labels) {
+            label.color = targetColor;
         }
     }
 

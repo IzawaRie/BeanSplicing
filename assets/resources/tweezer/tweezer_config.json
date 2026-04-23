@@ -1,0 +1,28 @@
+{
+  "tweezers": [
+    {
+      "id": 1,
+      "resourcePath": "items/tweezer/tweezer_1"
+    },
+    {
+      "id": 2,
+      "resourcePath": "items/tweezer/tweezer_2"
+    },
+    {
+      "id": 3,
+      "resourcePath": "items/tweezer/tweezer_3"
+    },
+    {
+      "id": 4,
+      "resourcePath": "items/tweezer/tweezer_4"
+    },
+    {
+      "id": 5,
+      "resourcePath": "items/tweezer/tweezer_5"
+    },
+    {
+      "id": 6,
+      "resourcePath": "items/tweezer/tweezer_6"
+    }
+  ]
+}

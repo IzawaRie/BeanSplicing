@@ -1,0 +1,28 @@
+{
+  "irons": [
+    {
+      "id": 1,
+      "resourcePath": "items/iron/iron_1"
+    },
+    {
+      "id": 2,
+      "resourcePath": "items/iron/iron_2"
+    },
+    {
+      "id": 3,
+      "resourcePath": "items/iron/iron_3"
+    },
+    {
+      "id": 4,
+      "resourcePath": "items/iron/iron_4"
+    },
+    {
+      "id": 5,
+      "resourcePath": "items/iron/iron_5"
+    },
+    {
+      "id": 6,
+      "resourcePath": "items/iron/iron_6"
+    }
+  ]
+}
