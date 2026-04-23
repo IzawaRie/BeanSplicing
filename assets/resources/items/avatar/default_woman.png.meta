@@ -11,7 +11,7 @@
     "6c48a": {
       "importer": "texture",
       "uuid": "394cd57e-5fc8-463b-bdfe-c8d73b7e85ee@6c48a",
-      "displayName": "phb_avatar_woman",
+      "displayName": "default_woman",
       "id": "6c48a",
       "name": "texture",
       "userData": {
@@ -35,7 +35,7 @@
     "f9941": {
       "importer": "sprite-frame",
       "uuid": "394cd57e-5fc8-463b-bdfe-c8d73b7e85ee@f9941",
-      "displayName": "phb_avatar_woman",
+      "displayName": "default_woman",
       "id": "f9941",
       "name": "spriteFrame",
       "userData": {

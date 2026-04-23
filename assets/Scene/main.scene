@@ -59495,7 +59495,7 @@
     "__prefab": null,
     "_contentSize": {
       "__type__": "cc.Size",
-      "width": 150,
+      "width": 200,
       "height": 50
     },
     "_anchorPoint": {
@@ -59525,7 +59525,7 @@
       "b": 29,
       "a": 255
     },
-    "_string": "技能",
+    "_string": "可用技能",
     "_horizontalAlign": 1,
     "_verticalAlign": 1,
     "_actualFontSize": 36,
@@ -60728,10 +60728,10 @@
       "__id__": 1521
     },
     "avatar_kuang": {
-      "__id__": 1539
+      "__id__": 1542
     },
     "avatar_sprite": {
-      "__id__": 1542
+      "__id__": 1539
     },
     "palette_label": {
       "__id__": 1566

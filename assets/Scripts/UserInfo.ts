@@ -1,4 +1,4 @@
-import { _decorator, Color, Node, Component, Label, Sprite, input, Input, EventTouch, UITransform, Vec2 } from 'cc';
+import { _decorator, Color, Node, Component, Label, Sprite, input, Input, EventTouch, UITransform, Vec2, resources, SpriteFrame } from 'cc';
 import { GameManager, GameState } from './GameManager';
 import { WXManager } from './WXManager';
 const { ccclass, property } = _decorator;
@@ -36,9 +36,6 @@ export class UserInfo extends Component {
     avatar_kuang: Sprite = null;
 
     @property({ type: Sprite })
-    avatar_mask: Sprite = null;
-
-    @property({ type: Sprite })
     avatar_sprite: Sprite = null;
 
     @property({ type: Label })
@@ -68,13 +65,21 @@ export class UserInfo extends Component {
     private _openid: string = '';
     private _nickname: string = '';
     private _avatarUrl: string = '';
+    private _avatarId: number = 0;
+    private _avatarFrameId: number = 0;
+    private _tweezerId: number = 0;
+    private _ironId: number = 0;
     private _fixSkillCount: number = 0;
     private _timeSkillCount: number = 0;
     private _paletteSkillCount: number = 0;
     private _sex: UserSex = 'male';
 
+    defaultManAvatarPath: string = 'items/avatar/default_man';
+    defaultWomanAvatarPath: string = 'items/avatar/default_woman';
+
     onLoad(): void {
         this.refreshNameLabel();
+        this.refreshSkillCountLabels();
         this.bindSexButtonEvents();
         this.initializeSexState();
     }
@@ -109,6 +114,7 @@ export class UserInfo extends Component {
         const normalizedSex: UserSex = value === 'female' ? 'female' : 'male';
         this._sex = normalizedSex;
         this.refreshSexDisplay();
+        this.refreshDefaultAvatarIfNeeded();
         WXManager.instance?.setUserSex(normalizedSex);
     }
 
@@ -129,6 +135,39 @@ export class UserInfo extends Component {
         this._avatarUrl = (value || '').trim();
     }
 
+    public get avatarId(): number {
+        return this._avatarId;
+    }
+
+    public set avatarId(value: number) {
+        this._avatarId = this.normalizeConfigId(value);
+        this.refreshDefaultAvatarIfNeeded();
+    }
+
+    public get avatarFrameId(): number {
+        return this._avatarFrameId;
+    }
+
+    public set avatarFrameId(value: number) {
+        this._avatarFrameId = this.normalizeConfigId(value);
+    }
+
+    public get tweezerId(): number {
+        return this._tweezerId;
+    }
+
+    public set tweezerId(value: number) {
+        this._tweezerId = this.normalizeConfigId(value);
+    }
+
+    public get ironId(): number {
+        return this._ironId;
+    }
+
+    public set ironId(value: number) {
+        this._ironId = this.normalizeConfigId(value);
+    }
+
     public setProfile(nickname: string | null | undefined, avatarUrl: string | null | undefined): void {
         this._nickname = (nickname || '').trim();
         this._avatarUrl = (avatarUrl || '').trim();
@@ -147,10 +186,30 @@ export class UserInfo extends Component {
         }
     }
 
+    private normalizeConfigId(value: number): number {
+        return Math.max(0, Math.floor(Number(value) || 0));
+    }
+
     private initializeSexState(): void {
         const cachedSex = WXManager.instance?.getUserSex();
         this._sex = cachedSex === 'female' ? 'female' : 'male';
         this.refreshSexDisplay();
+        this.refreshDefaultAvatarIfNeeded();
+    }
+
+    private refreshDefaultAvatarIfNeeded(): void {
+        if (this._avatarId !== 0 || !this.avatar_sprite) {
+            return;
+        }
+
+        const resourcePath = this._sex === 'female' ? this.defaultWomanAvatarPath : this.defaultManAvatarPath;
+        resources.load(`${resourcePath}/spriteFrame`, SpriteFrame, (err, spriteFrame) => {
+            if (err || !spriteFrame || this._avatarId !== 0 || !this.avatar_sprite) {
+                return;
+            }
+
+            this.avatar_sprite.spriteFrame = spriteFrame;
+        });
     }
 
     private bindSexButtonEvents(): void {
@@ -199,11 +258,6 @@ export class UserInfo extends Component {
         const sprite = buttonNode?.getComponent(Sprite);
         if (sprite) {
             sprite.color = targetColor;
-        }
-
-        const labels = buttonNode?.getComponentsInChildren(Label) ?? [];
-        for (const label of labels) {
-            label.color = targetColor;
         }
     }
 
@@ -279,6 +333,7 @@ export class UserInfo extends Component {
 
     public set fixSkillCount(value: number) {
         this._fixSkillCount = Math.max(0, Math.floor(value));
+        this.refreshFixSkillCountLabel();
         WXManager.instance?.setFixSkillCount(this._fixSkillCount);
     }
 
@@ -288,6 +343,7 @@ export class UserInfo extends Component {
 
     public set timeSkillCount(value: number) {
         this._timeSkillCount = Math.max(0, Math.floor(value));
+        this.refreshTimeSkillCountLabel();
         WXManager.instance?.setTimeSkillCount(this._timeSkillCount);
     }
 
@@ -297,6 +353,35 @@ export class UserInfo extends Component {
 
     public set paletteSkillCount(value: number) {
         this._paletteSkillCount = Math.max(0, Math.floor(value));
+        this.refreshPaletteSkillCountLabel();
         WXManager.instance?.setPaletteSkillCount(this._paletteSkillCount);
+    }
+
+    private refreshSkillCountLabels(): void {
+        this.refreshFixSkillCountLabel();
+        this.refreshTimeSkillCountLabel();
+        this.refreshPaletteSkillCountLabel();
+    }
+
+    private refreshFixSkillCountLabel(): void {
+        if (this.fix_label) {
+            this.fix_label.string = this.formatSkillCountLabel(this._fixSkillCount);
+        }
+    }
+
+    private refreshTimeSkillCountLabel(): void {
+        if (this.time_label) {
+            this.time_label.string = this.formatSkillCountLabel(this._timeSkillCount);
+        }
+    }
+
+    private refreshPaletteSkillCountLabel(): void {
+        if (this.palette_label) {
+            this.palette_label.string = this.formatSkillCountLabel(this._paletteSkillCount);
+        }
+    }
+
+    private formatSkillCountLabel(count: number): string {
+        return count > 0 ? `[x${count}]` : '[暂无]';
     }
 }
