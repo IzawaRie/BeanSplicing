@@ -1,4 +1,4 @@
-import { _decorator, Component, Node } from 'cc';
+﻿import { _decorator, Component, Node } from 'cc';
 import { GameManager, DifficultyMode } from './GameManager';
 import { callFunction } from './CloudbaseService';
 import { ShopRuntimeData } from './ShopConfig';
@@ -10,6 +10,7 @@ declare const wx: any;
 
 type SubscribeMessageStatus = 'accept' | 'reject' | 'ban' | 'filter' | '';
 type SubscribeTemplateAuthorizeState = 'unset' | 'accept' | 'reject';
+export type UserInfoAuthorizeState = 'accept' | 'reject' | 'unset';
 
 interface RequestSubscribeMessageResult {
     success: boolean;
@@ -1311,21 +1312,35 @@ export class WXManager extends Component {
     /**
      * 检查是否已授权读取用户信息
      */
-    public hasUserInfoPermission(): Promise<boolean> {
+    public hasUserInfoPermission(): Promise<UserInfoAuthorizeState> {
         return new Promise((resolve) => {
             if (typeof (wx) === 'undefined') {
-                resolve(false);
+                resolve('unset');
                 return;
             }
 
             wx.getSetting({
                 success: (res) => {
-                    const hasPermission = !!res.authSetting?.['scope.userInfo'];
-                    resolve(hasPermission);
+                    console.log('[WXManager] hasUserInfoPermission getSetting result:', {
+                        authSetting: res?.authSetting,
+                        scopeUserInfo: res?.authSetting?.['scope.userInfo']
+                    });
+                    const scopeUserInfo = res?.authSetting?.['scope.userInfo'];
+                    if (scopeUserInfo === true) {
+                        resolve('accept');
+                        return;
+                    }
+
+                    if (scopeUserInfo === false) {
+                        resolve('reject');
+                        return;
+                    }
+
+                    resolve('unset');
                 },
                 fail: (err) => {
                     console.warn('检查用户信息授权失败:', err);
-                    resolve(false);
+                    resolve('unset');
                 }
             });
         });

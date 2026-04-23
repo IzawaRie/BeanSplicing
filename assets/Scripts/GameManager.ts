@@ -153,7 +153,7 @@ export class GameManager extends Component {
     /**
      * 打开排行榜前，按需补齐当前玩家的真实昵称和头像
      */
-    public async ensureChartProfileReady(): Promise<void> {
+    public async ensureChartProfileReady(isStartup: boolean = false): Promise<void> {
         if (!this.wxManager) {
             return;
         }
@@ -173,8 +173,12 @@ export class GameManager extends Component {
             return;
         }
 
-        const hasUserInfoPermission = await this.wxManager.hasUserInfoPermission();
-        if (!hasUserInfoPermission) {
+        const userInfoAuthorizeState = await this.wxManager.hasUserInfoPermission();
+        if (isStartup) {
+            if (userInfoAuthorizeState === 'unset' || userInfoAuthorizeState === 'reject') {
+                return;
+            }
+        } else if (userInfoAuthorizeState === 'reject') {
             return;
         }
 
@@ -305,7 +309,7 @@ export class GameManager extends Component {
             this.setOpenid(openid);
             console.log('GameManager openid:', this.openid);
 
-            await this.ensureChartProfileReady();
+            await this.ensureChartProfileReady(true);
             PlayerService.instance?.syncProgressWithCloud();
             PlayerService.instance?.updateLastLoginTime();
             this.scheduleOnce(() => {
