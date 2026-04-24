@@ -442,13 +442,19 @@ export class MenuManager extends Component {
         gameManager.shop.node.active = true;
     }
 
-    private onUserInfoBtnClick(): void {
+    private async onUserInfoBtnClick(): Promise<void> {
         const gameManager = GameManager.getInstance();
         if (!gameManager?.userInfo || (gameManager.gameState != GameState.WAITING)) return;
         if (gameManager.isWindowBlocking()) return;
 
         gameManager.vibrateShort();
         AudioManager.instance.playEffect('click_btn');
+        if (!gameManager.userInfo.hasRealUserProfile()) {
+            const userInfoAuthorizeState = await gameManager.wxManager?.hasUserInfoPermission();
+            if (userInfoAuthorizeState === 'accept') {
+                await gameManager.wxManager?.getUserInfo();
+            }
+        }
         WXManager.instance?.hideNativeAd();
         gameManager.userInfo.node.active = true;
     }
