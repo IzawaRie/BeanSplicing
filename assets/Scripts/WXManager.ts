@@ -53,6 +53,7 @@ interface SubscribeTaskClientResult {
 export class WXManager extends Component {
     private static readonly USER_NICKNAME_STORAGE_KEY = 'user_nickname';
     private static readonly USER_AVATAR_URL_STORAGE_KEY = 'user_avatar_url';
+    private static readonly USER_AUTHORIZED_AVATAR_URL_STORAGE_KEY = 'user_authorized_avatar_url';
     private static readonly USER_SEX_STORAGE_KEY = 'user_sex';
     private static readonly USER_AVATAR_FRAME_ID_STORAGE_KEY = 'user_avatar_frame_id';
     private static readonly USER_TWEEZER_ID_STORAGE_KEY = 'user_tweezer_id';
@@ -854,6 +855,34 @@ export class WXManager extends Component {
         wx.setStorageSync(WXManager.USER_SEX_STORAGE_KEY, normalizedSex);
     }
 
+    public setAuthorizedAvatarUrl(avatarUrl: string): void {
+        if (typeof (wx) === 'undefined') return;
+
+        const safeAvatarUrl = String(avatarUrl || '').trim();
+        if (safeAvatarUrl) {
+            wx.setStorageSync(WXManager.USER_AUTHORIZED_AVATAR_URL_STORAGE_KEY, safeAvatarUrl);
+            return;
+        }
+
+        wx.removeStorageSync(WXManager.USER_AUTHORIZED_AVATAR_URL_STORAGE_KEY);
+    }
+
+    public getAuthorizedAvatarUrl(): Promise<string | null> {
+        if (typeof (wx) === 'undefined') return Promise.resolve(null);
+        return new Promise((resolve) => {
+            wx.getStorage({
+                key: WXManager.USER_AUTHORIZED_AVATAR_URL_STORAGE_KEY,
+                success(res) {
+                    const avatarUrl = String(res.data || '').trim();
+                    resolve(avatarUrl || null);
+                },
+                fail() {
+                    resolve(null);
+                }
+            });
+        });
+    }
+
     public setAvatarFrameId(id: number): void {
         if (typeof (wx) === 'undefined') return;
         wx.setStorageSync(WXManager.USER_AVATAR_FRAME_ID_STORAGE_KEY, Math.max(0, Math.floor(Number(id) || 0)));
@@ -1536,6 +1565,7 @@ export class WXManager extends Component {
                         const openid = await this.getOpenId();
                         const fallbackNickname = openid ? `豆友${openid.slice(-4)}` : '豆友';
                         localUserInfo?.setProfile(userInfo.nickName?.trim() || fallbackNickname, userInfo.avatarUrl || '');
+                        this.setAuthorizedAvatarUrl(userInfo.avatarUrl || '');
                         this.saveCachedUserProfile();
                         console.log('获取用户信息成功:', this._nickname, this._avatarUrl);
                         resolve(localUserInfo?.getDisplayProfile() ?? { nickname: fallbackNickname, avatarUrl: userInfo.avatarUrl || '' });

@@ -1,4 +1,5 @@
 import { _decorator, Component, Node, resources, Sprite, SpriteFrame, UITransform } from 'cc';
+import { loadAvatarSpriteFrameBySource } from './AvatarSourceLoader';
 const { ccclass, property } = _decorator;
 
 @ccclass('UserInfoItem')
@@ -34,6 +35,23 @@ export class UserInfoItem extends Component {
         }
 
         const loadToken = this._loadToken;
+        if (/^https:\/\//i.test(safeImagePath)) {
+            void loadAvatarSpriteFrameBySource(safeImagePath, true, 'UserInfoItem').then((spriteFrame) => {
+                if (loadToken !== this._loadToken || !sprite) {
+                    return;
+                }
+
+                if (!spriteFrame) {
+                    sprite.spriteFrame = null;
+                    return;
+                }
+
+                sprite.spriteFrame = spriteFrame;
+                this.applySpriteAspectRatio(spriteFrame);
+            });
+            return;
+        }
+
         resources.load(`${safeImagePath}/spriteFrame`, SpriteFrame, (err, spriteFrame) => {
             if (loadToken !== this._loadToken || !sprite) {
                 return;

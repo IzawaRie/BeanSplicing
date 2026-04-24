@@ -1,5 +1,5 @@
 import { _decorator, Color, Node, Component, Label, Sprite, input, Input, EventTouch, UITransform, Vec2, instantiate, isValid, JsonAsset, Layout, Prefab, resources } from 'cc';
-import { loadAvatarSpriteFrameBySource } from './AvatarSourceLoader';
+import { isRemoteAvatarSource, loadAvatarSpriteFrameBySource } from './AvatarSourceLoader';
 import { GameManager, GameState } from './GameManager';
 import { UserInfoItem } from './UserInfoItem';
 import { WXManager } from './WXManager';
@@ -82,6 +82,7 @@ export class UserInfo extends Component {
     private _openid: string = '';
     private _nickname: string = '';
     private _avatarUrl: string = '';
+    private _authorizedAvatarUrl: string = '';
     private _avatarFrameId: number = 1;
     private _tweezerId: number = 1;
     private _ironId: number = 1;
@@ -98,6 +99,8 @@ export class UserInfo extends Component {
     private _itemPrefabTask: Promise<Prefab | null> | null = null;
     private readonly _resourcePathCache = new Map<UserInfoOwnedCategory, Map<number, string>>();
     private readonly _resourcePathTaskCache = new Map<UserInfoOwnedCategory, Promise<Map<number, string>>>();
+    private readonly _ownedItemViewMap = new Map<UserInfoOwnedCategory, Map<number, UserInfoItem>>();
+    private _authorizedAvatarItem: UserInfoItem | null = null;
 
     onLoad(): void {
         this.refreshNameLabel();
@@ -157,6 +160,16 @@ export class UserInfo extends Component {
     public set avatarUrl(value: string) {
         this._avatarUrl = (value || '').trim();
         this.refreshAvatarSprite();
+    }
+
+    public get authorizedAvatarUrl(): string {
+        return this._authorizedAvatarUrl;
+    }
+
+    public set authorizedAvatarUrl(value: string) {
+        const safeAvatarUrl = (value || '').trim();
+        this._authorizedAvatarUrl = isRemoteAvatarSource(safeAvatarUrl) ? safeAvatarUrl : '';
+        WXManager.instance?.setAuthorizedAvatarUrl(this._authorizedAvatarUrl);
     }
 
     public get avatarFrameId(): number {
@@ -228,6 +241,9 @@ export class UserInfo extends Component {
     public setProfile(nickname: string | null | undefined, avatarUrl: string | null | undefined): void {
         this._nickname = (nickname || '').trim();
         this._avatarUrl = (avatarUrl || '').trim();
+        if (isRemoteAvatarSource(this._avatarUrl)) {
+            this.authorizedAvatarUrl = this._avatarUrl;
+        }
         this.refreshNameLabel();
         this.refreshAvatarSprite();
     }
@@ -235,6 +251,7 @@ export class UserInfo extends Component {
     public clearProfile(): void {
         this._nickname = '';
         this._avatarUrl = '';
+        this.authorizedAvatarUrl = '';
         this.refreshNameLabel();
         this.refreshAvatarSprite();
     }
@@ -326,11 +343,71 @@ export class UserInfo extends Component {
         }
 
         await Promise.all([
-            this.renderOwnedItems(this.avatar_content, this._ownedAvatarIds, 'avatar', this.getSelectedAvatarId()),
+            this.renderAvatarItems(this.avatar_content),
             this.renderOwnedItems(this.kuang_content, this._ownedAvatarFrameIds, 'avatarFrame', this._avatarFrameId),
             this.renderOwnedItems(this.niezi_content, this._ownedTweezerIds, 'tweezer', this._tweezerId),
             this.renderOwnedItems(this.yundou_content, this._ownedIronIds, 'iron', this._ironId),
         ]);
+    }
+
+    private async renderAvatarItems(container: Node | null): Promise<void> {
+        if (!container) {
+            return;
+        }
+
+        const prefab = await this.loadUserInfoItemPrefab();
+        if (!prefab || !isValid(container) || !isValid(this.node) || !this.node.activeInHierarchy) {
+            return;
+        }
+
+        const resourcePathMap = await this.loadResourcePathMap('avatar');
+        if (!isValid(container) || !isValid(this.node) || !this.node.activeInHierarchy) {
+            return;
+        }
+
+        for (const child of [...container.children]) {
+            child.destroy();
+        }
+
+        const ownedAvatarIds = this.normalizeOwnedIds(this._ownedAvatarIds);
+        const selectedLocalAvatarId = this.getSelectedAvatarId();
+        const shouldShowRemoteAvatar = this.shouldShowAuthorizedAvatarItem();
+        const remoteAvatarSource = shouldShowRemoteAvatar ? this._authorizedAvatarUrl.trim() : '';
+        const isUsingAuthorizedAvatar = this.isUsingAuthorizedAvatar();
+        this._authorizedAvatarItem = null;
+        this._ownedItemViewMap.set('avatar', new Map<number, UserInfoItem>());
+
+        if (remoteAvatarSource) {
+            const itemNode = instantiate(prefab);
+            container.addChild(itemNode);
+            const item = itemNode.getComponent(UserInfoItem);
+            item?.setData(remoteAvatarSource, isUsingAuthorizedAvatar);
+            this._authorizedAvatarItem = item ?? null;
+            itemNode.on(Node.EventType.TOUCH_END, this.onAuthorizedAvatarItemClick, this);
+        }
+
+        for (const ownedId of ownedAvatarIds) {
+            const resourcePath = resourcePathMap.get(ownedId) || '';
+            if (!resourcePath) {
+                continue;
+            }
+
+            const itemNode = instantiate(prefab);
+            container.addChild(itemNode);
+
+            const item = itemNode.getComponent(UserInfoItem);
+            item?.setData(resourcePath, !isUsingAuthorizedAvatar && ownedId === selectedLocalAvatarId);
+            if (item) {
+                this.getOrCreateOwnedItemViewMap('avatar').set(ownedId, item);
+            }
+            itemNode.on(Node.EventType.TOUCH_END, () => {
+                this.onLocalAvatarItemClick(ownedId);
+            }, this);
+        }
+
+        const layout = container.getComponent(Layout);
+        layout?.updateLayout();
+        this.updateOwnedContentSize(container);
     }
 
     private async renderOwnedItems(
@@ -343,6 +420,7 @@ export class UserInfo extends Component {
             return;
         }
 
+        this._ownedItemViewMap.set(category, new Map<number, UserInfoItem>());
         const prefab = await this.loadUserInfoItemPrefab();
         if (!prefab || !isValid(container) || !isValid(this.node) || !this.node.activeInHierarchy) {
             return;
@@ -369,6 +447,12 @@ export class UserInfo extends Component {
 
             const item = itemNode.getComponent(UserInfoItem);
             item?.setData(resourcePath, ownedId === selectedId);
+            if (item) {
+                this.getOrCreateOwnedItemViewMap(category).set(ownedId, item);
+            }
+            itemNode.on(Node.EventType.TOUCH_END, () => {
+                this.onOwnedItemClick(category, ownedId);
+            }, this);
         }
 
         const layout = container.getComponent(Layout);
@@ -507,6 +591,120 @@ export class UserInfo extends Component {
         }
 
         return 0;
+    }
+
+    private shouldShowAuthorizedAvatarItem(): boolean {
+        return isRemoteAvatarSource(this._authorizedAvatarUrl);
+    }
+
+    private isUsingAuthorizedAvatar(): boolean {
+        const currentAvatarUrl = (this._avatarUrl || '').trim();
+        const authorizedAvatarUrl = (this._authorizedAvatarUrl || '').trim();
+        return !!authorizedAvatarUrl
+            && isRemoteAvatarSource(currentAvatarUrl)
+            && currentAvatarUrl === authorizedAvatarUrl;
+    }
+
+    private onAuthorizedAvatarItemClick(): void {
+        const authorizedAvatarUrl = (this._authorizedAvatarUrl || '').trim();
+        if (!authorizedAvatarUrl || this._avatarUrl === authorizedAvatarUrl) {
+            return;
+        }
+
+        this.avatarUrl = authorizedAvatarUrl;
+        this.refreshAvatarSelectionState();
+    }
+
+    private onLocalAvatarItemClick(avatarId: number): void {
+        const normalizedAvatarId = this.normalizeOwnedConfigId(avatarId);
+        const nextAvatarSource = String(normalizedAvatarId);
+        if (this._avatarUrl === nextAvatarSource) {
+            return;
+        }
+
+        this.avatarUrl = nextAvatarSource;
+        this.refreshAvatarSelectionState();
+    }
+
+    private onOwnedItemClick(category: UserInfoOwnedCategory, itemId: number): void {
+        const normalizedItemId = this.normalizeOwnedConfigId(itemId);
+
+        switch (category) {
+            case 'avatarFrame':
+                if (this._avatarFrameId === normalizedItemId) {
+                    return;
+                }
+                this.avatarFrameId = normalizedItemId;
+                break;
+            case 'tweezer':
+                if (this._tweezerId === normalizedItemId) {
+                    return;
+                }
+                this.tweezerId = normalizedItemId;
+                break;
+            case 'iron':
+                if (this._ironId === normalizedItemId) {
+                    return;
+                }
+                this.ironId = normalizedItemId;
+                break;
+            default:
+                return;
+        }
+
+        this.refreshOwnedCategorySelectionState(category);
+    }
+
+    private refreshAvatarSelectionState(): void {
+        const selectedLocalAvatarId = this.getSelectedAvatarId();
+        const isUsingAuthorizedAvatar = this.isUsingAuthorizedAvatar();
+
+        this._authorizedAvatarItem?.setSelected(isUsingAuthorizedAvatar);
+        const avatarItemMap = this._ownedItemViewMap.get('avatar');
+        if (!avatarItemMap) {
+            return;
+        }
+
+        avatarItemMap.forEach((item, avatarId) => {
+            item.setSelected(!isUsingAuthorizedAvatar && avatarId === selectedLocalAvatarId);
+        });
+    }
+
+    private refreshOwnedCategorySelectionState(category: UserInfoOwnedCategory): void {
+        const itemMap = this._ownedItemViewMap.get(category);
+        if (!itemMap) {
+            return;
+        }
+
+        let selectedId = 0;
+        switch (category) {
+            case 'avatarFrame':
+                selectedId = this._avatarFrameId;
+                break;
+            case 'tweezer':
+                selectedId = this._tweezerId;
+                break;
+            case 'iron':
+                selectedId = this._ironId;
+                break;
+            default:
+                return;
+        }
+
+        itemMap.forEach((item, itemId) => {
+            item.setSelected(itemId === selectedId);
+        });
+    }
+
+    private getOrCreateOwnedItemViewMap(category: UserInfoOwnedCategory): Map<number, UserInfoItem> {
+        const existingMap = this._ownedItemViewMap.get(category);
+        if (existingMap) {
+            return existingMap;
+        }
+
+        const itemMap = new Map<number, UserInfoItem>();
+        this._ownedItemViewMap.set(category, itemMap);
+        return itemMap;
     }
 
     private updateOwnedContentSize(container: Node): void {

@@ -473,6 +473,7 @@ export class GameManager extends Component {
             this.shop.coin_label.string = `${this._coinCount}`;
         }
         if (this.userInfo) {
+            this.userInfo.authorizedAvatarUrl = (await this.wxManager.getAuthorizedAvatarUrl()) ?? '';
             this.userInfo.ownedAvatarIds = (await this.wxManager.getOwnedAvatarIds()) ?? [1];
             this.userInfo.ownedAvatarFrameIds = (await this.wxManager.getOwnedAvatarFrameIds()) ?? [1];
             this.userInfo.ownedTweezerIds = (await this.wxManager.getOwnedTweezerIds()) ?? [1];
