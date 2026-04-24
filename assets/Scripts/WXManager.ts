@@ -54,6 +54,7 @@ export class WXManager extends Component {
     private static readonly USER_NICKNAME_STORAGE_KEY = 'user_nickname';
     private static readonly USER_AVATAR_URL_STORAGE_KEY = 'user_avatar_url';
     private static readonly USER_AUTHORIZED_AVATAR_URL_STORAGE_KEY = 'user_authorized_avatar_url';
+    private static readonly USER_CURRENT_AVATAR_SOURCE_STORAGE_KEY = 'user_current_avatar_source';
     private static readonly USER_SEX_STORAGE_KEY = 'user_sex';
     private static readonly USER_AVATAR_FRAME_ID_STORAGE_KEY = 'user_avatar_frame_id';
     private static readonly USER_TWEEZER_ID_STORAGE_KEY = 'user_tweezer_id';
@@ -875,6 +876,34 @@ export class WXManager extends Component {
                 success(res) {
                     const avatarUrl = String(res.data || '').trim();
                     resolve(avatarUrl || null);
+                },
+                fail() {
+                    resolve(null);
+                }
+            });
+        });
+    }
+
+    public setCurrentAvatarSource(avatarSource: string): void {
+        if (typeof (wx) === 'undefined') return;
+
+        const safeAvatarSource = String(avatarSource || '').trim();
+        if (safeAvatarSource) {
+            wx.setStorageSync(WXManager.USER_CURRENT_AVATAR_SOURCE_STORAGE_KEY, safeAvatarSource);
+            return;
+        }
+
+        wx.removeStorageSync(WXManager.USER_CURRENT_AVATAR_SOURCE_STORAGE_KEY);
+    }
+
+    public getCurrentAvatarSource(): Promise<string | null> {
+        if (typeof (wx) === 'undefined') return Promise.resolve(null);
+        return new Promise((resolve) => {
+            wx.getStorage({
+                key: WXManager.USER_CURRENT_AVATAR_SOURCE_STORAGE_KEY,
+                success(res) {
+                    const avatarSource = String(res.data || '').trim();
+                    resolve(avatarSource || null);
                 },
                 fail() {
                     resolve(null);

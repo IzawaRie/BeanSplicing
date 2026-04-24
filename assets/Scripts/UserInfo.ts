@@ -137,10 +137,20 @@ export class UserInfo extends Component {
     }
 
     public set sex(value: UserSex) {
+        const wasUsingDefaultAvatar = this.isUsingDefaultAvatar();
         const normalizedSex: UserSex = value === 'female' ? 'female' : 'male';
+        if (this._sex === normalizedSex) {
+            return;
+        }
+        const previousDefaultAvatarId = this.getCurrentDefaultAvatarId();
         this._sex = normalizedSex;
         this.refreshSexDisplay();
-        this.refreshAvatarSprite();
+        if (wasUsingDefaultAvatar) {
+            const nextDefaultAvatarId = this.getCurrentDefaultAvatarId();
+            this.ownedAvatarIds = this.replaceDefaultAvatarId(this._ownedAvatarIds, nextDefaultAvatarId);
+            this.avatarUrl = String(nextDefaultAvatarId);
+        }
+        void this.updateDefaultAvatarItemForSexChange(previousDefaultAvatarId, this.getCurrentDefaultAvatarId());
         WXManager.instance?.setUserSex(normalizedSex);
     }
 
@@ -262,10 +272,6 @@ export class UserInfo extends Component {
         }
     }
 
-    private normalizeConfigId(value: number): number {
-        return Math.max(0, Math.floor(Number(value) || 0));
-    }
-
     private normalizeOwnedConfigId(value: number): number {
         return Math.max(1, Math.floor(Number(value) || 1));
     }
@@ -282,6 +288,71 @@ export class UserInfo extends Component {
         ));
         normalizedIds.sort((a, b) => a - b);
         return normalizedIds.length > 0 ? normalizedIds : [1];
+    }
+
+    private isDefaultAvatarId(avatarId: number): boolean {
+        return avatarId === UserInfo.DEFAULT_MALE_AVATAR_ID || avatarId === UserInfo.DEFAULT_FEMALE_AVATAR_ID;
+    }
+
+    private isUsingDefaultAvatar(): boolean {
+        const safeAvatarUrl = (this._avatarUrl || '').trim();
+        if (!/^\d+$/.test(safeAvatarUrl)) {
+            return !safeAvatarUrl;
+        }
+
+        return this.isDefaultAvatarId(this.normalizeOwnedConfigId(Number(safeAvatarUrl)));
+    }
+
+    private getCurrentDefaultAvatarId(): number {
+        return this._sex === 'female'
+            ? UserInfo.DEFAULT_FEMALE_AVATAR_ID
+            : UserInfo.DEFAULT_MALE_AVATAR_ID;
+    }
+
+    private getAvatarDisplayIds(): number[] {
+        const nonDefaultAvatarIds = this.normalizeOwnedIds(this._ownedAvatarIds)
+            .filter((avatarId) => !this.isDefaultAvatarId(avatarId));
+        return [this.getCurrentDefaultAvatarId(), ...nonDefaultAvatarIds];
+    }
+
+    private replaceDefaultAvatarId(ownedIds: number[], nextDefaultAvatarId: number): number[] {
+        const preservedAvatarIds = this.normalizeOwnedIds(ownedIds)
+            .filter((avatarId) => !this.isDefaultAvatarId(avatarId));
+        return [nextDefaultAvatarId, ...preservedAvatarIds];
+    }
+
+    private async updateDefaultAvatarItemForSexChange(
+        previousDefaultAvatarId: number,
+        nextDefaultAvatarId: number
+    ): Promise<void> {
+        const avatarItemMap = this._ownedItemViewMap.get('avatar');
+        const defaultAvatarItem = avatarItemMap?.get(previousDefaultAvatarId) ?? null;
+        if (!defaultAvatarItem || !isValid(defaultAvatarItem.node) || !this.node.activeInHierarchy) {
+            await this.renderAvatarItems(this.avatar_content);
+            return;
+        }
+
+        const resourcePathMap = await this.loadResourcePathMap('avatar');
+        if (!isValid(defaultAvatarItem.node) || !this.node.activeInHierarchy) {
+            return;
+        }
+
+        const nextResourcePath = resourcePathMap.get(nextDefaultAvatarId) || '';
+        if (!nextResourcePath) {
+            return;
+        }
+
+        defaultAvatarItem.node.off(Node.EventType.TOUCH_END);
+        defaultAvatarItem.setData(
+            nextResourcePath,
+            !this.isUsingAuthorizedAvatar() && this.getSelectedAvatarId() === nextDefaultAvatarId
+        );
+        defaultAvatarItem.node.on(Node.EventType.TOUCH_END, () => {
+            this.onLocalAvatarItemClick(nextDefaultAvatarId);
+        }, this);
+
+        avatarItemMap?.delete(previousDefaultAvatarId);
+        avatarItemMap?.set(nextDefaultAvatarId, defaultAvatarItem);
     }
 
     public hasOwnedAvatarId(id: number): boolean {
@@ -369,7 +440,7 @@ export class UserInfo extends Component {
             child.destroy();
         }
 
-        const ownedAvatarIds = this.normalizeOwnedIds(this._ownedAvatarIds);
+        const ownedAvatarIds = this.getAvatarDisplayIds();
         const selectedLocalAvatarId = this.getSelectedAvatarId();
         const shouldShowRemoteAvatar = this.shouldShowAuthorizedAvatarItem();
         const remoteAvatarSource = shouldShowRemoteAvatar ? this._authorizedAvatarUrl.trim() : '';
@@ -585,9 +656,7 @@ export class UserInfo extends Component {
         }
 
         if (!safeAvatarUrl) {
-            return this._sex === 'female'
-                ? UserInfo.DEFAULT_FEMALE_AVATAR_ID
-                : UserInfo.DEFAULT_MALE_AVATAR_ID;
+            return this.getCurrentDefaultAvatarId();
         }
 
         return 0;
@@ -840,6 +909,7 @@ export class UserInfo extends Component {
     }
 
     public closePanel(): void {
+        this.saveSelectedAppearanceToStorage();
         this.node.active = false;
         const gameManager = GameManager.getInstance();
         if (gameManager?.gameState === GameState.WAITING) {
@@ -858,6 +928,18 @@ export class UserInfo extends Component {
         }
 
         return contentTransform.getBoundingBoxToWorld().contains(touchPos);
+    }
+
+    private saveSelectedAppearanceToStorage(): void {
+        const wxManager = WXManager.instance;
+        if (!wxManager) {
+            return;
+        }
+
+        wxManager.setCurrentAvatarSource(this._avatarUrl);
+        wxManager.setAvatarFrameId(this._avatarFrameId);
+        wxManager.setTweezerId(this._tweezerId);
+        wxManager.setIronId(this._ironId);
     }
 
     public hasRealUserProfile(): boolean {

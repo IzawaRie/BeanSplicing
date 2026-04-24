@@ -474,6 +474,7 @@ export class GameManager extends Component {
         }
         if (this.userInfo) {
             this.userInfo.authorizedAvatarUrl = (await this.wxManager.getAuthorizedAvatarUrl()) ?? '';
+            this.userInfo.avatarUrl = (await this.wxManager.getCurrentAvatarSource()) ?? '';
             this.userInfo.ownedAvatarIds = (await this.wxManager.getOwnedAvatarIds()) ?? [1];
             this.userInfo.ownedAvatarFrameIds = (await this.wxManager.getOwnedAvatarFrameIds()) ?? [1];
             this.userInfo.ownedTweezerIds = (await this.wxManager.getOwnedTweezerIds()) ?? [1];
