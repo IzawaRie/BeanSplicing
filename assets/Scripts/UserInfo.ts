@@ -492,7 +492,7 @@ export class UserInfo extends Component {
             itemNode.off(Node.EventType.TOUCH_END);
             itemNode.off(Node.EventType.TOUCH_CANCEL);
             itemNode.on(Node.EventType.TOUCH_START, () => {
-                this.showAchievementDescription(descriptionMap.get(ownedId) || '');
+                this.showAchievementDescription(descriptionMap.get(ownedId) || '', itemNode);
             }, this);
             itemNode.on(Node.EventType.TOUCH_END, this.hideAchievementDescription, this);
             itemNode.on(Node.EventType.TOUCH_CANCEL, this.hideAchievementDescription, this);
@@ -787,11 +787,19 @@ export class UserInfo extends Component {
         });
     }
 
-    private showAchievementDescription(description: string): void {
+    private showAchievementDescription(description: string, itemNode?: Node | null): void {
         if (this.ac_description_label) {
             this.ac_description_label.string = description;
         }
         if (this.ac_description_node) {
+            if (itemNode && isValid(itemNode)) {
+                const worldPosition = itemNode.worldPosition;
+                this.ac_description_node.setWorldPosition(
+                    worldPosition.x,
+                    worldPosition.y,
+                    worldPosition.z
+                );
+            }
             this.ac_description_node.active = true;
         }
     }
