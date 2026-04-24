@@ -1,0 +1,34 @@
+{
+  "achievementIcons": [
+    {
+      "id": 1,
+      "resourcePath": "items/achievement/ac_new",
+      "description": "初来乍到"
+    },
+    {
+      "id": 2,
+      "resourcePath": "items/achievement/achievement_icon_2",
+      "description": "成就图标2"
+    },
+    {
+      "id": 3,
+      "resourcePath": "items/achievement/achievement_icon_3",
+      "description": "成就图标3"
+    },
+    {
+      "id": 4,
+      "resourcePath": "items/achievement/achievement_icon_4",
+      "description": "成就图标4"
+    },
+    {
+      "id": 5,
+      "resourcePath": "items/achievement/achievement_icon_5",
+      "description": "成就图标5"
+    },
+    {
+      "id": 6,
+      "resourcePath": "items/achievement/achievement_icon_6",
+      "description": "成就图标6"
+    }
+  ]
+}

@@ -479,6 +479,7 @@ export class GameManager extends Component {
             this.userInfo.ownedAvatarFrameIds = (await this.wxManager.getOwnedAvatarFrameIds()) ?? [1];
             this.userInfo.ownedTweezerIds = (await this.wxManager.getOwnedTweezerIds()) ?? [1];
             this.userInfo.ownedIronIds = (await this.wxManager.getOwnedIronIds()) ?? [1];
+            this.userInfo.ownedAchievementIconIds = (await this.wxManager.getOwnedAchievementIconIds()) ?? [1];
             this.userInfo.avatarFrameId = Math.max(0, Math.floor((await this.wxManager.getAvatarFrameId()) ?? 1));
             this.userInfo.tweezerId = Math.max(0, Math.floor((await this.wxManager.getTweezerId()) ?? 1));
             this.userInfo.ironId = Math.max(0, Math.floor((await this.wxManager.getIronId()) ?? 1));

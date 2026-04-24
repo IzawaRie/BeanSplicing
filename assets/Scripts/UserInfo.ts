@@ -1,4 +1,4 @@
-import { _decorator, Color, Node, Component, Label, Sprite, input, Input, EventTouch, UITransform, Vec2, instantiate, isValid, JsonAsset, Layout, Prefab, resources } from 'cc';
+import { _decorator, Color, Node, Component, Label, Sprite, input, Input, EventTouch, UITransform, Vec2, instantiate, isValid, JsonAsset, Layout, Prefab, resources, SpriteFrame } from 'cc';
 import { isRemoteAvatarSource, loadAvatarSpriteFrameBySource } from './AvatarSourceLoader';
 import { GameManager, GameState } from './GameManager';
 import { UserInfoItem } from './UserInfoItem';
@@ -6,7 +6,7 @@ import { WXManager } from './WXManager';
 const { ccclass, property } = _decorator;
 
 type UserSex = 'male' | 'female';
-type UserInfoOwnedCategory = 'avatar' | 'avatarFrame' | 'tweezer' | 'iron';
+type UserInfoOwnedCategory = 'avatar' | 'avatarFrame' | 'tweezer' | 'iron' | 'achievementIcon';
 
 type LocalProfileContext = {
     openid: string;
@@ -18,6 +18,7 @@ type LocalProfileContext = {
 type UserInfoResourceConfigItem = {
     id: number;
     resourcePath: string;
+    description?: string;
 };
 
 type UserInfoResourceConfigFile = {
@@ -25,6 +26,7 @@ type UserInfoResourceConfigFile = {
     avatarFrames?: UserInfoResourceConfigItem[];
     tweezers?: UserInfoResourceConfigItem[];
     irons?: UserInfoResourceConfigItem[];
+    achievementIcons?: UserInfoResourceConfigItem[];
 };
 
 @ccclass('UserInfo')
@@ -82,6 +84,12 @@ export class UserInfo extends Component {
     @property({ type: Node })
     yundou_content: Node = null;
 
+    @property({ type: Node })
+    ac_description_node: Node = null;
+
+    @property({ type: Label })
+    ac_description_label: Label = null;
+
     private _openid: string = '';
     private _nickname: string = '';
     private _avatarUrl: string = '';
@@ -93,6 +101,7 @@ export class UserInfo extends Component {
     private _ownedAvatarFrameIds: number[] = [1];
     private _ownedTweezerIds: number[] = [1];
     private _ownedIronIds: number[] = [1];
+    private _ownedAchievementIconIds: number[] = [1];
     private _fixSkillCount: number = 0;
     private _timeSkillCount: number = 0;
     private _paletteSkillCount: number = 0;
@@ -102,12 +111,15 @@ export class UserInfo extends Component {
     private _itemPrefabTask: Promise<Prefab | null> | null = null;
     private readonly _resourcePathCache = new Map<UserInfoOwnedCategory, Map<number, string>>();
     private readonly _resourcePathTaskCache = new Map<UserInfoOwnedCategory, Promise<Map<number, string>>>();
+    private _achievementDescriptionCache: Map<number, string> | null = null;
+    private _achievementDescriptionTask: Promise<Map<number, string>> | null = null;
     private readonly _ownedItemViewMap = new Map<UserInfoOwnedCategory, Map<number, UserInfoItem>>();
     private _authorizedAvatarItem: UserInfoItem | null = null;
 
     onLoad(): void {
         this.refreshNameLabel();
         this.refreshSkillCountLabels();
+        this.hideAchievementDescription();
         this.bindCloseButtonEvents();
         this.bindSexButtonEvents();
         this.initializeSexState();
@@ -120,6 +132,7 @@ export class UserInfo extends Component {
 
     onDisable(): void {
         input.off(Input.EventType.TOUCH_END, this.onTouchEnd, this);
+        this.hideAchievementDescription();
     }
 
     onDestroy(): void {
@@ -251,6 +264,15 @@ export class UserInfo extends Component {
     public set ownedIronIds(value: number[]) {
         this._ownedIronIds = this.normalizeOwnedIds(value);
         WXManager.instance?.setOwnedIronIds(this._ownedIronIds);
+    }
+
+    public get ownedAchievementIconIds(): number[] {
+        return [...this._ownedAchievementIconIds];
+    }
+
+    public set ownedAchievementIconIds(value: number[]) {
+        this._ownedAchievementIconIds = this.normalizeOwnedIds(value);
+        WXManager.instance?.setOwnedAchievementIconIds(this._ownedAchievementIconIds);
     }
 
     public setProfile(nickname: string | null | undefined, avatarUrl: string | null | undefined): void {
@@ -420,10 +442,64 @@ export class UserInfo extends Component {
 
         await Promise.all([
             this.renderAvatarItems(this.avatar_content),
+            this.renderAchievementIconItems(this.ac_content, this._ownedAchievementIconIds),
             this.renderOwnedItems(this.kuang_content, this._ownedAvatarFrameIds, 'avatarFrame', this._avatarFrameId),
             this.renderOwnedItems(this.niezi_content, this._ownedTweezerIds, 'tweezer', this._tweezerId),
             this.renderOwnedItems(this.yundou_content, this._ownedIronIds, 'iron', this._ironId),
         ]);
+    }
+
+    private async renderAchievementIconItems(container: Node | null, ownedIds: number[]): Promise<void> {
+        if (!container) {
+            return;
+        }
+
+        const resourcePathMap = await this.loadResourcePathMap('achievementIcon');
+        const descriptionMap = await this.loadAchievementDescriptionMap();
+        if (!isValid(container) || !isValid(this.node) || !this.node.activeInHierarchy) {
+            return;
+        }
+
+        for (const child of container.children) {
+            child.active = false;
+        }
+
+        const normalizedOwnedIds = this.normalizeOwnedIds(ownedIds);
+        for (let index = 0; index < normalizedOwnedIds.length; index++) {
+            const ownedId = normalizedOwnedIds[index];
+            const resourcePath = resourcePathMap.get(ownedId) || '';
+            if (!resourcePath) {
+                continue;
+            }
+
+            const spriteFrame = await this.loadLocalSpriteFrame(resourcePath);
+            if (!spriteFrame || !isValid(container) || !isValid(this.node) || !this.node.activeInHierarchy) {
+                continue;
+            }
+
+            const itemNode = container.children[index];
+            if (!itemNode) {
+                continue;
+            }
+
+            const sprite = itemNode.getComponent(Sprite);
+            if (!sprite) {
+                continue;
+            }
+            sprite.spriteFrame = spriteFrame;
+            itemNode.active = true;
+            itemNode.off(Node.EventType.TOUCH_START);
+            itemNode.off(Node.EventType.TOUCH_END);
+            itemNode.off(Node.EventType.TOUCH_CANCEL);
+            itemNode.on(Node.EventType.TOUCH_START, () => {
+                this.showAchievementDescription(descriptionMap.get(ownedId) || '');
+            }, this);
+            itemNode.on(Node.EventType.TOUCH_END, this.hideAchievementDescription, this);
+            itemNode.on(Node.EventType.TOUCH_CANCEL, this.hideAchievementDescription, this);
+        }
+
+        const layout = container.getComponent(Layout);
+        layout?.updateLayout();
     }
 
     private async renderAvatarItems(container: Node | null): Promise<void> {
@@ -616,6 +692,8 @@ export class UserInfo extends Component {
                 return 'tweezer/tweezer_config';
             case 'iron':
                 return 'iron/iron_config';
+            case 'achievementIcon':
+                return 'achievement_icon/achievement_icon_config';
             default:
                 return '';
         }
@@ -631,6 +709,8 @@ export class UserInfo extends Component {
                 return 'tweezers';
             case 'iron':
                 return 'irons';
+            case 'achievementIcon':
+                return 'achievementIcons';
             default:
                 return 'avatars';
         }
@@ -649,8 +729,76 @@ export class UserInfo extends Component {
                 return Array.isArray(json.tweezers) ? json.tweezers : [];
             case 'iron':
                 return Array.isArray(json.irons) ? json.irons : [];
+            case 'achievementIcon':
+                return Array.isArray(json.achievementIcons) ? json.achievementIcons : [];
             default:
                 return [];
+        }
+    }
+
+    private async loadAchievementDescriptionMap(): Promise<Map<number, string>> {
+        if (this._achievementDescriptionCache) {
+            return this._achievementDescriptionCache;
+        }
+
+        if (this._achievementDescriptionTask) {
+            return await this._achievementDescriptionTask;
+        }
+
+        this._achievementDescriptionTask = new Promise<Map<number, string>>((resolve) => {
+            resources.load('achievement_icon/achievement_icon_config', JsonAsset, (err, jsonAsset) => {
+                if (err || !jsonAsset) {
+                    console.warn('UserInfo: failed to load achievementIcon config', err);
+                    const emptyMap = new Map<number, string>();
+                    this._achievementDescriptionCache = emptyMap;
+                    this._achievementDescriptionTask = null;
+                    resolve(emptyMap);
+                    return;
+                }
+
+                const json = (jsonAsset.json || {}) as UserInfoResourceConfigFile;
+                const configList = Array.isArray(json.achievementIcons) ? json.achievementIcons : [];
+                const descriptionMap = new Map<number, string>();
+                for (const item of configList) {
+                    const normalizedId = this.normalizeOwnedConfigId(item?.id ?? 0);
+                    descriptionMap.set(normalizedId, String(item?.description || '').trim());
+                }
+
+                this._achievementDescriptionCache = descriptionMap;
+                this._achievementDescriptionTask = null;
+                resolve(descriptionMap);
+            });
+        });
+
+        return await this._achievementDescriptionTask;
+    }
+
+    private loadLocalSpriteFrame(resourcePath: string): Promise<SpriteFrame | null> {
+        return new Promise((resolve) => {
+            resources.load(`${resourcePath}/spriteFrame`, SpriteFrame, (err, spriteFrame) => {
+                if (err || !spriteFrame) {
+                    console.warn(`UserInfo: failed to load spriteFrame ${resourcePath}`, err);
+                    resolve(null);
+                    return;
+                }
+
+                resolve(spriteFrame);
+            });
+        });
+    }
+
+    private showAchievementDescription(description: string): void {
+        if (this.ac_description_label) {
+            this.ac_description_label.string = description;
+        }
+        if (this.ac_description_node) {
+            this.ac_description_node.active = true;
+        }
+    }
+
+    private hideAchievementDescription(): void {
+        if (this.ac_description_node) {
+            this.ac_description_node.active = false;
         }
     }
 

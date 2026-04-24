@@ -64,6 +64,7 @@ export class WXManager extends Component {
     private static readonly USER_OWNED_AVATAR_FRAME_IDS_STORAGE_KEY = 'user_owned_avatar_frame_ids';
     private static readonly USER_OWNED_TWEEZER_IDS_STORAGE_KEY = 'user_owned_tweezer_ids';
     private static readonly USER_OWNED_IRON_IDS_STORAGE_KEY = 'user_owned_iron_ids';
+    private static readonly USER_OWNED_ACHIEVEMENT_ICON_IDS_STORAGE_KEY = 'user_owned_achievement_icon_ids';
 
     @property({ type: Node })
     testBtn: Node = null;
@@ -1056,6 +1057,15 @@ export class WXManager extends Component {
 
     public getOwnedIronIds(): Promise<number[] | null> {
         return this.getOwnedIdsFromStorage(WXManager.USER_OWNED_IRON_IDS_STORAGE_KEY);
+    }
+
+    public setOwnedAchievementIconIds(ids: number[]): void {
+        if (typeof (wx) === 'undefined') return;
+        wx.setStorageSync(WXManager.USER_OWNED_ACHIEVEMENT_ICON_IDS_STORAGE_KEY, this.normalizeOwnedIds(ids));
+    }
+
+    public getOwnedAchievementIconIds(): Promise<number[] | null> {
+        return this.getOwnedIdsFromStorage(WXManager.USER_OWNED_ACHIEVEMENT_ICON_IDS_STORAGE_KEY);
     }
 
     public getPaletteSkillCount(): Promise<number | null> {
