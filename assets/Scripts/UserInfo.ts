@@ -1,4 +1,5 @@
-import { _decorator, Color, Node, Component, Label, Sprite, input, Input, EventTouch, UITransform, Vec2, resources, SpriteFrame } from 'cc';
+import { _decorator, Color, Node, Component, Label, Sprite, input, Input, EventTouch, UITransform, Vec2 } from 'cc';
+import { loadAvatarSpriteFrameBySource } from './AvatarSourceLoader';
 import { GameManager, GameState } from './GameManager';
 import { WXManager } from './WXManager';
 const { ccclass, property } = _decorator;
@@ -16,6 +17,8 @@ type LocalProfileContext = {
 export class UserInfo extends Component {
     private static readonly ACTIVE_BUTTON_COLOR = new Color(252, 158, 121, 255);
     private static readonly INACTIVE_BUTTON_COLOR = new Color(255, 255, 255, 255);
+    private static readonly DEFAULT_MALE_AVATAR_ID = 1;
+    private static readonly DEFAULT_FEMALE_AVATAR_ID = 2;
 
     @property({ type: Node })
     man_sex_btn: Node = null;
@@ -65,7 +68,6 @@ export class UserInfo extends Component {
     private _openid: string = '';
     private _nickname: string = '';
     private _avatarUrl: string = '';
-    private _avatarId: number = 0;
     private _avatarFrameId: number = 0;
     private _tweezerId: number = 0;
     private _ironId: number = 0;
@@ -73,9 +75,7 @@ export class UserInfo extends Component {
     private _timeSkillCount: number = 0;
     private _paletteSkillCount: number = 0;
     private _sex: UserSex = 'male';
-
-    defaultManAvatarPath: string = 'items/avatar/default_man';
-    defaultWomanAvatarPath: string = 'items/avatar/default_woman';
+    private avatarRenderVersion = 0;
 
     onLoad(): void {
         this.refreshNameLabel();
@@ -114,7 +114,7 @@ export class UserInfo extends Component {
         const normalizedSex: UserSex = value === 'female' ? 'female' : 'male';
         this._sex = normalizedSex;
         this.refreshSexDisplay();
-        this.refreshDefaultAvatarIfNeeded();
+        this.refreshAvatarSprite();
         WXManager.instance?.setUserSex(normalizedSex);
     }
 
@@ -133,15 +133,7 @@ export class UserInfo extends Component {
 
     public set avatarUrl(value: string) {
         this._avatarUrl = (value || '').trim();
-    }
-
-    public get avatarId(): number {
-        return this._avatarId;
-    }
-
-    public set avatarId(value: number) {
-        this._avatarId = this.normalizeConfigId(value);
-        this.refreshDefaultAvatarIfNeeded();
+        this.refreshAvatarSprite();
     }
 
     public get avatarFrameId(): number {
@@ -172,12 +164,14 @@ export class UserInfo extends Component {
         this._nickname = (nickname || '').trim();
         this._avatarUrl = (avatarUrl || '').trim();
         this.refreshNameLabel();
+        this.refreshAvatarSprite();
     }
 
     public clearProfile(): void {
         this._nickname = '';
         this._avatarUrl = '';
         this.refreshNameLabel();
+        this.refreshAvatarSprite();
     }
 
     private refreshNameLabel(): void {
@@ -194,17 +188,37 @@ export class UserInfo extends Component {
         const cachedSex = WXManager.instance?.getUserSex();
         this._sex = cachedSex === 'female' ? 'female' : 'male';
         this.refreshSexDisplay();
-        this.refreshDefaultAvatarIfNeeded();
+        this.refreshAvatarSprite();
     }
 
     private refreshDefaultAvatarIfNeeded(): void {
-        if (this._avatarId !== 0 || !this.avatar_sprite) {
+        const defaultAvatarId = this._sex === 'female'
+            ? UserInfo.DEFAULT_FEMALE_AVATAR_ID
+            : UserInfo.DEFAULT_MALE_AVATAR_ID;
+        const renderVersion = ++this.avatarRenderVersion;
+        void loadAvatarSpriteFrameBySource(String(defaultAvatarId), true, 'UserInfo').then((spriteFrame) => {
+            if (!spriteFrame || renderVersion !== this.avatarRenderVersion || !!this._avatarUrl || !this.avatar_sprite) {
+                return;
+            }
+
+            this.avatar_sprite.spriteFrame = spriteFrame;
+        });
+    }
+
+    private refreshAvatarSprite(): void {
+        if (!this.avatar_sprite) {
             return;
         }
 
-        const resourcePath = this._sex === 'female' ? this.defaultWomanAvatarPath : this.defaultManAvatarPath;
-        resources.load(`${resourcePath}/spriteFrame`, SpriteFrame, (err, spriteFrame) => {
-            if (err || !spriteFrame || this._avatarId !== 0 || !this.avatar_sprite) {
+        const avatarSource = this._avatarUrl;
+        if (!avatarSource) {
+            this.refreshDefaultAvatarIfNeeded();
+            return;
+        }
+
+        const renderVersion = ++this.avatarRenderVersion;
+        void loadAvatarSpriteFrameBySource(avatarSource, true, 'UserInfo').then((spriteFrame) => {
+            if (!spriteFrame || renderVersion !== this.avatarRenderVersion || !this.avatar_sprite) {
                 return;
             }
 

@@ -2,11 +2,11 @@
   "avatars": [
     {
       "id": 1,
-      "resourcePath": "items/avatar/avatar_1"
+      "resourcePath": "items/avatar/default_man"
     },
     {
       "id": 2,
-      "resourcePath": "items/avatar/avatar_2"
+      "resourcePath": "items/avatar/default_woman"
     },
     {
       "id": 3,

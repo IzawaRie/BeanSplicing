@@ -1,4 +1,5 @@
-import { _decorator, assetManager, Color, Component, EventTouch, ImageAsset, input, Input, instantiate, isValid, Label, Layout, Node, Prefab, resources, ScrollView, Sprite, SpriteFrame, Texture2D, tween, Tween, UITransform, Vec2, Vec3 } from 'cc';
+import { _decorator, Color, Component, EventTouch, input, Input, instantiate, isValid, Label, Layout, Node, Prefab, resources, ScrollView, Sprite, SpriteFrame, tween, Tween, UITransform, Vec2, Vec3 } from 'cc';
+import { loadAvatarSpriteFrameBySource } from './AvatarSourceLoader';
 import { DifficultyMode, GameManager } from './GameManager';
 import { ChartUser } from './ChartUser';
 import { ChartLocalProfileContext, ChartOwnerSummaryBuilder, ChartOwnerSummaryData } from './ChartOwnerSummary';
@@ -1018,14 +1019,7 @@ export class ChartController extends Component {
 
     // 首次加载头像失败时清理远程缓存后再重试一次。
     private async loadAvatarSpriteFrameWithRetry(avatarUrl: string): Promise<SpriteFrame | null> {
-        let spriteFrame = await this.loadAvatarSpriteFrameOnce(avatarUrl, false);
-        if (spriteFrame) {
-            this.avatarFrameCache.set(avatarUrl, spriteFrame);
-            return spriteFrame;
-        }
-
-        this.clearRemoteAvatarCache(avatarUrl);
-        spriteFrame = await this.loadAvatarSpriteFrameOnce(avatarUrl, true);
+        const spriteFrame = await loadAvatarSpriteFrameBySource(avatarUrl, true, 'ChartController');
         if (spriteFrame) {
             this.avatarFrameCache.set(avatarUrl, spriteFrame);
         } else {
@@ -1071,53 +1065,6 @@ export class ChartController extends Component {
     // 优先获取当前玩家已经授权的本地昵称和头像。
     private getLocalProfileContext(): ChartLocalProfileContext | null {
         return GameManager.getInstance()?.userInfo?.toChartLocalProfileContext() ?? null;
-    }
-
-    // 执行一次远程头像下载并转成 SpriteFrame。
-    private loadAvatarSpriteFrameOnce(avatarUrl: string, shouldWarn: boolean): Promise<SpriteFrame | null> {
-        return new Promise<SpriteFrame | null>((resolve) => {
-            const ext = this.getAvatarExtension(avatarUrl);
-            assetManager.loadRemote<ImageAsset>(avatarUrl, { ext }, (err, imageAsset) => {
-                if (err || !imageAsset) {
-                    if (shouldWarn) {
-                        console.warn(`ChartController: failed to load avatar ${avatarUrl}`, err);
-                    }
-                    resolve(null);
-                    return;
-                }
-
-                const texture = new Texture2D();
-                texture.image = imageAsset;
-
-                const spriteFrame = new SpriteFrame();
-                spriteFrame.texture = texture;
-                resolve(spriteFrame);
-            });
-        });
-    }
-
-    // 清理远程头像在引擎侧的缓存记录。
-    private clearRemoteAvatarCache(avatarUrl: string): void {
-        const cacheManager = (assetManager as any)?.cacheManager;
-        cacheManager?.removeCache?.(avatarUrl);
-    }
-
-    // 根据头像地址推断远程加载时需要的扩展名。
-    private getAvatarExtension(avatarUrl: string): string {
-        const normalizedUrl = avatarUrl.split('?')[0].toLowerCase();
-        if (normalizedUrl.includes('thirdwx.qlogo.cn') || normalizedUrl.includes('wx.qlogo.cn')) {
-            return '.jpg';
-        }
-        if (normalizedUrl.endsWith('.jpg') || normalizedUrl.endsWith('.jpeg')) {
-            return '.jpg';
-        }
-        if (normalizedUrl.endsWith('.webp')) {
-            return '.webp';
-        }
-        if (normalizedUrl.endsWith('.png')) {
-            return '.png';
-        }
-        return '.jpg';
     }
 
     // ==================== 资源预热与对象池 ====================
