@@ -551,7 +551,7 @@ export class ResultPanel extends Component {
             .to(0.5, { fillRange: 1 }, { easing: 'sineInOut' })
             .call(() => {
                 this.scheduleOnce(() => {
-                    WXManager.instance.showInterstitialAd();
+                    void this.handleResultPageOpenAbility();
                 }, 0.5);
             })
             .start();
@@ -565,6 +565,28 @@ export class ResultPanel extends Component {
     /**
      * 点击拍照按钮
      */
+    /**
+     * 结果页打开后，通关时优先尝试插屏广告；
+     * 只有没有打开插屏广告时，才尝试展示游戏评价。
+     */
+    private async handleResultPageOpenAbility(): Promise<void> {
+        if (!this._isSuccess) {
+            return;
+        }
+
+        const wxManager = WXManager.instance;
+        if (!wxManager) {
+            return;
+        }
+
+        const interstitialShown = await wxManager.showInterstitialAd();
+        if (interstitialShown) {
+            return;
+        }
+
+        wxManager.tryShowGameEvaluation();
+    }
+
     private onCameraBtnClick(): void {
         // 播放音效
         AudioManager.instance.playEffect('camera_shutter');
@@ -733,7 +755,8 @@ export class ResultPanel extends Component {
             await this._saveLevelDataTask;
         }
 
-        gameManager.chart.openLevelRanking(this._resultDifficulty, this._resultLevelNo, this._isSuccess);
+        WXManager.instance?.hideNativeAd();
+        gameManager.chart.openLevelRanking(this._resultDifficulty, this._resultLevelNo, this._isSuccess, false);
     }
 
     private onShowHomePanel(){

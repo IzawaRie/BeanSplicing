@@ -90,6 +90,7 @@ export class ChartController extends Component {
     private defaultOwnerAvatarSpriteFrame: SpriteFrame | null = null;
     private renderVersion = 0;
     private pendingOpenForceRefresh = false;
+    private shouldRestoreNativeAdOnClose = false;
     private activeRankingRenderToken = 0;
     private currentRankingTotalCount = 0;
     private currentVirtualStartIndex = -1;
@@ -135,9 +136,10 @@ export class ChartController extends Component {
 
     // ==================== 对外接口 ====================
     // 打开指定难度的排行榜页面。
-    public openDifficultyRanking(difficulty: DifficultyMode = this.currentDifficulty, forceRefresh: boolean = false): void {
+    public openDifficultyRanking(difficulty: DifficultyMode = this.currentDifficulty, forceRefresh: boolean = false, restoreNativeAdOnClose: boolean = false): void {
         this.currentViewMode = 'difficulty';
         this.currentDifficulty = difficulty;
+        this.shouldRestoreNativeAdOnClose = restoreNativeAdOnClose;
         this.setDifficultyTagsVisible(true);
         if (!this.node.active) {
             this.pendingOpenForceRefresh = forceRefresh;
@@ -152,10 +154,11 @@ export class ChartController extends Component {
     }
 
     // 打开指定难度和关卡的排行榜页面。
-    public openLevelRanking(difficulty: DifficultyMode, levelNo: number, forceRefresh: boolean = false): void {
+    public openLevelRanking(difficulty: DifficultyMode, levelNo: number, forceRefresh: boolean = false, restoreNativeAdOnClose: boolean = false): void {
         this.currentViewMode = 'level';
         this.currentDifficulty = difficulty;
         this.currentLevelNo = Math.max(1, levelNo);
+        this.shouldRestoreNativeAdOnClose = restoreNativeAdOnClose;
         this.setDifficultyTagsVisible(false);
         if (!this.node.active) {
             this.pendingOpenForceRefresh = forceRefresh;
@@ -336,6 +339,9 @@ export class ChartController extends Component {
     // 关闭排行榜节点。
     private closeChart(): void {
         this.node.active = false;
+        if (this.shouldRestoreNativeAdOnClose) {
+            GameManager.getInstance()?.wxManager?.showNativeAd();
+        }
     }
 
     // 播放排行榜打开时的缩放动画。

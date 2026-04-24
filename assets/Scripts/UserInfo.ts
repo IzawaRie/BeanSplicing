@@ -35,6 +35,9 @@ export class UserInfo extends Component {
     private static readonly DEFAULT_FEMALE_AVATAR_ID = 2;
 
     @property({ type: Node })
+    close_btn: Node = null;
+    
+    @property({ type: Node })
     man_sex_btn: Node = null;
 
     @property({ type: Node })
@@ -105,6 +108,7 @@ export class UserInfo extends Component {
     onLoad(): void {
         this.refreshNameLabel();
         this.refreshSkillCountLabels();
+        this.bindCloseButtonEvents();
         this.bindSexButtonEvents();
         this.initializeSexState();
     }
@@ -120,6 +124,7 @@ export class UserInfo extends Component {
 
     onDestroy(): void {
         input.off(Input.EventType.TOUCH_END, this.onTouchEnd, this);
+        this.unbindCloseButtonEvents();
         this.unbindSexButtonEvents();
     }
 
@@ -859,6 +864,14 @@ export class UserInfo extends Component {
         });
     }
 
+    private bindCloseButtonEvents(): void {
+        this.close_btn?.on(Node.EventType.TOUCH_END, this.onCloseBtnClick, this);
+    }
+
+    private unbindCloseButtonEvents(): void {
+        this.close_btn?.off(Node.EventType.TOUCH_END, this.onCloseBtnClick, this);
+    }
+
     private bindSexButtonEvents(): void {
         this.man_sex_btn?.on(Node.EventType.TOUCH_END, this.onManSexBtnClick, this);
         this.woman_sex_btn?.on(Node.EventType.TOUCH_END, this.onWomanSexBtnClick, this);
@@ -875,6 +888,10 @@ export class UserInfo extends Component {
 
     private onWomanSexBtnClick(): void {
         this.sex = 'female';
+    }
+
+    private onCloseBtnClick(): void {
+        this.closePanel();
     }
 
     private onTouchEnd(event: EventTouch): void {

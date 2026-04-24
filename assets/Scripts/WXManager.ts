@@ -55,6 +55,7 @@ export class WXManager extends Component {
     private static readonly USER_AVATAR_URL_STORAGE_KEY = 'user_avatar_url';
     private static readonly USER_AUTHORIZED_AVATAR_URL_STORAGE_KEY = 'user_authorized_avatar_url';
     private static readonly USER_CURRENT_AVATAR_SOURCE_STORAGE_KEY = 'user_current_avatar_source';
+    private static readonly GAME_EVALUATION_RECOMMENDED_STORAGE_KEY = 'game_evaluation_recommended';
     private static readonly USER_SEX_STORAGE_KEY = 'user_sex';
     private static readonly USER_AVATAR_FRAME_ID_STORAGE_KEY = 'user_avatar_frame_id';
     private static readonly USER_TWEEZER_ID_STORAGE_KEY = 'user_tweezer_id';
@@ -78,6 +79,7 @@ export class WXManager extends Component {
     private interstitialAd: any = null;
     private readonly INTERSTITIAL_MIN_INTERVAL: number = 5 * 60 * 1000;
     private readonly INTERSTITIAL_LAST_SHOW_STORAGE_KEY: string = 'interstitial_last_show_at';
+    private _gameEvaluationRecommended: boolean = false;
     // 激励视频广告位 id（在微信公众平台广告位配置获取）
     private readonly VIDEO_AD_UNIT_ID: string = 'adunit-f7349bec4122701f';
     private readonly INTERSTITIAL_AD_UNIT_ID: string = 'adunit-613709c057d35ead';
@@ -91,6 +93,7 @@ export class WXManager extends Component {
 
     onLoad() {
         this.restoreCachedUserProfile();
+        this._gameEvaluationRecommended = this.getGameEvaluationRecommendedFromStorage();
         this.showShareMenu();
         // imageUrlId、imageUrl：在微信公众平台「增长入口」→「小程序分享图」上传后获得的图片 ID 和图片 URL
         this.onShareAppMessage('快来和我一起拼豆！');
@@ -231,23 +234,6 @@ export class WXManager extends Component {
     private readonly RECOMMEND_OPENLINK: string = 'TWFRCqV5WeM2AkMXhKwJ03MhfPOieJfAsvXKUbWvQFQtLyyA5etMPabBehga950uzfZcH3Vi3QeEh41xRGEVFw';
 
     /**
-     * 打开推荐位
-     */
-    public openRecommend(): void {
-        if (typeof (wx) === 'undefined') return;
-
-        const pageManager = wx.createPageManager();
-        pageManager.load({
-            openlink: this.RECOMMEND_OPENLINK
-        }).then((res: any) => {
-            console.log('推荐位加载成功:', res);
-            pageManager.show();
-        }).catch((err: any) => {
-            console.warn('推荐位加载失败:', err);
-        });
-    }
-
-    /**
      * 创建插屏广告
      */
     private createInterstitialAd(): void {
@@ -278,12 +264,12 @@ export class WXManager extends Component {
     /**
      * 显示插屏广告
      */
-    public showInterstitialAd(): void {
-        if (typeof (wx) === 'undefined') return;
-        if (this.isDebugMode) return;
+    public async showInterstitialAd(): Promise<boolean> {
+        if (typeof (wx) === 'undefined') return false;
+        if (this.isDebugMode) return false;
         if (!this.interstitialAd) {
             console.warn('插屏广告未创建');
-            return;
+            return false;
         }
 
         const now = Date.now();
@@ -294,20 +280,84 @@ export class WXManager extends Component {
                 lastShowAt,
                 remainingMs: this.INTERSTITIAL_MIN_INTERVAL - (now - lastShowAt)
             });
+            return false;
+        }
+
+        try {
+            await this.interstitialAd.show();
+            wx.setStorageSync(this.INTERSTITIAL_LAST_SHOW_STORAGE_KEY, now);
+            return true;
+        } catch {
+            try {
+                await this.interstitialAd.load();
+                await this.interstitialAd.show();
+                wx.setStorageSync(this.INTERSTITIAL_LAST_SHOW_STORAGE_KEY, now);
+                return true;
+            } catch (err: any) {
+                console.warn('插屏广告显示失败:', err);
+                return false;
+            }
+        }
+    }
+
+    public hasRecommendedGameEvaluation(): boolean {
+        return this._gameEvaluationRecommended;
+    }
+
+    private getGameEvaluationRecommendedFromStorage(): boolean {
+        if (typeof (wx) === 'undefined') {
+            return false;
+        }
+
+        return !!wx.getStorageSync(WXManager.GAME_EVALUATION_RECOMMENDED_STORAGE_KEY);
+    }
+
+    public setGameEvaluationRecommended(value: boolean): void {
+        this._gameEvaluationRecommended = !!value;
+        if (typeof (wx) === 'undefined') {
             return;
         }
 
-        this.interstitialAd.show().then(() => {
-            wx.setStorageSync(this.INTERSTITIAL_LAST_SHOW_STORAGE_KEY, now);
-        }).catch(() => {
-            this.interstitialAd.load().then(() => {
-                return this.interstitialAd.show().then(() => {
-                    wx.setStorageSync(this.INTERSTITIAL_LAST_SHOW_STORAGE_KEY, now);
-                });
-            }).catch((err: any) => {
-                console.warn('插屏广告显示失败:', err);
+        if (this._gameEvaluationRecommended) {
+            wx.setStorageSync(WXManager.GAME_EVALUATION_RECOMMENDED_STORAGE_KEY, 1);
+            return;
+        }
+
+        wx.removeStorageSync(WXManager.GAME_EVALUATION_RECOMMENDED_STORAGE_KEY);
+    }
+
+    public tryShowGameEvaluation(): void {
+        if (this._gameEvaluationRecommended) {
+            return;
+        }
+
+        if (typeof (wx) === 'undefined') {
+            return;
+        }
+
+        try {
+            const pageManager = wx.createPageManager();
+
+            pageManager.on('destroy', (result) => {
+                if (result?.isRecommended) {
+                    this.setGameEvaluationRecommended(true);
+                }
             });
-        });
+
+            pageManager.load({
+                openlink: this.RECOMMEND_OPENLINK
+            }).then(() => {
+                try {
+                    pageManager.show();
+                } catch (error) {
+                    console.warn('调用推荐位页面失败:', error);
+                }
+            }).catch((error: any) => {
+                console.warn('推荐位页面加载失败:', error);
+            });
+        } catch (error) {
+            console.warn('创建推荐位页面失败:', error);
+        }
     }
 
     /**

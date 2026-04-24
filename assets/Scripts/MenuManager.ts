@@ -30,9 +30,6 @@ export class MenuManager extends Component {
     pyq_btn: Node = null;
 
     @property({ type: Node })
-    recommend_btn: Node = null;
-
-    @property({ type: Node })
     chart_btn: Node = null;
 
     @property({ type: Node })
@@ -169,9 +166,6 @@ export class MenuManager extends Component {
         }
         if (this.pyq_btn) {
             this.pyq_btn.on(Node.EventType.TOUCH_END, this.onPyqBtnClick, this);
-        }
-        if (this.recommend_btn) {
-            this.recommend_btn.on(Node.EventType.TOUCH_END, this.onRecommendBtnClick, this);
         }
         if (this.chart_btn) {
             this.chart_btn.on(Node.EventType.TOUCH_END, this.onChartBtnClick, this);
@@ -419,18 +413,6 @@ export class MenuManager extends Component {
     }
 
     /**
-     * 点击推荐按钮，打开推荐位
-     */
-    private onRecommendBtnClick(): void {
-        const gameManager = GameManager.getInstance();
-        if (gameManager?.isWindowBlocking()) return;
-
-        gameManager.vibrateShort();
-        AudioManager.instance.playEffect('click_btn');
-        WXManager.instance?.openRecommend();
-    }
-
-    /**
      * 点击排行榜按钮，打开排行榜面板
      */
     private async onChartBtnClick(): Promise<void> {
@@ -445,7 +427,8 @@ export class MenuManager extends Component {
             await gameManager.ensureChartProfileReady();
         }
 
-        gameManager.chart.openDifficultyRanking(gameManager.currentDifficulty, false);
+        WXManager.instance?.hideNativeAd();
+        gameManager.chart.openDifficultyRanking(gameManager.currentDifficulty, false, true);
     }
 
     private onShopBtnClick(): void {
