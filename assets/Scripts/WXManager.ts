@@ -54,6 +54,13 @@ export class WXManager extends Component {
     private static readonly USER_NICKNAME_STORAGE_KEY = 'user_nickname';
     private static readonly USER_AVATAR_URL_STORAGE_KEY = 'user_avatar_url';
     private static readonly USER_SEX_STORAGE_KEY = 'user_sex';
+    private static readonly USER_AVATAR_FRAME_ID_STORAGE_KEY = 'user_avatar_frame_id';
+    private static readonly USER_TWEEZER_ID_STORAGE_KEY = 'user_tweezer_id';
+    private static readonly USER_IRON_ID_STORAGE_KEY = 'user_iron_id';
+    private static readonly USER_OWNED_AVATAR_IDS_STORAGE_KEY = 'user_owned_avatar_ids';
+    private static readonly USER_OWNED_AVATAR_FRAME_IDS_STORAGE_KEY = 'user_owned_avatar_frame_ids';
+    private static readonly USER_OWNED_TWEEZER_IDS_STORAGE_KEY = 'user_owned_tweezer_ids';
+    private static readonly USER_OWNED_IRON_IDS_STORAGE_KEY = 'user_owned_iron_ids';
 
     @property({ type: Node })
     testBtn: Node = null;
@@ -847,6 +854,102 @@ export class WXManager extends Component {
         wx.setStorageSync(WXManager.USER_SEX_STORAGE_KEY, normalizedSex);
     }
 
+    public setAvatarFrameId(id: number): void {
+        if (typeof (wx) === 'undefined') return;
+        wx.setStorageSync(WXManager.USER_AVATAR_FRAME_ID_STORAGE_KEY, Math.max(0, Math.floor(Number(id) || 0)));
+    }
+
+    public getAvatarFrameId(): Promise<number | null> {
+        if (typeof (wx) === 'undefined') return Promise.resolve(null);
+        return new Promise((resolve) => {
+            wx.getStorage({
+                key: WXManager.USER_AVATAR_FRAME_ID_STORAGE_KEY,
+                success(res) {
+                    resolve(Math.max(0, Math.floor(Number(res.data) || 0)));
+                },
+                fail() {
+                    resolve(null);
+                }
+            });
+        });
+    }
+
+    public setTweezerId(id: number): void {
+        if (typeof (wx) === 'undefined') return;
+        wx.setStorageSync(WXManager.USER_TWEEZER_ID_STORAGE_KEY, Math.max(0, Math.floor(Number(id) || 0)));
+    }
+
+    public getTweezerId(): Promise<number | null> {
+        if (typeof (wx) === 'undefined') return Promise.resolve(null);
+        return new Promise((resolve) => {
+            wx.getStorage({
+                key: WXManager.USER_TWEEZER_ID_STORAGE_KEY,
+                success(res) {
+                    resolve(Math.max(0, Math.floor(Number(res.data) || 0)));
+                },
+                fail() {
+                    resolve(null);
+                }
+            });
+        });
+    }
+
+    public setIronId(id: number): void {
+        if (typeof (wx) === 'undefined') return;
+        wx.setStorageSync(WXManager.USER_IRON_ID_STORAGE_KEY, Math.max(0, Math.floor(Number(id) || 0)));
+    }
+
+    public getIronId(): Promise<number | null> {
+        if (typeof (wx) === 'undefined') return Promise.resolve(null);
+        return new Promise((resolve) => {
+            wx.getStorage({
+                key: WXManager.USER_IRON_ID_STORAGE_KEY,
+                success(res) {
+                    resolve(Math.max(0, Math.floor(Number(res.data) || 0)));
+                },
+                fail() {
+                    resolve(null);
+                }
+            });
+        });
+    }
+
+    public setOwnedAvatarIds(ids: number[]): void {
+        if (typeof (wx) === 'undefined') return;
+        wx.setStorageSync(WXManager.USER_OWNED_AVATAR_IDS_STORAGE_KEY, this.normalizeOwnedIds(ids));
+    }
+
+    public getOwnedAvatarIds(): Promise<number[] | null> {
+        return this.getOwnedIdsFromStorage(WXManager.USER_OWNED_AVATAR_IDS_STORAGE_KEY);
+    }
+
+    public setOwnedAvatarFrameIds(ids: number[]): void {
+        if (typeof (wx) === 'undefined') return;
+        wx.setStorageSync(WXManager.USER_OWNED_AVATAR_FRAME_IDS_STORAGE_KEY, this.normalizeOwnedIds(ids));
+    }
+
+    public getOwnedAvatarFrameIds(): Promise<number[] | null> {
+        return this.getOwnedIdsFromStorage(WXManager.USER_OWNED_AVATAR_FRAME_IDS_STORAGE_KEY);
+    }
+
+    public setOwnedTweezerIds(ids: number[]): void {
+        if (typeof (wx) === 'undefined') return;
+        wx.setStorageSync(WXManager.USER_OWNED_TWEEZER_IDS_STORAGE_KEY, this.normalizeOwnedIds(ids));
+    }
+
+    public getOwnedTweezerIds(): Promise<number[] | null> {
+        return this.getOwnedIdsFromStorage(WXManager.USER_OWNED_TWEEZER_IDS_STORAGE_KEY);
+    }
+
+    public setOwnedIronIds(ids: number[]): void {
+        if (typeof (wx) === 'undefined') return;
+        wx.setStorageSync(WXManager.USER_OWNED_IRON_IDS_STORAGE_KEY, this.normalizeOwnedIds(ids));
+    }
+
+    public getOwnedIronIds(): Promise<number[] | null> {
+        return this.getOwnedIdsFromStorage(WXManager.USER_OWNED_IRON_IDS_STORAGE_KEY);
+    }
+
     public getPaletteSkillCount(): Promise<number | null> {
         if (typeof (wx) === 'undefined') return Promise.resolve(null);
         return new Promise((resolve) => {
@@ -860,6 +963,36 @@ export class WXManager extends Component {
                 }
             });
         });
+    }
+
+    private getOwnedIdsFromStorage(key: string): Promise<number[] | null> {
+        if (typeof (wx) === 'undefined') return Promise.resolve(null);
+        return new Promise((resolve) => {
+            wx.getStorage({
+                key,
+                success: (res) => {
+                    const normalizedIds = this.normalizeOwnedIds(res.data);
+                    resolve(normalizedIds.length > 0 ? normalizedIds : null);
+                },
+                fail: () => {
+                    resolve(null);
+                }
+            });
+        });
+    }
+
+    private normalizeOwnedIds(ids: unknown): number[] {
+        if (!Array.isArray(ids)) {
+            return [];
+        }
+
+        const normalizedIds = Array.from(new Set(
+            ids
+                .map((id) => Math.max(1, Math.floor(Number(id) || 0)))
+                .filter((id) => id >= 1)
+        ));
+        normalizedIds.sort((a, b) => a - b);
+        return normalizedIds;
     }
 
     public setShopData(shopData: ShopRuntimeData): void {

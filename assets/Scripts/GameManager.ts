@@ -473,6 +473,13 @@ export class GameManager extends Component {
             this.shop.coin_label.string = `${this._coinCount}`;
         }
         if (this.userInfo) {
+            this.userInfo.ownedAvatarIds = (await this.wxManager.getOwnedAvatarIds()) ?? [1];
+            this.userInfo.ownedAvatarFrameIds = (await this.wxManager.getOwnedAvatarFrameIds()) ?? [1];
+            this.userInfo.ownedTweezerIds = (await this.wxManager.getOwnedTweezerIds()) ?? [1];
+            this.userInfo.ownedIronIds = (await this.wxManager.getOwnedIronIds()) ?? [1];
+            this.userInfo.avatarFrameId = Math.max(0, Math.floor((await this.wxManager.getAvatarFrameId()) ?? 1));
+            this.userInfo.tweezerId = Math.max(0, Math.floor((await this.wxManager.getTweezerId()) ?? 1));
+            this.userInfo.ironId = Math.max(0, Math.floor((await this.wxManager.getIronId()) ?? 1));
             this.userInfo.fixSkillCount = Math.max(0, Math.floor((await this.wxManager.getFixSkillCount()) ?? 0));
             this.userInfo.timeSkillCount = Math.max(0, Math.floor((await this.wxManager.getTimeSkillCount()) ?? 0));
             this.userInfo.paletteSkillCount = Math.max(0, Math.floor((await this.wxManager.getPaletteSkillCount()) ?? 0));

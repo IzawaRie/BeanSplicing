@@ -1,16 +1,30 @@
-import { _decorator, Color, Node, Component, Label, Sprite, input, Input, EventTouch, UITransform, Vec2 } from 'cc';
+import { _decorator, Color, Node, Component, Label, Sprite, input, Input, EventTouch, UITransform, Vec2, instantiate, isValid, JsonAsset, Layout, Prefab, resources } from 'cc';
 import { loadAvatarSpriteFrameBySource } from './AvatarSourceLoader';
 import { GameManager, GameState } from './GameManager';
+import { UserInfoItem } from './UserInfoItem';
 import { WXManager } from './WXManager';
 const { ccclass, property } = _decorator;
 
 type UserSex = 'male' | 'female';
+type UserInfoOwnedCategory = 'avatar' | 'avatarFrame' | 'tweezer' | 'iron';
 
 type LocalProfileContext = {
     openid: string;
     nickname: string;
     avatarUrl: string;
     hasRealProfile: boolean;
+};
+
+type UserInfoResourceConfigItem = {
+    id: number;
+    resourcePath: string;
+};
+
+type UserInfoResourceConfigFile = {
+    avatars?: UserInfoResourceConfigItem[];
+    avatarFrames?: UserInfoResourceConfigItem[];
+    tweezers?: UserInfoResourceConfigItem[];
+    irons?: UserInfoResourceConfigItem[];
 };
 
 @ccclass('UserInfo')
@@ -68,14 +82,22 @@ export class UserInfo extends Component {
     private _openid: string = '';
     private _nickname: string = '';
     private _avatarUrl: string = '';
-    private _avatarFrameId: number = 0;
-    private _tweezerId: number = 0;
-    private _ironId: number = 0;
+    private _avatarFrameId: number = 1;
+    private _tweezerId: number = 1;
+    private _ironId: number = 1;
+    private _ownedAvatarIds: number[] = [1];
+    private _ownedAvatarFrameIds: number[] = [1];
+    private _ownedTweezerIds: number[] = [1];
+    private _ownedIronIds: number[] = [1];
     private _fixSkillCount: number = 0;
     private _timeSkillCount: number = 0;
     private _paletteSkillCount: number = 0;
     private _sex: UserSex = 'male';
     private avatarRenderVersion = 0;
+    private _itemPrefab: Prefab | null = null;
+    private _itemPrefabTask: Promise<Prefab | null> | null = null;
+    private readonly _resourcePathCache = new Map<UserInfoOwnedCategory, Map<number, string>>();
+    private readonly _resourcePathTaskCache = new Map<UserInfoOwnedCategory, Promise<Map<number, string>>>();
 
     onLoad(): void {
         this.refreshNameLabel();
@@ -86,6 +108,7 @@ export class UserInfo extends Component {
 
     onEnable(): void {
         input.on(Input.EventType.TOUCH_END, this.onTouchEnd, this);
+        void this.refreshOwnedItemDisplays();
     }
 
     onDisable(): void {
@@ -141,7 +164,9 @@ export class UserInfo extends Component {
     }
 
     public set avatarFrameId(value: number) {
-        this._avatarFrameId = this.normalizeConfigId(value);
+        this._avatarFrameId = this.normalizeOwnedConfigId(value);
+        this.addOwnedAvatarFrameId(this._avatarFrameId);
+        WXManager.instance?.setAvatarFrameId(this._avatarFrameId);
     }
 
     public get tweezerId(): number {
@@ -149,7 +174,9 @@ export class UserInfo extends Component {
     }
 
     public set tweezerId(value: number) {
-        this._tweezerId = this.normalizeConfigId(value);
+        this._tweezerId = this.normalizeOwnedConfigId(value);
+        this.addOwnedTweezerId(this._tweezerId);
+        WXManager.instance?.setTweezerId(this._tweezerId);
     }
 
     public get ironId(): number {
@@ -157,7 +184,45 @@ export class UserInfo extends Component {
     }
 
     public set ironId(value: number) {
-        this._ironId = this.normalizeConfigId(value);
+        this._ironId = this.normalizeOwnedConfigId(value);
+        this.addOwnedIronId(this._ironId);
+        WXManager.instance?.setIronId(this._ironId);
+    }
+
+    public get ownedAvatarIds(): number[] {
+        return [...this._ownedAvatarIds];
+    }
+
+    public set ownedAvatarIds(value: number[]) {
+        this._ownedAvatarIds = this.normalizeOwnedIds(value);
+        WXManager.instance?.setOwnedAvatarIds(this._ownedAvatarIds);
+    }
+
+    public get ownedAvatarFrameIds(): number[] {
+        return [...this._ownedAvatarFrameIds];
+    }
+
+    public set ownedAvatarFrameIds(value: number[]) {
+        this._ownedAvatarFrameIds = this.normalizeOwnedIds(value);
+        WXManager.instance?.setOwnedAvatarFrameIds(this._ownedAvatarFrameIds);
+    }
+
+    public get ownedTweezerIds(): number[] {
+        return [...this._ownedTweezerIds];
+    }
+
+    public set ownedTweezerIds(value: number[]) {
+        this._ownedTweezerIds = this.normalizeOwnedIds(value);
+        WXManager.instance?.setOwnedTweezerIds(this._ownedTweezerIds);
+    }
+
+    public get ownedIronIds(): number[] {
+        return [...this._ownedIronIds];
+    }
+
+    public set ownedIronIds(value: number[]) {
+        this._ownedIronIds = this.normalizeOwnedIds(value);
+        WXManager.instance?.setOwnedIronIds(this._ownedIronIds);
     }
 
     public setProfile(nickname: string | null | undefined, avatarUrl: string | null | undefined): void {
@@ -182,6 +247,307 @@ export class UserInfo extends Component {
 
     private normalizeConfigId(value: number): number {
         return Math.max(0, Math.floor(Number(value) || 0));
+    }
+
+    private normalizeOwnedConfigId(value: number): number {
+        return Math.max(1, Math.floor(Number(value) || 1));
+    }
+
+    private normalizeOwnedIds(value: number[] | null | undefined): number[] {
+        if (!Array.isArray(value)) {
+            return [1];
+        }
+
+        const normalizedIds = Array.from(new Set(
+            value
+                .map((id) => this.normalizeOwnedConfigId(id))
+                .filter((id) => id >= 1)
+        ));
+        normalizedIds.sort((a, b) => a - b);
+        return normalizedIds.length > 0 ? normalizedIds : [1];
+    }
+
+    public hasOwnedAvatarId(id: number): boolean {
+        return this._ownedAvatarIds.indexOf(this.normalizeOwnedConfigId(id)) >= 0;
+    }
+
+    public addOwnedAvatarId(id: number): void {
+        const normalizedId = this.normalizeOwnedConfigId(id);
+        if (this._ownedAvatarIds.indexOf(normalizedId) >= 0) {
+            return;
+        }
+
+        this.ownedAvatarIds = [...this._ownedAvatarIds, normalizedId];
+    }
+
+    public hasOwnedAvatarFrameId(id: number): boolean {
+        return this._ownedAvatarFrameIds.indexOf(this.normalizeOwnedConfigId(id)) >= 0;
+    }
+
+    public addOwnedAvatarFrameId(id: number): void {
+        const normalizedId = this.normalizeOwnedConfigId(id);
+        if (this._ownedAvatarFrameIds.indexOf(normalizedId) >= 0) {
+            return;
+        }
+
+        this.ownedAvatarFrameIds = [...this._ownedAvatarFrameIds, normalizedId];
+    }
+
+    public hasOwnedTweezerId(id: number): boolean {
+        return this._ownedTweezerIds.indexOf(this.normalizeOwnedConfigId(id)) >= 0;
+    }
+
+    public addOwnedTweezerId(id: number): void {
+        const normalizedId = this.normalizeOwnedConfigId(id);
+        if (this._ownedTweezerIds.indexOf(normalizedId) >= 0) {
+            return;
+        }
+
+        this.ownedTweezerIds = [...this._ownedTweezerIds, normalizedId];
+    }
+
+    public hasOwnedIronId(id: number): boolean {
+        return this._ownedIronIds.indexOf(this.normalizeOwnedConfigId(id)) >= 0;
+    }
+
+    public addOwnedIronId(id: number): void {
+        const normalizedId = this.normalizeOwnedConfigId(id);
+        if (this._ownedIronIds.indexOf(normalizedId) >= 0) {
+            return;
+        }
+
+        this.ownedIronIds = [...this._ownedIronIds, normalizedId];
+    }
+
+    private async refreshOwnedItemDisplays(): Promise<void> {
+        const prefab = await this.loadUserInfoItemPrefab();
+        if (!prefab || !isValid(this.node) || !this.node.activeInHierarchy) {
+            return;
+        }
+
+        await Promise.all([
+            this.renderOwnedItems(this.avatar_content, this._ownedAvatarIds, 'avatar', this.getSelectedAvatarId()),
+            this.renderOwnedItems(this.kuang_content, this._ownedAvatarFrameIds, 'avatarFrame', this._avatarFrameId),
+            this.renderOwnedItems(this.niezi_content, this._ownedTweezerIds, 'tweezer', this._tweezerId),
+            this.renderOwnedItems(this.yundou_content, this._ownedIronIds, 'iron', this._ironId),
+        ]);
+    }
+
+    private async renderOwnedItems(
+        container: Node | null,
+        ownedIds: number[],
+        category: UserInfoOwnedCategory,
+        selectedId: number
+    ): Promise<void> {
+        if (!container) {
+            return;
+        }
+
+        const prefab = await this.loadUserInfoItemPrefab();
+        if (!prefab || !isValid(container) || !isValid(this.node) || !this.node.activeInHierarchy) {
+            return;
+        }
+
+        const resourcePathMap = await this.loadResourcePathMap(category);
+        if (!isValid(container) || !isValid(this.node) || !this.node.activeInHierarchy) {
+            return;
+        }
+
+        for (const child of [...container.children]) {
+            child.destroy();
+        }
+
+        const normalizedOwnedIds = this.normalizeOwnedIds(ownedIds);
+        for (const ownedId of normalizedOwnedIds) {
+            const resourcePath = resourcePathMap.get(ownedId) || '';
+            if (!resourcePath) {
+                continue;
+            }
+
+            const itemNode = instantiate(prefab);
+            container.addChild(itemNode);
+
+            const item = itemNode.getComponent(UserInfoItem);
+            item?.setData(resourcePath, ownedId === selectedId);
+        }
+
+        const layout = container.getComponent(Layout);
+        layout?.updateLayout();
+        this.updateOwnedContentSize(container);
+    }
+
+    private async loadUserInfoItemPrefab(): Promise<Prefab | null> {
+        if (this._itemPrefab) {
+            return this._itemPrefab;
+        }
+
+        if (this._itemPrefabTask) {
+            return await this._itemPrefabTask;
+        }
+
+        this._itemPrefabTask = new Promise<Prefab | null>((resolve) => {
+            resources.load('userinfo_item', Prefab, (err, prefab) => {
+                if (err || !prefab) {
+                    console.warn('UserInfo: failed to load userinfo_item prefab', err);
+                    resolve(null);
+                    this._itemPrefabTask = null;
+                    return;
+                }
+
+                this._itemPrefab = prefab;
+                resolve(prefab);
+            });
+        });
+
+        return await this._itemPrefabTask;
+    }
+
+    private async loadResourcePathMap(category: UserInfoOwnedCategory): Promise<Map<number, string>> {
+        const cachedMap = this._resourcePathCache.get(category);
+        if (cachedMap) {
+            return cachedMap;
+        }
+
+        const cachedTask = this._resourcePathTaskCache.get(category);
+        if (cachedTask) {
+            return await cachedTask;
+        }
+
+        const configPath = this.getConfigPath(category);
+        const configKey = this.getConfigKey(category);
+        const task = new Promise<Map<number, string>>((resolve) => {
+            resources.load(configPath, JsonAsset, (err, jsonAsset) => {
+                if (err || !jsonAsset) {
+                    console.warn(`UserInfo: failed to load ${category} config`, err);
+                    resolve(new Map<number, string>());
+                    this._resourcePathTaskCache.delete(category);
+                    return;
+                }
+
+                const json = (jsonAsset.json || {}) as UserInfoResourceConfigFile;
+                const configList = this.getConfigItemsByCategory(json, category);
+                const configMap = new Map<number, string>();
+                for (const item of configList) {
+                    const normalizedId = this.normalizeOwnedConfigId(item?.id ?? 0);
+                    const resourcePath = (item?.resourcePath || '').trim();
+                    if (!resourcePath) {
+                        continue;
+                    }
+
+                    configMap.set(normalizedId, resourcePath);
+                }
+
+                this._resourcePathCache.set(category, configMap);
+                resolve(configMap);
+            });
+        });
+
+        this._resourcePathTaskCache.set(category, task);
+        return await task;
+    }
+
+    private getConfigPath(category: UserInfoOwnedCategory): string {
+        switch (category) {
+            case 'avatar':
+                return 'avatar/avatar_config';
+            case 'avatarFrame':
+                return 'avatar_frame/avatar_frame_config';
+            case 'tweezer':
+                return 'tweezer/tweezer_config';
+            case 'iron':
+                return 'iron/iron_config';
+            default:
+                return '';
+        }
+    }
+
+    private getConfigKey(category: UserInfoOwnedCategory): keyof UserInfoResourceConfigFile {
+        switch (category) {
+            case 'avatar':
+                return 'avatars';
+            case 'avatarFrame':
+                return 'avatarFrames';
+            case 'tweezer':
+                return 'tweezers';
+            case 'iron':
+                return 'irons';
+            default:
+                return 'avatars';
+        }
+    }
+
+    private getConfigItemsByCategory(
+        json: UserInfoResourceConfigFile,
+        category: UserInfoOwnedCategory
+    ): UserInfoResourceConfigItem[] {
+        switch (category) {
+            case 'avatar':
+                return Array.isArray(json.avatars) ? json.avatars : [];
+            case 'avatarFrame':
+                return Array.isArray(json.avatarFrames) ? json.avatarFrames : [];
+            case 'tweezer':
+                return Array.isArray(json.tweezers) ? json.tweezers : [];
+            case 'iron':
+                return Array.isArray(json.irons) ? json.irons : [];
+            default:
+                return [];
+        }
+    }
+
+    private getSelectedAvatarId(): number {
+        const safeAvatarUrl = (this._avatarUrl || '').trim();
+        if (/^\d+$/.test(safeAvatarUrl)) {
+            return this.normalizeOwnedConfigId(Number(safeAvatarUrl));
+        }
+
+        if (!safeAvatarUrl) {
+            return this._sex === 'female'
+                ? UserInfo.DEFAULT_FEMALE_AVATAR_ID
+                : UserInfo.DEFAULT_MALE_AVATAR_ID;
+        }
+
+        return 0;
+    }
+
+    private updateOwnedContentSize(container: Node): void {
+        const containerTransform = container.getComponent(UITransform);
+        if (!containerTransform) {
+            return;
+        }
+
+        const activeChildren = container.children.filter((child) => child.active);
+        if (activeChildren.length <= 0) {
+            containerTransform.setContentSize(containerTransform.width, 0);
+            return;
+        }
+
+        let minY = Number.POSITIVE_INFINITY;
+        let maxY = Number.NEGATIVE_INFINITY;
+
+        for (const child of activeChildren) {
+            const childTransform = child.getComponent(UITransform);
+            if (!childTransform) {
+                continue;
+            }
+
+            const childHeight = childTransform.height * Math.abs(child.scale.y || 1);
+            const anchorY = childTransform.anchorPoint.y;
+            const childBottom = child.position.y - childHeight * anchorY;
+            const childTop = child.position.y + childHeight * (1 - anchorY);
+
+            if (childBottom < minY) {
+                minY = childBottom;
+            }
+            if (childTop > maxY) {
+                maxY = childTop;
+            }
+        }
+
+        if (!isFinite(minY) || !isFinite(maxY)) {
+            return;
+        }
+
+        containerTransform.setContentSize(containerTransform.width, Math.max(0, maxY - minY));
     }
 
     private initializeSexState(): void {
