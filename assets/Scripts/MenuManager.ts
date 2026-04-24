@@ -451,7 +451,7 @@ export class MenuManager extends Component {
         AudioManager.instance.playEffect('click_btn');
         if (!gameManager.userInfo.hasRealUserProfile()) {
             const userInfoAuthorizeState = await gameManager.wxManager?.hasUserInfoPermission();
-            if (userInfoAuthorizeState === 'accept') {
+            if (userInfoAuthorizeState === 'unset') {
                 await gameManager.wxManager?.getUserInfo();
             }
         }
