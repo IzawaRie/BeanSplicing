@@ -13,7 +13,7 @@ type FloodFillEntry = {
 
 @ccclass('CircleController')
 export class CircleController extends Component {
-    private static readonly PREVIEW_OPACITY = 140;
+    private static readonly PREVIEW_OPACITY = 175;
 
     private originalPos: { x: number, y: number, z: number } = { x: 0, y: 0, z: 0 };
     private originalScale: { x: number, y: number, z: number } = { x: 1, y: 1, z: 1 };
