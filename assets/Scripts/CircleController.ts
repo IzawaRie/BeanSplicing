@@ -2,59 +2,53 @@ import { _decorator, Component, Node, Sprite, Color, EventTouch, UITransform, La
 import { AudioManager } from './AudioManager';
 import { GameManager, GameState } from './GameManager';
 import { BlockController, BlockState } from './BlockController';
-import { TutorialController } from './TutorialController';
-const { ccclass, property } = _decorator;
 
-/**
- * 圆形颜色控制器
- * 负责单个颜色节点的拖动和交互
- */
+const { ccclass } = _decorator;
+
+type FloodFillEntry = {
+    block: Node;
+    level: number;
+    key: string;
+};
+
 @ccclass('CircleController')
 export class CircleController extends Component {
-    // 原始位置
-    private originalPos: { x: number, y: number, z: number } = { x: 0, y: 0, z: 0 };
+    private static readonly PREVIEW_OPACITY = 140;
 
-    // 原始缩放和旋转
+    private originalPos: { x: number, y: number, z: number } = { x: 0, y: 0, z: 0 };
     private originalScale: { x: number, y: number, z: number } = { x: 1, y: 1, z: 1 };
     private originalRotation: { x: number, y: number, z: number } = { x: 0, y: 0, z: 0 };
 
-    // 拖动状态
     private isDragging: boolean = false;
 
-    // 颜色序号（从1开始）
     private _colorIndex: number = 0;
     public get colorIndex(): number { return this._colorIndex; }
 
-    // 颜色数据
     private _colorR: number = 0;
     private _colorG: number = 0;
     private _colorB: number = 0;
     private _colorA: number = 0;
 
-    // 计时器相关
-    private targetBlock: Node | null = null;         // 当前目标 block
-    private targetBlockIndex: number = 0;            // 当前目标 block 的序号
-    private hoverStartTime: number = 0;               // 开始 hover 的时间
-    private isHovering: boolean = false;              // 是否正在 hover
-    private readonly HOVER_DURATION: number = 500;   // hover 时长（毫秒）
-    private readonly HOVER_DELAY: number = 300;        // 延迟开始计时（毫秒）
-    private readonly POSITION_TOLERANCE: number = 20;  // 位置误差范围
+    private targetBlock: Node | null = null;
+    private targetBlockIndex: number = 0;
+    private hoverStartTime: number = 0;
+    private isHovering: boolean = false;
+    private readonly HOVER_DURATION: number = 500;
+    private readonly HOVER_DELAY: number = 500;
     private readonly DRAG_OFFSET: number = 0;
 
-    // circle 子节点
     private circleNode: Node | null = null;
     private pointNode: Node | null = null;
+    private previewedBlocks: FloodFillEntry[] = [];
+    private readonly previewedBlockKeys = new Set<string>();
+    private readonly currentRegionKeys = new Set<string>();
 
-    /**
-     * 判断游戏是否进行中
-     */
     private isGameActive(): boolean {
         const gameManager = GameManager.getInstance();
-        return gameManager?.gameState == GameState.PLAYING;
+        return gameManager?.gameState === GameState.PLAYING;
     }
 
     onLoad() {
-        // 注册触摸事件
         this.node.on(Node.EventType.TOUCH_START, this.onTouchStart, this);
         this.node.on(Node.EventType.TOUCH_MOVE, this.onTouchMove, this);
         this.node.on(Node.EventType.TOUCH_END, this.onTouchEnd, this);
@@ -62,7 +56,6 @@ export class CircleController extends Component {
     }
 
     onDestroy() {
-        // 移除触摸事件
         this.node.off(Node.EventType.TOUCH_START, this.onTouchStart, this);
         this.node.off(Node.EventType.TOUCH_MOVE, this.onTouchMove, this);
         this.node.off(Node.EventType.TOUCH_END, this.onTouchEnd, this);
@@ -70,53 +63,42 @@ export class CircleController extends Component {
     }
 
     update(_deltaTime: number) {
-        // 更新 hover 进度
-        if (this.isHovering && this.targetBlock && this.targetBlockIndex > 0) {
-            const elapsed = Date.now() - this.hoverStartTime;
-
-            // 延迟时间过后才开始计时
-            if (elapsed < this.HOVER_DELAY) {
-                this.updateProgress(0);  // 延迟期间不显示进度
-                return;
-            }
-
-            const actualElapsed = elapsed - this.HOVER_DELAY;
-            const progress = actualElapsed / this.HOVER_DURATION;
-            if (progress >= 1) {
-                // 计时完成，触发变色，然后重置
-                const count = this.highlightBlocksByIndex(this.targetBlockIndex, true);
-                if (count > 0) {
-                    GameManager.getInstance().levelMode?.onBlocksHighlighted(count);
-                }
-                this.resetHover();
-            } else {
-                // 更新进度条
-                this.updateProgress(progress);
-            }
+        if (!this.isHovering || !this.targetBlock || this.targetBlockIndex <= 0) {
+            return;
         }
+
+        const elapsed = Date.now() - this.hoverStartTime;
+        if (elapsed < this.HOVER_DELAY) {
+            this.updateProgress(0);
+            return;
+        }
+
+        const actualElapsed = elapsed - this.HOVER_DELAY;
+        const progress = actualElapsed / this.HOVER_DURATION;
+        if (progress >= 1) {
+            this.clearPreviewHighlight();
+            const count = this.highlightBlocksByIndex(this.targetBlockIndex, true);
+            if (count > 0) {
+                GameManager.getInstance().levelMode?.onBlocksHighlighted(count);
+            }
+            this.resetHover();
+            return;
+        }
+
+        this.updateProgress(progress);
     }
 
-    /**
-     * 设置颜色
-     */
-    public setCircleListNode(){
-        // 获取 circle 子节点
+    public setCircleListNode() {
         this.circleNode = this.node.getChildByName('circle');
 
         const pos = this.node.position;
         this.originalPos = { x: pos.x, y: pos.y, z: pos.z };
-
-        // 保存原始 scale 和 rotation
         this.originalScale = { x: this.node.scale.x, y: this.node.scale.y, z: this.node.scale.z };
         this.originalRotation = { x: this.node.eulerAngles.x, y: this.node.eulerAngles.y, z: this.node.eulerAngles.z };
 
-        // 获取并保存 point 节点
-        this.pointNode = this.circleNode.getChildByName('point');
+        this.pointNode = this.circleNode?.getChildByName('point') ?? null;
     }
 
-    /**
-     * 设置颜色
-     */
     public setColor(r: number, g: number, b: number, a: number, colorIndex: number): void {
         this._colorR = r;
         this._colorG = g;
@@ -124,13 +106,11 @@ export class CircleController extends Component {
         this._colorA = a;
         this._colorIndex = colorIndex;
 
-        // 设置主节点 sprite 颜色
         const sprite = this.node.getComponent(Sprite);
         if (sprite) {
             sprite.color = new Color(r, g, b, a);
         }
 
-        // 设置 circle 节点的颜色
         if (this.circleNode) {
             const circleSprite = this.circleNode.getComponent(Sprite);
             if (circleSprite) {
@@ -139,24 +119,17 @@ export class CircleController extends Component {
         }
     }
 
-    /**
-     * 获取颜色数据
-     */
     public getColor(): { r: number, g: number, b: number, a: number } {
         return { r: this._colorR, g: this._colorG, b: this._colorB, a: this._colorA };
     }
 
-    /**
-     * 重置位置 - 节点回到原位置
-     */
     public resetPosition(): void {
         this.node.setPosition(this.originalPos.x, this.originalPos.y, this.originalPos.z);
     }
 
-    /**
-     * 重置 hover 状态
-     */
     private resetHover(): void {
+        this.clearPreviewHighlight();
+        this.currentRegionKeys.clear();
         this.isHovering = false;
         this.targetBlock = null;
         this.targetBlockIndex = 0;
@@ -164,115 +137,99 @@ export class CircleController extends Component {
         this.updateProgress(0);
     }
 
-    /**
-     * 更新进度条
-     */
     private updateProgress(progress: number): void {
         if (!this.circleNode) return;
 
-        // 确保有 UIOpacity 组件
         let uiOpacity = this.circleNode.getComponent(UIOpacity);
         if (!uiOpacity) {
             uiOpacity = this.circleNode.addComponent(UIOpacity);
         }
 
-        // opacity 从 0（进度0）到 255（进度1）
         uiOpacity.opacity = Math.round(progress * 255);
     }
 
-    /**
-     * 触摸开始
-     */
     private onTouchStart(event: EventTouch) {
         if (!this.isGameActive()) return;
 
         AudioManager.instance.playEffect('circle');
 
         this.isDragging = true;
-        // 引导期间正确放置了 circle，结束引导
         const gameManager = GameManager.getInstance();
         gameManager.levelMode.tutorialController?.pauseTutorial();
-        // 显示 circleNode，隐藏主节点
+
         if (this.circleNode) {
             this.circleNode.active = true;
         }
 
-        // 上下翻转
         this.node.setScale(1, -1, 1);
 
-        // 根据左右手配置设置旋转角度
         const handSetting = GameManager.getInstance().hand_setting;
         const rotationZ = handSetting === -1 ? -50 : 50;
         this.node.setRotationFromEuler(0, 0, rotationZ);
 
-        // 设置节点世界坐标为触摸位置
         const pos = event.getUILocation();
         this.node.setWorldPosition(pos.x - this.DRAG_OFFSET, pos.y + this.DRAG_OFFSET, 0);
         this.resetHover();
     }
 
-    /**
-     * 触摸移动 - 移动节点
-     */
     private onTouchMove(event: EventTouch) {
-        if (!this.isDragging) return;
+        if (!this.isDragging || !this.pointNode) return;
 
-        // 设置节点世界坐标为触摸位置
         const pos = event.getUILocation();
         this.node.setWorldPosition(pos.x - this.DRAG_OFFSET, pos.y + this.DRAG_OFFSET, 0);
 
         const nodeWorldPos = this.pointNode.getWorldPosition();
-        // 检测是否拖动到了某个 block 上
         const newTargetBlock = this.getBlockAtPosition(nodeWorldPos.x, nodeWorldPos.y);
-
-        if (newTargetBlock) {
-            const newTargetIndex = this.getBlockNumber(newTargetBlock);
-
-            // 检查该 block 是否已经开始熨烫
-            const blockController = newTargetBlock.getComponent(BlockController);
-            if (blockController && (blockController.state === BlockState.IRONED || blockController.state === BlockState.IRONING)) {
-                // 已经开始熨烫的状态，不能再操作
-                this.resetHover();
-                return;
-            }
-
-            // 检查该 block 是否已经是当前颜色
-            if (newTargetIndex > 0 && this.isBlockColorMatched(newTargetBlock)) {
-                return;
-            }
-
-            // 检查是否是同一个 block（在误差范围内）
-            const isSameBlock = this.targetBlock === newTargetBlock ||
-                (this.targetBlock && newTargetBlock &&
-                 Math.abs(this.targetBlock.position.x - newTargetBlock.position.x) < this.POSITION_TOLERANCE &&
-                 Math.abs(this.targetBlock.position.y - newTargetBlock.position.y) < this.POSITION_TOLERANCE);
-
-            if (!isSameBlock) {
-                // 换到了新的 block，重置计时
-                this.resetHover();
-                if (newTargetIndex > 0) {
-                    this.isHovering = true;
-                    this.targetBlock = newTargetBlock;
-                    this.targetBlockIndex = newTargetIndex;
-                    this.hoverStartTime = Date.now();
-                }
-            }
+        if (!newTargetBlock) {
+            this.resetHover();
+            return;
         }
+
+        const newTargetIndex = this.getBlockNumber(newTargetBlock);
+        const blockController = newTargetBlock.getComponent(BlockController);
+        if (!blockController || newTargetIndex <= 0) {
+            this.resetHover();
+            return;
+        }
+
+        if (blockController.state === BlockState.IRONED || blockController.state === BlockState.IRONING) {
+            this.resetHover();
+            return;
+        }
+
+        if (this.isBlockColorMatched(newTargetBlock)) {
+            this.resetHover();
+            return;
+        }
+
+        const previewBlocks = this.collectFloodFillBlocks(newTargetBlock);
+        if (previewBlocks.length <= 0) {
+            return;
+        }
+
+        if (this.isBlockInsideCurrentRegion(newTargetBlock)) {
+            return;
+        }
+
+        this.resetHover();
+        this.setCurrentRegion(previewBlocks);
+        if (!this.isFloodFillRegionAlreadyHighlighted(previewBlocks)) {
+            this.applyPreviewHighlight(previewBlocks);
+        }
+        this.isHovering = true;
+        this.targetBlock = newTargetBlock;
+        this.targetBlockIndex = newTargetIndex;
+        this.hoverStartTime = Date.now();
     }
 
-    /**
-     * 触摸结束
-     */
     private onTouchEnd(_event: EventTouch) {
         this.isDragging = false;
 
         const gameManager = GameManager.getInstance();
         gameManager.levelMode.tutorialController?.setPauseTime();
-        // 恢复原始 scale 和 rotation
         this.node.setScale(this.originalScale.x, this.originalScale.y, this.originalScale.z);
         this.node.setRotationFromEuler(this.originalRotation.x, this.originalRotation.y, this.originalRotation.z);
 
-        // 隐藏 circleNode
         if (this.circleNode) {
             this.circleNode.active = false;
         }
@@ -281,94 +238,47 @@ export class CircleController extends Component {
         this.resetPosition();
     }
 
-    /**
-     * 获取指定位置（世界坐标）的 block
-     * 如果该位置没有序号，会查找周围8个方向的 block
-     */
     private getBlockAtPosition(worldX: number, worldY: number): Node | null {
         const gameManager = GameManager.getInstance();
         if (!gameManager || !gameManager.levelMode.gridDrawer) return null;
 
         const gridDrawer = gameManager.levelMode.gridDrawer;
         const blocks = gridDrawer.getAllBlocks();
-
-        // 获取边界
         const bounds = gridDrawer.getContentBounds();
         if (!bounds) return null;
 
-        // 检查触摸点是否在边界内
-        if (worldX < bounds.minX || worldX > bounds.maxX ||
-            worldY < bounds.minY || worldY > bounds.maxY) {
+        if (worldX < bounds.minX || worldX > bounds.maxX || worldY < bounds.minY || worldY > bounds.maxY) {
             return null;
         }
 
-        // 首先尝试直接查找指定位置的 block
         const directBlock = this.findBlockAtPosition(blocks, worldX, worldY);
-        if (directBlock) {
-            const blockNum = this.getBlockNumber(directBlock);
-            if (blockNum > 0) {
-                return directBlock;
-            }
+        if (directBlock && this.getBlockNumber(directBlock) > 0) {
+            return directBlock;
         }
 
-        // // 如果没找到有编号的 block，查找周围8个方向
-        // const neighborOffsets = [
-        //     { row: -1, col: -1 }, { row: -1, col: 0 }, { row: -1, col: 1 },
-        //     { row: 0, col: -1 },                      { row: 0, col: 1 },
-        //     { row: 1, col: -1 },  { row: 1, col: 0 },  { row: 1, col: 1 }
-        // ];
-
-        // for (const offset of neighborOffsets) {
-        //     if (directBlock) {
-        //         // 根据找到的 block 计算行列
-        //         const row = this.getBlockRow(directBlock);
-        //         const col = this.getBlockCol(directBlock);
-        //         const neighborRow = row + offset.row;
-        //         const neighborCol = col + offset.col;
-
-        //         if (neighborRow >= 0 && neighborRow < blocks.length &&
-        //             neighborCol >= 0 && neighborCol < blocks[0].length) {
-        //             const neighborBlock = blocks[neighborRow][neighborCol];
-        //             if (neighborBlock) {
-        //                 const neighborNum = this.getBlockNumber(neighborBlock);
-        //                 if (neighborNum > 0) {
-        //                     return neighborBlock;
-        //                 }
-        //             }
-        //         }
-        //     }
-        // }
-
-        // // 如果周围8个方向都没有有编号的 block，返回直接找到的 block（即使没有编号）
-        // return directBlock;
+        return null;
     }
 
-    /**
-     * 在指定位置查找 block
-     */
     private findBlockAtPosition(blocks: Node[][], worldX: number, worldY: number): Node | null {
         for (let row = 0; row < blocks.length; row++) {
             for (let col = 0; col < blocks[row].length; col++) {
                 const block = blocks[row][col];
                 if (!block) continue;
 
-                // 获取 block 的世界坐标
                 const blockWorldPos = block.getWorldPosition();
                 const uiTransform = block.getComponent(UITransform);
                 if (!uiTransform) continue;
 
-                // 获取父节点的缩放
                 let scaleX = 1;
                 let scaleY = 1;
-                let parent = block.parent.parent;
-                scaleX *= parent.scale.x;
-                scaleY *= parent.scale.y;
+                const scaledParent = block.parent?.parent ?? null;
+                if (scaledParent) {
+                    scaleX *= scaledParent.scale.x;
+                    scaleY *= scaledParent.scale.y;
+                }
 
-                // 考虑缩放后的实际尺寸
                 const width = uiTransform.width * scaleX;
                 const height = uiTransform.height * scaleY;
-
-                // 使用世界坐标检测
                 const halfW = width / 2;
                 const halfH = height / 2;
 
@@ -378,52 +288,10 @@ export class CircleController extends Component {
                 }
             }
         }
+
         return null;
     }
 
-    /**
-     * 获取 block 所在的行
-     */
-    private getBlockRow(block: Node): number {
-        const gameManager = GameManager.getInstance();
-        if (!gameManager || !gameManager.levelMode.gridDrawer) return -1;
-
-        const gridDrawer = gameManager.levelMode.gridDrawer;
-        const blocks = gridDrawer.getAllBlocks();
-
-        for (let row = 0; row < blocks.length; row++) {
-            for (let col = 0; col < blocks[row].length; col++) {
-                if (blocks[row][col] === block) {
-                    return row;
-                }
-            }
-        }
-        return -1;
-    }
-
-    /**
-     * 获取 block 所在的列
-     */
-    private getBlockCol(block: Node): number {
-        const gameManager = GameManager.getInstance();
-        if (!gameManager || !gameManager.levelMode.gridDrawer) return -1;
-
-        const gridDrawer = gameManager.levelMode.gridDrawer;
-        const blocks = gridDrawer.getAllBlocks();
-
-        for (let row = 0; row < blocks.length; row++) {
-            for (let col = 0; col < blocks[row].length; col++) {
-                if (blocks[row][col] === block) {
-                    return col;
-                }
-            }
-        }
-        return -1;
-    }
-
-    /**
-     * 获取 block 的序号
-     */
     private getBlockNumber(block: Node): number {
         const numberNode = block.getChildByName('number');
         if (!numberNode) return 0;
@@ -434,123 +302,298 @@ export class CircleController extends Component {
         return parseInt(label.string) || 0;
     }
 
-    /**
-     * 检查 block 的 circle 是否已经是当前颜色
-     */
     private isBlockColorMatched(block: Node): boolean {
         const blockController = block.getComponent(BlockController);
+        if (!blockController) {
+            return false;
+        }
 
-        // 检查颜色是否完全匹配
         return blockController.currentColorR === this._colorR &&
-               blockController.currentColorG === this._colorG &&
-               blockController.currentColorB === this._colorB;
+            blockController.currentColorG === this._colorG &&
+            blockController.currentColorB === this._colorB;
     }
 
-    /**
-     * 获取单个 block 的颜色序号（从 number 子节点的 Label 读取）
-     */
     private getBlockColorIndex(block: Node): string {
         const numNode = block.getChildByName('number');
         if (!numNode) return '';
+
         const label = numNode.getComponent(Label);
         return label?.string ?? '';
     }
 
-    /**
-     * 高亮/取消高亮目标 block 及所有序号相同的连通 block（洪水填充，带波纹扩散动画）
-     * @returns 真正变化的高亮 block 数量（新增计+1，取消计-1）
-     */
-    private highlightBlocksByIndex(_blockIndex: number, highlight: boolean): number {
+    private getBlockGridKey(block: Node | null): string {
+        if (!block) {
+            return '';
+        }
+
+        const blockController = block.getComponent(BlockController);
+        if (!blockController) {
+            return '';
+        }
+
+        const row = blockController['_row'] as number;
+        const col = blockController['_col'] as number;
+        if (typeof row !== 'number' || typeof col !== 'number') {
+            return '';
+        }
+
+        return `${row},${col}`;
+    }
+
+    private isBlockInsideCurrentPreview(block: Node | null): boolean {
+        const key = this.getBlockGridKey(block);
+        return !!key && this.previewedBlockKeys.has(key);
+    }
+
+    private isBlockInsideCurrentRegion(block: Node | null): boolean {
+        const key = this.getBlockGridKey(block);
+        return !!key && this.currentRegionKeys.has(key);
+    }
+
+    private isFloodFillRegionAlreadyHighlighted(entries: FloodFillEntry[]): boolean {
+        if (entries.length <= 0) {
+            return false;
+        }
+
+        for (const entry of entries) {
+            const blockController = entry.block.getComponent(BlockController);
+            if (!blockController || blockController.state !== BlockState.HAS_CIRCLE) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private collectFloodFillBlocks(startBlock: Node | null): FloodFillEntry[] {
+        if (!startBlock) {
+            return [];
+        }
+
         const gameManager = GameManager.getInstance();
-
-        if (!this.targetBlock) return 0;
-
-        // 获取当前目标 block 的序号（不是镊子颜色，而是目标颜色序号）
-        const targetColorIndex = this.getBlockColorIndex(this.targetBlock);
-        if (!targetColorIndex) return 0; // 透明 block 没有序号
-
-        // 从 GameManager 获取 GridDrawer
-        const gridDrawer = gameManager.levelMode?.gridDrawer;
-        if (!gridDrawer) return 0;
+        const gridDrawer = gameManager?.levelMode?.gridDrawer;
+        if (!gridDrawer) {
+            return [];
+        }
 
         const blocks = gridDrawer.getAllBlocks();
-        if (!blocks || blocks.length === 0) return 0;
+        if (!blocks || blocks.length === 0) {
+            return [];
+        }
 
-        // 重置空闲计时器
+        const targetColorIndex = this.getBlockColorIndex(startBlock);
+        if (!targetColorIndex) {
+            return [];
+        }
+
+        const startController = startBlock.getComponent(BlockController);
+        if (!startController) {
+            return [];
+        }
+
+        const startRow = startController['_row'] as number;
+        const startCol = startController['_col'] as number;
+        if (typeof startRow !== 'number' || typeof startCol !== 'number') {
+            return [];
+        }
+
         const rows = blocks.length;
         const columns = blocks[0]?.length ?? 0;
-
-        // BFS 洪水填充，同时记录每个 block、层级和状态变化量
         const visited = new Set<string>();
-        // { block, level, delta } 数组
-        const levelMap: { block: Node; level: number; delta: number }[] = [];
-        // 队列：[row, col, level]
-        const queue: [number, number, number][] = [];
-
-        const bc = this.targetBlock.getComponent(BlockController);
-        if (!bc) return 0;
-        const startRow = bc['_row'] as number;
-        const startCol = bc['_col'] as number;
-
-        queue.push([startRow, startCol, 0]);
+        const entries: FloodFillEntry[] = [];
+        const queue: [number, number, number][] = [[startRow, startCol, 0]];
 
         while (queue.length > 0) {
-            const [row, col, level] = queue.shift()!;
-            const key = `${row},${col}`;
-
-            if (row < 0 || row >= rows || col < 0 || col >= columns) continue;
-            if (visited.has(key)) continue;
-
-            const block = blocks[row]?.[col];
-            if (!block) continue;
-
-            const blockController = block.getComponent(BlockController);
-            if (!blockController || blockController.targetColorA === 0) continue;
-            if (blockController.state === BlockState.IRONED || blockController.state === BlockState.IRONING) continue; // 已开始熨烫的跳过
-
-            const blockColorIndex = this.getBlockColorIndex(block);
-            if (blockColorIndex !== targetColorIndex) continue;
-
-            visited.add(key);
-
-            // 计算该 block 的 delta（只在高亮/取消时判断，跳过无状态变化的）
-            let delta = 0;
-            if (highlight) {
-                if (blockController.state === BlockState.NO_CIRCLE) {
-                    delta = 1; // 从无到有，计新增
-                }
-            } else {
-                if (blockController.state === BlockState.HAS_CIRCLE) {
-                    delta = -1; // 从有到无，计取消
-                }
+            const current = queue.shift();
+            if (!current) {
+                continue;
             }
 
-            levelMap.push({ block, level, delta });
+            const [row, col, level] = current;
+            if (row < 0 || row >= rows || col < 0 || col >= columns) {
+                continue;
+            }
 
-            // 8 个方向入队
+            const key = `${row},${col}`;
+            if (visited.has(key)) {
+                continue;
+            }
+
+            const block = blocks[row]?.[col];
+            if (!block) {
+                continue;
+            }
+
+            const blockController = block.getComponent(BlockController);
+            if (!blockController || blockController.targetColorA === 0) {
+                continue;
+            }
+
+            if (blockController.state === BlockState.IRONED || blockController.state === BlockState.IRONING) {
+                continue;
+            }
+
+            if (this.getBlockColorIndex(block) !== targetColorIndex) {
+                continue;
+            }
+
+            visited.add(key);
+            entries.push({ block, level, key });
+
             const dirs: [number, number][] = [
                 [row - 1, col], [row + 1, col],
                 [row, col - 1], [row, col + 1],
                 [row - 1, col - 1], [row - 1, col + 1],
-                [row + 1, col - 1], [row + 1, col + 1]
+                [row + 1, col - 1], [row + 1, col + 1],
             ];
-            for (const [r, c] of dirs) {
-                if (!visited.has(`${r},${c}`)) {
-                    queue.push([r, c, level + 1]);
+
+            for (const [nextRow, nextCol] of dirs) {
+                const nextKey = `${nextRow},${nextCol}`;
+                if (!visited.has(nextKey)) {
+                    queue.push([nextRow, nextCol, level + 1]);
                 }
             }
         }
 
-        // 统计总 delta
+        return entries;
+    }
+
+    private applyPreviewHighlight(previewBlocks: FloodFillEntry[]): void {
+        this.previewedBlocks = previewBlocks;
+        this.previewedBlockKeys.clear();
+
+        for (const previewBlock of previewBlocks) {
+            this.previewedBlockKeys.add(previewBlock.key);
+            this.applyPreviewVisual(previewBlock.block);
+        }
+    }
+
+    private setCurrentRegion(entries: FloodFillEntry[]): void {
+        this.currentRegionKeys.clear();
+        for (const entry of entries) {
+            this.currentRegionKeys.add(entry.key);
+        }
+    }
+
+    private applyPreviewVisual(block: Node): void {
+        const circleNode = block.getChildByName('circle');
+        if (!circleNode) {
+            return;
+        }
+
+        const sprite = circleNode.getComponent(Sprite);
+        if (!sprite) {
+            return;
+        }
+
+        const sourceCircleSprite = this.circleNode?.getComponent(Sprite) ?? null;
+        if (sourceCircleSprite?.spriteFrame) {
+            sprite.spriteFrame = sourceCircleSprite.spriteFrame;
+        }
+
+        circleNode.active = true;
+        sprite.enabled = true;
+        sprite.color = new Color(this._colorR, this._colorG, this._colorB, this._colorA);
+
+        let uiOpacity = circleNode.getComponent(UIOpacity);
+        if (!uiOpacity) {
+            uiOpacity = circleNode.addComponent(UIOpacity);
+        }
+        uiOpacity.opacity = CircleController.PREVIEW_OPACITY;
+    }
+
+    private restoreBlockCircleVisual(block: Node): void {
+        const blockController = block.getComponent(BlockController);
+        const circleNode = block.getChildByName('circle');
+        if (!blockController || !circleNode) {
+            return;
+        }
+
+        const sprite = circleNode.getComponent(Sprite);
+        if (!sprite) {
+            return;
+        }
+
+        let uiOpacity = circleNode.getComponent(UIOpacity);
+        if (!uiOpacity) {
+            uiOpacity = circleNode.addComponent(UIOpacity);
+        }
+        uiOpacity.opacity = 255;
+
+        if (blockController.state === BlockState.HAS_CIRCLE) {
+            circleNode.active = true;
+            sprite.enabled = true;
+            sprite.color = new Color(
+                blockController.currentColorR,
+                blockController.currentColorG,
+                blockController.currentColorB,
+                blockController.currentColorA >= 0 ? blockController.currentColorA : 255,
+            );
+            return;
+        }
+
+        sprite.enabled = false;
+    }
+
+    private clearPreviewHighlight(): void {
+        if (this.previewedBlocks.length <= 0) {
+            this.previewedBlockKeys.clear();
+            return;
+        }
+
+        for (const previewBlock of this.previewedBlocks) {
+            this.restoreBlockCircleVisual(previewBlock.block);
+        }
+
+        this.previewedBlocks = [];
+        this.previewedBlockKeys.clear();
+    }
+
+    private highlightBlocksByIndex(_blockIndex: number, highlight: boolean): number {
+        const gameManager = GameManager.getInstance();
+        if (!this.targetBlock) return 0;
+
+        const connectedBlocks = this.collectFloodFillBlocks(this.targetBlock);
+        if (connectedBlocks.length <= 0) {
+            return 0;
+        }
+
+        const levelMap: { block: Node; level: number; delta: number }[] = [];
+        for (const connectedBlock of connectedBlocks) {
+            const blockController = connectedBlock.block.getComponent(BlockController);
+            if (!blockController) {
+                continue;
+            }
+
+            let delta = 0;
+            if (highlight) {
+                if (blockController.state === BlockState.NO_CIRCLE) {
+                    delta = 1;
+                }
+            } else if (blockController.state === BlockState.HAS_CIRCLE) {
+                delta = -1;
+            }
+
+            levelMap.push({
+                block: connectedBlock.block,
+                level: connectedBlock.level,
+                delta,
+            });
+        }
+
+        if (levelMap.length <= 0) {
+            return 0;
+        }
+
         const totalDelta = levelMap.reduce((sum, item) => sum + item.delta, 0);
 
-        // 对单个 block 应用高亮/取消高亮（动画执行，不改变 delta）
         const applyHighlight = (block: Node): boolean => {
             const blockController = block.getComponent(BlockController);
             const circleNode = block.getChildByName('circle');
             if (!blockController || !circleNode) {
                 return false;
             }
+
             const sprite = circleNode.getComponent(Sprite);
             if (!sprite) {
                 return false;
@@ -561,34 +604,35 @@ export class CircleController extends Component {
                 return false;
             }
 
+            let uiOpacity = circleNode.getComponent(UIOpacity);
+            if (!uiOpacity) {
+                uiOpacity = circleNode.addComponent(UIOpacity);
+            }
+            uiOpacity.opacity = 255;
+
             if (highlight) {
+                circleNode.active = true;
                 sprite.enabled = true;
-                const circleSprite = this.circleNode.getComponent(Sprite);
-                if (circleSprite && circleSprite.spriteFrame) {
+                const circleSprite = this.circleNode?.getComponent(Sprite) ?? null;
+                if (circleSprite?.spriteFrame) {
                     sprite.spriteFrame = circleSprite.spriteFrame;
                 }
                 sprite.color = new Color(this._colorR, this._colorG, this._colorB, this._colorA);
-
-                if (blockController) {
-                    blockController.setCurrentColor(this._colorR, this._colorG, this._colorB, this._colorA);
-                    blockController.state = BlockState.HAS_CIRCLE;
-                }
+                blockController.setCurrentColor(this._colorR, this._colorG, this._colorB, this._colorA);
+                blockController.state = BlockState.HAS_CIRCLE;
             } else {
                 sprite.enabled = false;
-                if (blockController) {
-                    blockController.state = BlockState.NO_CIRCLE;
-                }
+                blockController.state = BlockState.NO_CIRCLE;
             }
+
             return true;
         };
 
-        // 按层顺序，层内并行，层间延迟扩散
-        const delayPerLevel = 0.06; // 每层延迟 50ms
-        const triggeredLevels = new Set<number>(); // 每层只触发一次音效
+        const delayPerLevel = 0.06;
+        const triggeredLevels = new Set<number>();
 
         for (const { block, level } of levelMap) {
             const delay = level * delayPerLevel;
-
             if (delay === 0) {
                 const applied = applyHighlight(block);
                 if (applied && !triggeredLevels.has(0)) {
@@ -597,20 +641,20 @@ export class CircleController extends Component {
                     gameManager.vibrateShort();
                     gameManager.levelMode?.trySpawnCoinForHighlightedBlock(block, gameManager.levelMode.highlightCoinSpawnProbability);
                 }
-            } else {
-                setTimeout(() => {
-                    const applied = applyHighlight(block);
-                    if (applied && !triggeredLevels.has(level)) {
-                        triggeredLevels.add(level);
-                        AudioManager.instance.playEffect('boop', 1.5);
-                        gameManager.vibrateShort();
-                        gameManager.levelMode?.trySpawnCoinForHighlightedBlock(block, gameManager.levelMode.highlightCoinSpawnProbability);
-                    }
-                }, delay * 1000);
+                continue;
             }
+
+            setTimeout(() => {
+                const applied = applyHighlight(block);
+                if (applied && !triggeredLevels.has(level)) {
+                    triggeredLevels.add(level);
+                    AudioManager.instance.playEffect('boop', 1.5);
+                    gameManager.vibrateShort();
+                    gameManager.levelMode?.trySpawnCoinForHighlightedBlock(block, gameManager.levelMode.highlightCoinSpawnProbability);
+                }
+            }, delay * 1000);
         }
 
-        // 返回总 delta（可能为负数）
         return totalDelta;
     }
 }
