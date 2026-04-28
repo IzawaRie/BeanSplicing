@@ -157,6 +157,7 @@ export class ResultPanel extends Component {
             // 保存关卡数据到云端
             const levelNo = this._resultLevelNo;
             this._saveLevelDataTask = this.saveLevelDataToCloud(difficulty, levelNo, this._clearTime);
+            gameManager.unlockBookIdsThroughLevel(difficulty, levelNo);
 
             // 更新当前关卡
             const nextLevelNo = levelNo + 1;

@@ -1,0 +1,113 @@
+{
+  "simple": [
+    {
+      "progress": 20,
+      "rewards": [
+        { "imagePath": "items/shop/power", "count": 2, "type": "power" },
+        { "imagePath": "items/shop/skill_fix", "count": 1, "type": "fix_skill" }
+      ]
+    },
+    {
+      "progress": 40,
+      "rewards": [
+        { "imagePath": "items/shop/power", "count": 3, "type": "power" },
+        { "imagePath": "items/shop/skill_time_freeze", "count": 1, "type": "time_skill" }
+      ]
+    },
+    {
+      "progress": 60,
+      "rewards": [
+        { "imagePath": "items/shop/power", "count": 4, "type": "power" },
+        { "imagePath": "items/shop/skill_palette", "count": 1, "type": "palette_skill" }
+      ]
+    },
+    {
+      "progress": 80,
+      "rewards": [
+        { "imagePath": "items/shop/skill_fix", "count": 2, "type": "fix_skill" },
+        { "imagePath": "items/shop/skill_time_freeze", "count": 2, "type": "time_skill" }
+      ]
+    },
+    {
+      "progress": 100,
+      "rewards": [
+        { "imagePath": "items/shop/power", "count": 6, "type": "power" },
+        { "imagePath": "items/shop/skill_palette", "count": 2, "type": "palette_skill" }
+      ]
+    }
+  ],
+  "medium": [
+    {
+      "progress": 20,
+      "rewards": [
+        { "imagePath": "items/shop/power", "count": 3, "type": "power" },
+        { "imagePath": "items/shop/skill_fix", "count": 1, "type": "fix_skill" }
+      ]
+    },
+    {
+      "progress": 40,
+      "rewards": [
+        { "imagePath": "items/shop/power", "count": 4, "type": "power" },
+        { "imagePath": "items/shop/skill_time_freeze", "count": 2, "type": "time_skill" }
+      ]
+    },
+    {
+      "progress": 60,
+      "rewards": [
+        { "imagePath": "items/shop/skill_fix", "count": 2, "type": "fix_skill" },
+        { "imagePath": "items/shop/skill_palette", "count": 2, "type": "palette_skill" }
+      ]
+    },
+    {
+      "progress": 80,
+      "rewards": [
+        { "imagePath": "items/shop/power", "count": 6, "type": "power" },
+        { "imagePath": "items/shop/skill_time_freeze", "count": 3, "type": "time_skill" }
+      ]
+    },
+    {
+      "progress": 100,
+      "rewards": [
+        { "imagePath": "items/shop/skill_fix", "count": 3, "type": "fix_skill" },
+        { "imagePath": "items/shop/skill_palette", "count": 3, "type": "palette_skill" }
+      ]
+    }
+  ],
+  "hard": [
+    {
+      "progress": 20,
+      "rewards": [
+        { "imagePath": "items/shop/power", "count": 4, "type": "power" },
+        { "imagePath": "items/shop/skill_fix", "count": 2, "type": "fix_skill" }
+      ]
+    },
+    {
+      "progress": 40,
+      "rewards": [
+        { "imagePath": "items/shop/power", "count": 6, "type": "power" },
+        { "imagePath": "items/shop/skill_time_freeze", "count": 2, "type": "time_skill" }
+      ]
+    },
+    {
+      "progress": 60,
+      "rewards": [
+        { "imagePath": "items/shop/skill_fix", "count": 3, "type": "fix_skill" },
+        { "imagePath": "items/shop/skill_palette", "count": 3, "type": "palette_skill" }
+      ]
+    },
+    {
+      "progress": 80,
+      "rewards": [
+        { "imagePath": "items/shop/power", "count": 8, "type": "power" },
+        { "imagePath": "items/shop/skill_time_freeze", "count": 4, "type": "time_skill" }
+      ]
+    },
+    {
+      "progress": 100,
+      "rewards": [
+        { "imagePath": "items/shop/skill_fix", "count": 4, "type": "fix_skill" },
+        { "imagePath": "items/shop/skill_palette", "count": 4, "type": "palette_skill" }
+      ]
+    }
+  ]
+}

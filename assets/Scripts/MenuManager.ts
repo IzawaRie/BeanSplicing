@@ -38,6 +38,9 @@ export class MenuManager extends Component {
     @property({ type: Node })
     userinfo_btn: Node = null;
 
+    @property({ type: Node })
+    book_btn: Node = null;
+
     @property({ type: Label })
     power_label: Label = null;
 
@@ -175,6 +178,9 @@ export class MenuManager extends Component {
         }
         if (this.userinfo_btn) {
             this.userinfo_btn.on(Node.EventType.TOUCH_END, this.onUserInfoBtnClick, this);
+        }
+        if (this.book_btn) {
+            this.book_btn.on(Node.EventType.TOUCH_END, this.onBookBtnClick, this);
         }
 
         // 加载星星预制体
@@ -459,6 +465,17 @@ export class MenuManager extends Component {
         gameManager.userInfo.node.active = true;
     }
 
+    private onBookBtnClick(): void {
+        const gameManager = GameManager.getInstance();
+        if (!gameManager?.book || (gameManager.gameState != GameState.WAITING)) return;
+        if (gameManager.isWindowBlocking()) return;
+
+        gameManager.vibrateShort();
+        AudioManager.instance.playEffect('click_btn');
+        WXManager.instance?.hideNativeAd();
+        gameManager.book.active = true;
+    }
+
     /**
      * 显示进度面板
      */
@@ -589,6 +606,9 @@ export class MenuManager extends Component {
         }
         if (this.userinfo_btn) {
             this.userinfo_btn.off(Node.EventType.TOUCH_END, this.onUserInfoBtnClick, this);
+        }
+        if (this.book_btn) {
+            this.book_btn.off(Node.EventType.TOUCH_END, this.onBookBtnClick, this);
         }
     }
 }

@@ -65,6 +65,7 @@ export class WXManager extends Component {
     private static readonly USER_OWNED_TWEEZER_IDS_STORAGE_KEY = 'user_owned_tweezer_ids';
     private static readonly USER_OWNED_IRON_IDS_STORAGE_KEY = 'user_owned_iron_ids';
     private static readonly USER_OWNED_ACHIEVEMENT_ICON_IDS_STORAGE_KEY = 'user_owned_achievement_icon_ids';
+    private static readonly BOOK_UNLOCKED_IDS_STORAGE_PREFIX = 'book_unlocked_ids';
 
     @property({ type: Node })
     testBtn: Node = null;
@@ -543,6 +544,9 @@ export class WXManager extends Component {
         wx.removeStorageSync('level_simple');
         wx.removeStorageSync('level_medium');
         wx.removeStorageSync('level_hard');
+        wx.removeStorageSync(this.getBookUnlockedIdsStorageKey(DifficultyMode.SIMPLE));
+        wx.removeStorageSync(this.getBookUnlockedIdsStorageKey(DifficultyMode.MEDIUM));
+        wx.removeStorageSync(this.getBookUnlockedIdsStorageKey(DifficultyMode.HARD));
         console.log('已清除所有难度关卡缓存');
     }
 
@@ -570,6 +574,23 @@ export class WXManager extends Component {
                 }
             });
         });
+    }
+
+    public setBookUnlockedIdsByDifficulty(difficulty: DifficultyMode, ids: number[]): void {
+        if (typeof (wx) === 'undefined') return;
+        wx.setStorageSync(this.getBookUnlockedIdsStorageKey(difficulty), this.normalizeOwnedIds(ids));
+    }
+
+    public getBookUnlockedIdsByDifficulty(difficulty: DifficultyMode): Promise<number[] | null> {
+        if (typeof (wx) === 'undefined') return Promise.resolve(null);
+        return this.getOwnedIdsFromStorage(this.getBookUnlockedIdsStorageKey(difficulty));
+    }
+
+    public addBookUnlockedIdsByDifficulty(difficulty: DifficultyMode, ids: number[]): void {
+        if (typeof (wx) === 'undefined') return;
+        const key = this.getBookUnlockedIdsStorageKey(difficulty);
+        const currentIds = this.normalizeOwnedIds(wx.getStorageSync(key));
+        wx.setStorageSync(key, this.normalizeOwnedIds([...currentIds, ...ids]));
     }
 
     /**
@@ -1111,6 +1132,10 @@ export class WXManager extends Component {
         ));
         normalizedIds.sort((a, b) => a - b);
         return normalizedIds;
+    }
+
+    private getBookUnlockedIdsStorageKey(difficulty: DifficultyMode): string {
+        return `${WXManager.BOOK_UNLOCKED_IDS_STORAGE_PREFIX}_${difficulty}`;
     }
 
     public setShopData(shopData: ShopRuntimeData): void {

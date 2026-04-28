@@ -72,6 +72,9 @@ export class GameManager extends Component {
     @property({ type: UserInfo })
     userInfo: UserInfo = null;
 
+    @property({ type: Node })
+    book: Node = null;
+
     // 游戏状态
     private _gameState: GameState = GameState.WAITING;
 
@@ -286,7 +289,8 @@ export class GameManager extends Component {
                (this.window?.node?.active ?? false) ||
                (this.chart?.node?.active ?? false) ||
                (this.userInfo?.node?.active ?? false) ||
-               (this.shop?.node?.active ?? false)
+               (this.shop?.node?.active ?? false) ||
+               (this.book?.active ?? false)
     }
 
     onLoad() {
@@ -383,14 +387,17 @@ export class GameManager extends Component {
             case DifficultyMode.SIMPLE:
                 this._simpleLevel = value;
                 this.wxManager.setStorageLevelByDifficulty(DifficultyMode.SIMPLE, value);
+                this.unlockBookIdsBeforeLevel(DifficultyMode.SIMPLE, value);
                 break;
             case DifficultyMode.MEDIUM:
                 this._mediumLevel = value;
                 this.wxManager.setStorageLevelByDifficulty(DifficultyMode.MEDIUM, value);
+                this.unlockBookIdsBeforeLevel(DifficultyMode.MEDIUM, value);
                 break;
             case DifficultyMode.HARD:
                 this._hardLevel = value;
                 this.wxManager.setStorageLevelByDifficulty(DifficultyMode.HARD, value);
+                this.unlockBookIdsBeforeLevel(DifficultyMode.HARD, value);
                 break;
         }
         LevelConfig.getInstance().setCurrentLevelIndex(value - 1);
@@ -573,9 +580,73 @@ export class GameManager extends Component {
             });
         });
 
+        await this.repairBookUnlockedIdsByProgress();
+
         this._storageLoaded = true;
 
         this.checkNewbieGuide();
+    }
+
+    private async repairBookUnlockedIdsByProgress(): Promise<void> {
+        const difficulties = [DifficultyMode.SIMPLE, DifficultyMode.MEDIUM, DifficultyMode.HARD];
+        for (const difficulty of difficulties) {
+            const currentLevel = this.getLevelByDifficulty(difficulty);
+            const idsToUnlock = this.getBookIdsBeforeLevel(difficulty, currentLevel);
+            const cachedIds = await this.wxManager.getBookUnlockedIdsByDifficulty(difficulty) ?? [];
+            const mergedIds = this.mergeIds(cachedIds, idsToUnlock);
+            if (mergedIds.length !== cachedIds.length) {
+                this.wxManager.setBookUnlockedIdsByDifficulty(difficulty, mergedIds);
+            }
+        }
+    }
+
+    private unlockBookIdsBeforeLevel(difficulty: DifficultyMode, level: number): void {
+        const idsToUnlock = this.getBookIdsBeforeLevel(difficulty, level);
+        if (idsToUnlock.length <= 0) {
+            return;
+        }
+
+        this.wxManager?.addBookUnlockedIdsByDifficulty(difficulty, idsToUnlock);
+    }
+
+    public unlockBookIdsThroughLevel(difficulty: DifficultyMode, level: number): void {
+        const safeLevel = Math.max(0, Math.floor(Number(level) || 0));
+        if (safeLevel <= 0 || !LevelConfig.getInstance().hasLevel(safeLevel, difficulty)) {
+            return;
+        }
+
+        this.wxManager?.addBookUnlockedIdsByDifficulty(difficulty, [safeLevel]);
+    }
+
+    private getBookIdsBeforeLevel(difficulty: DifficultyMode, level: number): number[] {
+        const maxUnlockedLevel = Math.max(0, Math.floor(Number(level) || 0) - 1);
+        const ids: number[] = [];
+        for (let id = 1; id <= maxUnlockedLevel; id++) {
+            if (LevelConfig.getInstance().hasLevel(id, difficulty)) {
+                ids.push(id);
+            }
+        }
+        return ids;
+    }
+
+    private getLevelByDifficulty(difficulty: DifficultyMode): number {
+        switch (difficulty) {
+            case DifficultyMode.SIMPLE:
+                return this._simpleLevel;
+            case DifficultyMode.MEDIUM:
+                return this._mediumLevel;
+            case DifficultyMode.HARD:
+                return this._hardLevel;
+        }
+    }
+
+    private mergeIds(a: number[], b: number[]): number[] {
+        const ids = Array.from(new Set([...a, ...b]
+            .map((id) => Math.max(1, Math.floor(Number(id) || 0)))
+            .filter((id) => id >= 1)
+        ));
+        ids.sort((left, right) => left - right);
+        return ids;
     }
 
     private async initializeShopData(): Promise<void> {
