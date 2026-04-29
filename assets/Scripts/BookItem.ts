@@ -1,10 +1,11 @@
-import { _decorator, Color, Component, Node, resources, Sprite, SpriteFrame, Vec3 } from 'cc';
+import { _decorator, Color, Component, Node, resources, Sprite, SpriteFrame, UITransform, Vec3 } from 'cc';
 const { ccclass, property } = _decorator;
 
 const LOCKED_SPRITE_COLOR = new Color(0, 0, 0, 255);
 const UNLOCKED_SPRITE_COLOR = new Color(255, 255, 255, 255);
 const LOCKED_SPRITE_POSITION = new Vec3(0, 21, 0);
 const UNLOCKED_SPRITE_POSITION = new Vec3(0, 0, 0);
+const MAX_ITEM_SP_SIZE = 120;
 
 @ccclass('BookItem')
 export class BookItem extends Component {
@@ -73,6 +74,7 @@ export class BookItem extends Component {
             }
 
             sprite.spriteFrame = spriteFrame;
+            this.applyPixelSpriteSize(spriteFrame);
         });
     }
 
@@ -99,6 +101,25 @@ export class BookItem extends Component {
         if (spriteFrame) {
             this.item_bg_sp.spriteFrame = spriteFrame;
         }
+    }
+
+    private applyPixelSpriteSize(spriteFrame: SpriteFrame): void {
+        if (!this.item_sp?.node || !spriteFrame) {
+            return;
+        }
+
+        const uiTransform = this.item_sp.node.getComponent(UITransform);
+        if (!uiTransform) {
+            return;
+        }
+
+        const sourceWidth = Math.max(1, Math.round(spriteFrame.originalSize.width));
+        const sourceHeight = Math.max(1, Math.round(spriteFrame.originalSize.height));
+        const maxSide = Math.max(sourceWidth, sourceHeight);
+        const integerScale = Math.max(1, Math.floor(MAX_ITEM_SP_SIZE / maxSide));
+
+        this.item_sp.sizeMode = Sprite.SizeMode.CUSTOM;
+        uiTransform.setContentSize(sourceWidth * integerScale, sourceHeight * integerScale);
     }
 }
 

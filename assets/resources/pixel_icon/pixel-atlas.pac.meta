@@ -13,7 +13,7 @@
     "padding": 2,
     "allowRotation": true,
     "forceSquared": false,
-    "powerOfTwo": false,
+    "powerOfTwo": true,
     "algorithm": "MaxRects",
     "format": "png",
     "quality": 80,
@@ -30,8 +30,8 @@
     "textureSetting": {
       "wrapModeS": "repeat",
       "wrapModeT": "repeat",
-      "minfilter": "linear",
-      "magfilter": "linear",
+      "minfilter": "nearest",
+      "magfilter": "nearest",
       "mipfilter": "none",
       "anisotropy": 0
     }
