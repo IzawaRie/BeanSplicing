@@ -2,6 +2,7 @@ import { _decorator, Color, Component, EventTouch, input, Input, instantiate, Js
 import { BookItem } from './BookItem';
 import { DifficultyMode, GameManager } from './GameManager';
 import { WXManager } from './WXManager';
+import { AudioManager } from './AudioManager';
 const { ccclass, property } = _decorator;
 
 type BookDifficulty = 'simple' | 'medium' | 'hard';
@@ -182,6 +183,7 @@ export class BookController extends Component {
     private typeTagPrefabTask: Promise<Prefab | null> | null = null;
     private typeTagRenderVersion = 0;
     private giftRenderVersion = 0;
+    private isShowingBookVideoAd = false;
 
     onLoad() {
         if (this.tu_gift_view) {
@@ -280,6 +282,7 @@ export class BookController extends Component {
     }
 
     private onCloseBtnClick(): void {
+        this.playClickSound();
         this.closePanel();
     }
 
@@ -288,6 +291,7 @@ export class BookController extends Component {
             return;
         }
 
+        this.playClickSound();
         this.currentPage--;
         this.refreshBookItems();
     }
@@ -298,23 +302,28 @@ export class BookController extends Component {
             return;
         }
 
+        this.playClickSound();
         this.currentPage++;
         this.refreshBookItems();
     }
 
     private onSimpleTagClick(): void {
+        this.playClickSound();
         this.selectDifficulty('simple');
     }
 
     private onMediumTagClick(): void {
+        this.playClickSound();
         this.selectDifficulty('medium');
     }
 
     private onHardTagClick(): void {
+        this.playClickSound();
         this.selectDifficulty('hard');
     }
 
     private onGiftTouchStart(): void {
+        this.playClickSound();
         if (this.tu_gift_view) {
             this.tu_gift_view.active = true;
         }
@@ -419,6 +428,7 @@ export class BookController extends Component {
             return;
         }
 
+        this.playClickSound();
         this.currentType = type;
         this.currentPage = 0;
         this.refreshTypeTagColors();
@@ -459,11 +469,14 @@ export class BookController extends Component {
         for (let i = 0; i < this.book_items.length; i++) {
             const bookItem = this.book_items[i];
             const data = i < BOOK_PAGE_SIZE ? items[startIndex + i] : null;
+            const difficulty = this.currentDifficulty;
+            const unlocked = !!data && this.isBookItemUnlocked(data);
             bookItem.setImage(
                 data?.imagePath ?? '',
-                !!data && this.isBookItemUnlocked(data),
+                unlocked,
                 this.tu_item_bg_unlocked,
-                this.tu_item_bg_locked
+                this.tu_item_bg_locked,
+                data && !unlocked ? () => this.onBookItemVideoUnlock(difficulty, data.levelId) : null
             );
         }
 
@@ -757,6 +770,41 @@ export class BookController extends Component {
         return this.unlockedBookIds[this.currentDifficulty].has(data.levelId);
     }
 
+    private onBookItemVideoUnlock(difficulty: BookDifficulty, levelId: number): void {
+        if (this.unlockedBookIds[difficulty].has(levelId) || this.isShowingBookVideoAd) {
+            return;
+        }
+
+        this.playClickSound();
+        const wxManager = WXManager.instance;
+        if (!wxManager) {
+            this.unlockBookItemByVideo(difficulty, levelId);
+            return;
+        }
+
+        this.isShowingBookVideoAd = true;
+        wxManager.showRewardedVideoAd((success) => {
+            this.isShowingBookVideoAd = false;
+            if (!success) {
+                return;
+            }
+
+            this.unlockBookItemByVideo(difficulty, levelId);
+        });
+    }
+
+    private unlockBookItemByVideo(difficulty: BookDifficulty, levelId: number): void {
+        const safeLevelId = Math.floor(Number(levelId) || 0);
+        if (safeLevelId <= 0) {
+            return;
+        }
+
+        this.unlockedBookIds[difficulty].add(safeLevelId);
+        WXManager.instance?.addBookUnlockedIdsByDifficulty(this.toDifficultyMode(difficulty), [safeLevelId]);
+        this.refreshBookItems();
+        this.refreshProgress();
+    }
+
     private toDifficultyMode(difficulty: BookDifficulty): DifficultyMode {
         switch (difficulty) {
             case 'simple':
@@ -891,6 +939,10 @@ export class BookController extends Component {
 
     private getTypeTagText(type: BookTypeFilter): string {
         return TYPE_TAG_TEXT[type] || type;
+    }
+
+    private playClickSound(): void {
+        AudioManager.instance?.playEffect('click_btn');
     }
 
     private async loadTypeTagPrefab(): Promise<Prefab | null> {

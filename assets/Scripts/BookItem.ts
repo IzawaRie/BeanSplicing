@@ -6,6 +6,7 @@ const UNLOCKED_SPRITE_COLOR = new Color(255, 255, 255, 255);
 const LOCKED_SPRITE_POSITION = new Vec3(0, 21, 0);
 const UNLOCKED_SPRITE_POSITION = new Vec3(0, 0, 0);
 const MAX_ITEM_SP_SIZE = 120;
+type VideoUnlockHandler = (() => void) | null;
 
 @ccclass('BookItem')
 export class BookItem extends Component {
@@ -20,6 +21,8 @@ export class BookItem extends Component {
     private item_bg_sp: Sprite = null;
 
     private renderVersion = 0;
+    private videoUnlockHandler: VideoUnlockHandler = null;
+    private boundVideoBtn: Node | null = null;
 
     onLoad() {
         this.item_bg_sp = this.node.getComponent(Sprite);
@@ -33,17 +36,23 @@ export class BookItem extends Component {
     update(_deltaTime: number) {
     }
 
+    onDestroy() {
+        this.unbindVideoButton();
+    }
+
     public setImage(
         imagePath: string,
         unlocked: boolean = true,
         unlockedBg: SpriteFrame | null = null,
-        lockedBg: SpriteFrame | null = null
+        lockedBg: SpriteFrame | null = null,
+        onVideoUnlock: VideoUnlockHandler = null
     ): void {
         this.resolveBindings();
         const safeImagePath = (imagePath || '').trim();
         const sprite = this.item_sp;
         const renderVersion = ++this.renderVersion;
         const hasData = !!safeImagePath;
+        this.videoUnlockHandler = hasData && !unlocked ? onVideoUnlock : null;
 
         this.node.active = hasData;
         this.setBackground(unlocked, unlockedBg, lockedBg);
@@ -90,6 +99,8 @@ export class BookItem extends Component {
         if (!this.tu_video_btn) {
             this.tu_video_btn = this.node.getChildByName('tu_video_btn') ?? null;
         }
+
+        this.bindVideoButton();
     }
 
     private setBackground(unlocked: boolean, unlockedBg: SpriteFrame | null, lockedBg: SpriteFrame | null): void {
@@ -121,5 +132,31 @@ export class BookItem extends Component {
         this.item_sp.sizeMode = Sprite.SizeMode.CUSTOM;
         uiTransform.setContentSize(sourceWidth * integerScale, sourceHeight * integerScale);
     }
-}
 
+    private bindVideoButton(): void {
+        if (this.boundVideoBtn === this.tu_video_btn) {
+            return;
+        }
+
+        this.unbindVideoButton();
+        if (!this.tu_video_btn) {
+            return;
+        }
+
+        this.tu_video_btn.on(Node.EventType.TOUCH_END, this.onVideoButtonClick, this);
+        this.boundVideoBtn = this.tu_video_btn;
+    }
+
+    private unbindVideoButton(): void {
+        if (!this.boundVideoBtn) {
+            return;
+        }
+
+        this.boundVideoBtn.off(Node.EventType.TOUCH_END, this.onVideoButtonClick, this);
+        this.boundVideoBtn = null;
+    }
+
+    private onVideoButtonClick(): void {
+        this.videoUnlockHandler?.();
+    }
+}
