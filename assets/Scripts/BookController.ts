@@ -377,12 +377,34 @@ export class BookController extends Component {
         }
 
         this.bookConfig = {
-            simple: Array.isArray(config.simple) ? config.simple : [],
-            medium: Array.isArray(config.medium) ? config.medium : [],
-            hard: Array.isArray(config.hard) ? config.hard : []
+            simple: this.shuffleBookConfigItems(Array.isArray(config.simple) ? config.simple : [], 'simple'),
+            medium: this.shuffleBookConfigItems(Array.isArray(config.medium) ? config.medium : [], 'medium'),
+            hard: this.shuffleBookConfigItems(Array.isArray(config.hard) ? config.hard : [], 'hard')
         };
         void this.renderTypeTags();
         void this.refreshFromStorage();
+    }
+
+    private shuffleBookConfigItems(items: BookConfigItem[], difficulty: BookDifficulty): BookConfigItem[] {
+        return [...items].sort((left, right) => {
+            const leftWeight = this.getStableBookItemShuffleWeight(left, difficulty);
+            const rightWeight = this.getStableBookItemShuffleWeight(right, difficulty);
+            if (leftWeight !== rightWeight) {
+                return leftWeight - rightWeight;
+            }
+
+            return left.levelId - right.levelId;
+        });
+    }
+
+    private getStableBookItemShuffleWeight(item: BookConfigItem, difficulty: BookDifficulty): number {
+        const key = `${difficulty}:${item.levelId}:${item.imagePath}:${item.type}`;
+        let hash = 2166136261;
+        for (let i = 0; i < key.length; i++) {
+            hash ^= key.charCodeAt(i);
+            hash = Math.imul(hash, 16777619);
+        }
+        return hash >>> 0;
     }
 
     private async loadBookProgressRewardConfig(): Promise<void> {
