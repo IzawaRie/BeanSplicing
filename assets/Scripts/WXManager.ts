@@ -66,6 +66,7 @@ export class WXManager extends Component {
     private static readonly USER_OWNED_IRON_IDS_STORAGE_KEY = 'user_owned_iron_ids';
     private static readonly USER_OWNED_ACHIEVEMENT_ICON_IDS_STORAGE_KEY = 'user_owned_achievement_icon_ids';
     private static readonly BOOK_UNLOCKED_IDS_STORAGE_PREFIX = 'book_unlocked_ids';
+    private static readonly BOOK_PROGRESS_REWARD_STORAGE_PREFIX = 'book_progress_reward';
 
     @property({ type: Node })
     testBtn: Node = null;
@@ -547,6 +548,9 @@ export class WXManager extends Component {
         wx.removeStorageSync(this.getBookUnlockedIdsStorageKey(DifficultyMode.SIMPLE));
         wx.removeStorageSync(this.getBookUnlockedIdsStorageKey(DifficultyMode.MEDIUM));
         wx.removeStorageSync(this.getBookUnlockedIdsStorageKey(DifficultyMode.HARD));
+        wx.removeStorageSync(this.getBookProgressRewardStorageKey(DifficultyMode.SIMPLE));
+        wx.removeStorageSync(this.getBookProgressRewardStorageKey(DifficultyMode.MEDIUM));
+        wx.removeStorageSync(this.getBookProgressRewardStorageKey(DifficultyMode.HARD));
         console.log('已清除所有难度关卡缓存');
     }
 
@@ -591,6 +595,66 @@ export class WXManager extends Component {
         const key = this.getBookUnlockedIdsStorageKey(difficulty);
         const currentIds = this.normalizeOwnedIds(wx.getStorageSync(key));
         wx.setStorageSync(key, this.normalizeOwnedIds([...currentIds, ...ids]));
+    }
+
+    public setBookProgressRewardStatesByDifficulty(
+        difficulty: DifficultyMode,
+        states: { progress: number; claimed: boolean }[]
+    ): void {
+        if (typeof (wx) === 'undefined') return;
+        wx.setStorageSync(this.getBookProgressRewardStorageKey(difficulty), this.normalizeBookProgressRewardStates(states));
+    }
+
+    public getBookProgressRewardStatesByDifficulty(
+        difficulty: DifficultyMode
+    ): Promise<{ progress: number; claimed: boolean }[] | null> {
+        if (typeof (wx) === 'undefined') return Promise.resolve(null);
+        return new Promise((resolve) => {
+            wx.getStorage({
+                key: this.getBookProgressRewardStorageKey(difficulty),
+                success: (res) => {
+                    resolve(this.normalizeBookProgressRewardStates(res.data));
+                },
+                fail: () => {
+                    resolve(null);
+                }
+            });
+        });
+    }
+
+    public getBookProgressRewardClaimedProgressesByDifficulty(difficulty: DifficultyMode): Promise<number[] | null> {
+        if (typeof (wx) === 'undefined') return Promise.resolve(null);
+        return this.getBookProgressRewardStatesByDifficulty(difficulty).then((states) => {
+            if (!states) {
+                return null;
+            }
+
+            return states
+                .filter((state) => state.claimed)
+                .map((state) => state.progress);
+        });
+    }
+
+    public setBookProgressRewardClaimedByDifficulty(
+        difficulty: DifficultyMode,
+        progress: number,
+        claimed: boolean = true
+    ): void {
+        if (typeof (wx) === 'undefined') return;
+        const key = this.getBookProgressRewardStorageKey(difficulty);
+        const states = this.normalizeBookProgressRewardStates(wx.getStorageSync(key));
+        const safeProgress = Math.max(0, Math.floor(Number(progress) || 0));
+        if (safeProgress <= 0) {
+            return;
+        }
+
+        const index = states.findIndex((state) => state.progress === safeProgress);
+        if (index >= 0) {
+            states[index].claimed = claimed;
+        } else {
+            states.push({ progress: safeProgress, claimed });
+        }
+        wx.setStorageSync(key, this.normalizeBookProgressRewardStates(states));
     }
 
     /**
@@ -1134,8 +1198,32 @@ export class WXManager extends Component {
         return normalizedIds;
     }
 
+    private normalizeBookProgressRewardStates(states: unknown): { progress: number; claimed: boolean }[] {
+        if (!Array.isArray(states)) {
+            return [];
+        }
+
+        const stateMap = new Map<number, boolean>();
+        for (const state of states) {
+            const progress = Math.max(0, Math.floor(Number((state as any)?.progress) || 0));
+            if (progress <= 0) {
+                continue;
+            }
+
+            stateMap.set(progress, !!(state as any)?.claimed);
+        }
+
+        return Array.from(stateMap.entries())
+            .map(([progress, claimed]) => ({ progress, claimed }))
+            .sort((a, b) => a.progress - b.progress);
+    }
+
     private getBookUnlockedIdsStorageKey(difficulty: DifficultyMode): string {
         return `${WXManager.BOOK_UNLOCKED_IDS_STORAGE_PREFIX}_${difficulty}`;
+    }
+
+    private getBookProgressRewardStorageKey(difficulty: DifficultyMode): string {
+        return `${WXManager.BOOK_PROGRESS_REWARD_STORAGE_PREFIX}_${difficulty}`;
     }
 
     public setShopData(shopData: ShopRuntimeData): void {

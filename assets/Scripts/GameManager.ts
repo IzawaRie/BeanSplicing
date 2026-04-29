@@ -1,5 +1,6 @@
 ﻿import { _decorator, Component, Node } from 'cc';
 import { PatternBundle } from './PatternBundle';
+import { JsonAsset, resources } from 'cc';
 import { GameMode, GameModeType} from './GameMode';
 import { LevelMode } from './LevelMode';
 import { MenuManager } from './MenuManager';
@@ -33,6 +34,22 @@ export enum DifficultyMode {
     MEDIUM = 'medium',
     HARD = 'hard'
 }
+
+type BookProgressRewardItem = {
+    imagePath: string;
+    count: number;
+    type: string;
+};
+
+type BookProgressRewardConfigItem = {
+    progress: number;
+    rewards: BookProgressRewardItem[];
+};
+
+type BookProgressRewardConfigFile = Record<DifficultyMode, BookProgressRewardConfigItem[]>;
+
+const BOOK_PROGRESS_REWARD_CONFIG_PATH = 'book/book_progress_reward_config';
+const BOOK_DIFFICULTIES: DifficultyMode[] = [DifficultyMode.SIMPLE, DifficultyMode.MEDIUM, DifficultyMode.HARD];
 
 /**
  * 游戏管理器
@@ -581,6 +598,7 @@ export class GameManager extends Component {
         });
 
         await this.repairBookUnlockedIdsByProgress();
+        await this.repairBookProgressRewardStatesByProgress();
 
         this._storageLoaded = true;
 
@@ -588,8 +606,7 @@ export class GameManager extends Component {
     }
 
     private async repairBookUnlockedIdsByProgress(): Promise<void> {
-        const difficulties = [DifficultyMode.SIMPLE, DifficultyMode.MEDIUM, DifficultyMode.HARD];
-        for (const difficulty of difficulties) {
+        for (const difficulty of BOOK_DIFFICULTIES) {
             const currentLevel = this.getLevelByDifficulty(difficulty);
             const idsToUnlock = this.getBookIdsBeforeLevel(difficulty, currentLevel);
             const cachedIds = await this.wxManager.getBookUnlockedIdsByDifficulty(difficulty) ?? [];
@@ -598,6 +615,94 @@ export class GameManager extends Component {
                 this.wxManager.setBookUnlockedIdsByDifficulty(difficulty, mergedIds);
             }
         }
+    }
+
+    private async repairBookProgressRewardStatesByProgress(): Promise<void> {
+        const rewardConfig = await this.loadBookProgressRewardConfig();
+        for (const difficulty of BOOK_DIFFICULTIES) {
+            const rewards = rewardConfig[difficulty] || [];
+            const cachedStates = await this.wxManager.getBookProgressRewardStatesByDifficulty(difficulty);
+            const stateMap = new Map<number, boolean>();
+            for (const state of cachedStates ?? []) {
+                stateMap.set(state.progress, state.claimed);
+            }
+
+            const collectedCount = this.getBookIdsBeforeLevel(difficulty, this.getLevelByDifficulty(difficulty)).length;
+            for (const reward of rewards) {
+                if (collectedCount >= reward.progress && !stateMap.has(reward.progress)) {
+                    stateMap.set(reward.progress, false);
+                }
+            }
+
+            const nextStates = Array.from(stateMap.entries())
+                .filter(([progress]) => rewards.some((reward) => reward.progress === progress))
+                .map(([progress, claimed]) => ({ progress, claimed }))
+                .sort((a, b) => a.progress - b.progress);
+
+            if (!this.areBookProgressRewardStatesEqual(cachedStates, nextStates)) {
+                this.wxManager.setBookProgressRewardStatesByDifficulty(difficulty, nextStates);
+            }
+        }
+    }
+
+    private loadBookProgressRewardConfig(): Promise<BookProgressRewardConfigFile> {
+        return new Promise((resolve) => {
+            resources.load(BOOK_PROGRESS_REWARD_CONFIG_PATH, JsonAsset, (err, jsonAsset) => {
+                if (err || !jsonAsset) {
+                    console.warn(`GameManager: failed to load ${BOOK_PROGRESS_REWARD_CONFIG_PATH}`, err);
+                    resolve({
+                        [DifficultyMode.SIMPLE]: [],
+                        [DifficultyMode.MEDIUM]: [],
+                        [DifficultyMode.HARD]: []
+                    });
+                    return;
+                }
+
+                const json = (jsonAsset.json || {}) as Partial<BookProgressRewardConfigFile>;
+                resolve({
+                    [DifficultyMode.SIMPLE]: this.normalizeBookProgressRewards(json[DifficultyMode.SIMPLE]),
+                    [DifficultyMode.MEDIUM]: this.normalizeBookProgressRewards(json[DifficultyMode.MEDIUM]),
+                    [DifficultyMode.HARD]: this.normalizeBookProgressRewards(json[DifficultyMode.HARD])
+                });
+            });
+        });
+    }
+
+    private normalizeBookProgressRewards(rewards: BookProgressRewardConfigItem[] | undefined): BookProgressRewardConfigItem[] {
+        if (!Array.isArray(rewards)) {
+            return [];
+        }
+
+        return rewards
+            .filter((reward) => Number.isFinite(Number(reward.progress)) && Array.isArray(reward.rewards))
+            .map((reward) => ({
+                progress: Math.max(0, Math.floor(Number(reward.progress) || 0)),
+                rewards: reward.rewards
+                    .filter((item) => !!item && typeof item.imagePath === 'string')
+                    .map((item) => ({
+                        imagePath: item.imagePath,
+                        count: Math.max(0, Math.floor(Number(item.count) || 0)),
+                        type: String(item.type || '')
+                    }))
+            }))
+            .filter((reward) => reward.progress > 0)
+            .sort((a, b) => a.progress - b.progress);
+    }
+
+    private areBookProgressRewardStatesEqual(
+        left: { progress: number; claimed: boolean }[] | null,
+        right: { progress: number; claimed: boolean }[]
+    ): boolean {
+        if (!left || left.length !== right.length) {
+            return false;
+        }
+
+        for (let i = 0; i < left.length; i++) {
+            if (left[i].progress !== right[i].progress || left[i].claimed !== right[i].claimed) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private unlockBookIdsBeforeLevel(difficulty: DifficultyMode, level: number): void {
@@ -616,6 +721,56 @@ export class GameManager extends Component {
         }
 
         this.wxManager?.addBookUnlockedIdsByDifficulty(difficulty, [safeLevel]);
+    }
+
+    public claimBookProgressReward(
+        difficulty: DifficultyMode,
+        progress: number,
+        rewards: BookProgressRewardItem[]
+    ): void {
+        const safeProgress = Math.max(0, Math.floor(Number(progress) || 0));
+        if (safeProgress <= 0) {
+            return;
+        }
+
+        for (const reward of rewards) {
+            this.applyBookProgressReward(reward);
+        }
+        this.wxManager?.setBookProgressRewardClaimedByDifficulty(difficulty, safeProgress, true);
+    }
+
+    private applyBookProgressReward(reward: BookProgressRewardItem): void {
+        const count = Math.max(0, Math.floor(Number(reward?.count) || 0));
+        if (count <= 0) {
+            return;
+        }
+
+        switch (String(reward?.type || '')) {
+            case 'power':
+                this.power += count;
+                break;
+            case 'fix_skill':
+                if (this.userInfo) {
+                    this.userInfo.fixSkillCount += count;
+                }
+                break;
+            case 'time_skill':
+                if (this.userInfo) {
+                    this.userInfo.timeSkillCount += count;
+                }
+                break;
+            case 'palette_skill':
+                if (this.userInfo) {
+                    this.userInfo.paletteSkillCount += count;
+                }
+                break;
+            case 'coin':
+                this.addCoins(count);
+                break;
+            default:
+                console.warn(`GameManager: unknown book progress reward type ${reward?.type}`);
+                break;
+        }
     }
 
     private getBookIdsBeforeLevel(difficulty: DifficultyMode, level: number): number[] {

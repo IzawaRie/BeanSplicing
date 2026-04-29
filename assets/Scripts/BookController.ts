@@ -1,8 +1,9 @@
-import { _decorator, Color, Component, EventTouch, input, Input, instantiate, JsonAsset, Label, Layout, Node, Prefab, resources, Sprite, SpriteFrame, UITransform, Vec2 } from 'cc';
+import { _decorator, Color, Component, EventTouch, input, Input, instantiate, JsonAsset, Label, Layout, Node, Prefab, resources, Sprite, SpriteFrame, tween, Tween, UITransform, Vec2, Vec3 } from 'cc';
 import { BookItem } from './BookItem';
 import { DifficultyMode, GameManager } from './GameManager';
 import { WXManager } from './WXManager';
 import { AudioManager } from './AudioManager';
+import { RewardController } from './RewardController';
 const { ccclass, property } = _decorator;
 
 type BookDifficulty = 'simple' | 'medium' | 'hard';
@@ -29,17 +30,11 @@ type BookProgressRewardItem = {
 
 type BookProgressRewardConfigFile = Record<BookDifficulty, BookProgressRewardItem[]>;
 
-type GiftItem = {
-    gift_sp: Sprite;
-    gift_label: Label;
-    baseWidth: number;
-    baseHeight: number;
-};
-
 const BOOK_CONFIG_PATH = 'book/book_config';
 const BOOK_PROGRESS_REWARD_CONFIG_PATH = 'book/book_progress_reward_config';
 const TYPE_TAG_PREFAB_PATH = 'tu_type_tag';
 const BOOK_PAGE_SIZE = 12;
+const GIFT_REMINDER_SCALE = 1.2;
 const SELECTED_TYPE_TAG_COLOR = new Color(252, 158, 121, 255);
 const NORMAL_TYPE_TAG_COLOR = new Color(255, 255, 255, 255);
 const DIFFICULTY_TITLE_TEXT: Record<BookDifficulty, string> = {
@@ -96,7 +91,7 @@ export class BookController extends Component {
     tu_gift: Node = null;
 
     @property({ type: Node })
-    tu_gift_view: Node = null;
+    tu_gift_label_node: Node = null;
 
     @property({ type: Node })
     tu_switch_last_btn: Node = null;
@@ -118,9 +113,6 @@ export class BookController extends Component {
 
     @property({ type: Label })
     tu_pages_label: Label = null;
-
-    @property({ type: Label })
-    tu_gift_label: Label = null;
 
     @property({ type: SpriteFrame })
     tu_simple_tag_normal: SpriteFrame = null;
@@ -158,7 +150,9 @@ export class BookController extends Component {
     @property({ type: SpriteFrame })
     tu_item_bg_locked: SpriteFrame = null;
 
-    private gift_items: GiftItem[] = [];
+    @property({ type: RewardController })
+    reward_controller: RewardController = null;
+
     private book_items: BookItem[] = [];
     private currentDifficulty: BookDifficulty = 'simple';
     private currentType: BookTypeFilter = 'all';
@@ -178,19 +172,27 @@ export class BookController extends Component {
         medium: new Set<number>(),
         hard: new Set<number>()
     };
+    private localClaimedProgressRewards: Record<BookDifficulty, Set<number>> = {
+        simple: new Set<number>(),
+        medium: new Set<number>(),
+        hard: new Set<number>()
+    };
     private typeTagNodes: Node[] = [];
     private typeTagPrefab: Prefab | null = null;
     private typeTagPrefabTask: Promise<Prefab | null> | null = null;
     private typeTagRenderVersion = 0;
-    private giftRenderVersion = 0;
+    private giftReminderVersion = 0;
+    private giftBaseScale: Vec3 | null = null;
+    private isGiftReminderAnimating = false;
     private isShowingBookVideoAd = false;
 
     onLoad() {
-        if (this.tu_gift_view) {
-            this.tu_gift_view.active = false;
+        if (this.reward_controller?.node) {
+            this.reward_controller.node.active = false;
+            this.reward_controller.setCloseHandler(() => this.onRewardControllerClosed());
         }
+        this.captureGiftBaseScale();
         this.bindButtonEvents();
-        this.initializeGiftItems();
         this.initializeBookItems();
         this.selectDifficulty('simple');
         void this.loadBookConfig();
@@ -201,10 +203,12 @@ export class BookController extends Component {
         input.on(Input.EventType.TOUCH_END, this.onTouchEnd, this);
         void this.renderTypeTags();
         void this.refreshFromStorage();
+        void this.refreshGiftEntryState();
     }
 
     onDisable() {
         input.off(Input.EventType.TOUCH_END, this.onTouchEnd, this);
+        this.stopGiftReminderAnimation();
     }
 
     start() {
@@ -215,31 +219,9 @@ export class BookController extends Component {
 
     onDestroy() {
         input.off(Input.EventType.TOUCH_END, this.onTouchEnd, this);
+        this.stopGiftReminderAnimation();
         this.clearTypeTags();
         this.unbindButtonEvents();
-    }
-
-    private initializeGiftItems(): void {
-        this.gift_items.length = 0;
-        const giftView = this.tu_gift_view;
-        if (!giftView) {
-            return;
-        }
-
-        for (let i = 0; i < giftView.children.length; i++) {
-            const giftNode = giftView.children[i];
-            const gift_sp = giftNode.getChildByName('gift_icon')?.getComponent(Sprite) ?? null;
-            const gift_label = giftNode.getChildByName('gift_label')?.getComponent(Label) ?? null;
-            if (gift_sp && gift_label) {
-                const transform = gift_sp.node.getComponent(UITransform);
-                this.gift_items.push({
-                    gift_sp,
-                    gift_label,
-                    baseWidth: transform?.width ?? 0,
-                    baseHeight: transform?.height ?? 0
-                });
-            }
-        }
     }
 
     private initializeBookItems(): void {
@@ -264,9 +246,7 @@ export class BookController extends Component {
         this.tu_simple_tag?.on(Node.EventType.TOUCH_END, this.onSimpleTagClick, this);
         this.tu_medium_tag?.on(Node.EventType.TOUCH_END, this.onMediumTagClick, this);
         this.tu_hard_tag?.on(Node.EventType.TOUCH_END, this.onHardTagClick, this);
-        this.tu_gift?.on(Node.EventType.TOUCH_START, this.onGiftTouchStart, this);
-        this.tu_gift?.on(Node.EventType.TOUCH_END, this.onGiftTouchEnd, this);
-        this.tu_gift?.on(Node.EventType.TOUCH_CANCEL, this.onGiftTouchEnd, this);
+        this.tu_gift?.on(Node.EventType.TOUCH_END, this.onGiftClick, this);
     }
 
     private unbindButtonEvents(): void {
@@ -276,9 +256,7 @@ export class BookController extends Component {
         this.tu_simple_tag?.off(Node.EventType.TOUCH_END, this.onSimpleTagClick, this);
         this.tu_medium_tag?.off(Node.EventType.TOUCH_END, this.onMediumTagClick, this);
         this.tu_hard_tag?.off(Node.EventType.TOUCH_END, this.onHardTagClick, this);
-        this.tu_gift?.off(Node.EventType.TOUCH_START, this.onGiftTouchStart, this);
-        this.tu_gift?.off(Node.EventType.TOUCH_END, this.onGiftTouchEnd, this);
-        this.tu_gift?.off(Node.EventType.TOUCH_CANCEL, this.onGiftTouchEnd, this);
+        this.tu_gift?.off(Node.EventType.TOUCH_END, this.onGiftClick, this);
     }
 
     private onCloseBtnClick(): void {
@@ -287,7 +265,7 @@ export class BookController extends Component {
     }
 
     private onSwitchLastBtnClick(): void {
-        if (this.currentPage <= 0) {
+        if (this.isRewardPopupOpen() || this.currentPage <= 0) {
             return;
         }
 
@@ -297,6 +275,10 @@ export class BookController extends Component {
     }
 
     private onSwitchNextBtnClick(): void {
+        if (this.isRewardPopupOpen()) {
+            return;
+        }
+
         const maxPage = this.getMaxPage();
         if (this.currentPage >= maxPage - 1) {
             return;
@@ -308,36 +290,55 @@ export class BookController extends Component {
     }
 
     private onSimpleTagClick(): void {
+        if (this.isRewardPopupOpen()) {
+            return;
+        }
+
         this.playClickSound();
         this.selectDifficulty('simple');
     }
 
     private onMediumTagClick(): void {
+        if (this.isRewardPopupOpen()) {
+            return;
+        }
+
         this.playClickSound();
         this.selectDifficulty('medium');
     }
 
     private onHardTagClick(): void {
+        if (this.isRewardPopupOpen()) {
+            return;
+        }
+
         this.playClickSound();
         this.selectDifficulty('hard');
     }
 
-    private onGiftTouchStart(): void {
-        this.playClickSound();
-        if (this.tu_gift_view) {
-            this.tu_gift_view.active = true;
+    private async onGiftClick(): Promise<void> {
+        if (this.isRewardPopupOpen() || !this.tu_gift?.active) {
+            return;
         }
+
+        this.playClickSound();
+        this.giftReminderVersion++;
+        this.stopGiftReminderAnimation();
+        await this.refreshRewardController();
+        this.reward_controller?.open();
     }
 
-    private onGiftTouchEnd(): void {
-        if (this.tu_gift_view) {
-            this.tu_gift_view.active = false;
-        }
+    private onRewardControllerClosed(): void {
+        void this.refreshGiftEntryState();
     }
 
     private onTouchEnd(event: EventTouch): void {
         const touch = event.touch;
         if (!touch || !this.node.activeInHierarchy) {
+            return;
+        }
+
+        if (this.isRewardPopupOpen()) {
             return;
         }
 
@@ -350,6 +351,10 @@ export class BookController extends Component {
     }
 
     public closePanel(): void {
+        this.stopGiftReminderAnimation();
+        if (this.reward_controller?.node) {
+            this.reward_controller.node.active = false;
+        }
         this.node.active = false;
     }
 
@@ -368,7 +373,6 @@ export class BookController extends Component {
 
         if (!config) {
             this.refreshBookItems();
-            this.refreshGiftRewards();
             return;
         }
 
@@ -395,7 +399,6 @@ export class BookController extends Component {
         });
 
         if (!config) {
-            this.refreshGiftRewards();
             return;
         }
 
@@ -404,7 +407,7 @@ export class BookController extends Component {
             medium: this.normalizeProgressRewards(config.medium),
             hard: this.normalizeProgressRewards(config.hard)
         };
-        this.refreshGiftRewards();
+        void this.refreshGiftEntryState();
     }
 
     public async refreshFromStorage(): Promise<void> {
@@ -421,10 +424,11 @@ export class BookController extends Component {
         this.refreshDifficultyTitle();
         void this.renderTypeTags();
         void this.refreshFromStorage();
+        void this.refreshGiftEntryState();
     }
 
     private selectType(type: BookTypeFilter): void {
-        if (this.currentType === type) {
+        if (this.isRewardPopupOpen() || this.currentType === type) {
             return;
         }
 
@@ -533,7 +537,8 @@ export class BookController extends Component {
     private refreshProgress(): void {
         this.refreshTotalProgress();
         this.refreshCurrentDifficultyProgress();
-        this.refreshGiftRewards();
+        void this.refreshRewardController();
+        void this.refreshGiftEntryState();
     }
 
     private refreshTotalProgress(): void {
@@ -620,130 +625,131 @@ export class BookController extends Component {
         return Math.min(100, Math.max(0, Math.floor(collectedCount / totalCount * 100)));
     }
 
-    private refreshGiftRewards(): void {
-        const totalCount = this.getDifficultyBookCount(this.currentDifficulty);
-        const collectedCount = this.getUnlockedBookCount(this.currentDifficulty);
-        const nextReward = this.getNextProgressReward(this.currentDifficulty, collectedCount, totalCount);
-        const targetCount = nextReward ? this.getRewardTargetCount(nextReward.progress, totalCount) : totalCount;
-
-        if (this.tu_gift_label) {
-            this.tu_gift_label.string = `[${collectedCount}/${targetCount}]`;
+    private async refreshRewardController(): Promise<void> {
+        if (!this.reward_controller) {
+            return;
         }
 
-        this.refreshGiftItems(nextReward?.rewards ?? []);
+        const totalCount = this.getDifficultyBookCount(this.currentDifficulty);
+        const collectedCount = this.getUnlockedBookCount(this.currentDifficulty);
+        const difficulty = this.currentDifficulty;
+        const claimedProgresses = await this.getClaimedBookProgressRewards(difficulty);
+        await this.reward_controller.refreshData(
+            DIFFICULTY_TITLE_TEXT[difficulty],
+            DIFFICULTY_TITLE_COLOR[difficulty],
+            collectedCount,
+            totalCount,
+            this.bookProgressRewardConfig[difficulty] || [],
+            claimedProgresses,
+            (progress, rewards) => this.onBookProgressRewardClaim(difficulty, progress, rewards)
+        );
     }
 
-    private getNextProgressReward(
-        difficulty: BookDifficulty,
-        collectedCount: number,
-        totalCount: number
-    ): BookProgressRewardItem | null {
+    private async getClaimedBookProgressRewards(difficulty: BookDifficulty): Promise<number[]> {
+        const cachedProgresses = await WXManager.instance?.getBookProgressRewardClaimedProgressesByDifficulty(this.toDifficultyMode(difficulty)) ?? [];
+        return Array.from(new Set([...cachedProgresses, ...this.localClaimedProgressRewards[difficulty]]))
+            .sort((a, b) => a - b);
+    }
+
+    private onBookProgressRewardClaim(difficulty: BookDifficulty, progress: number, rewards: BookRewardItem[]): void {
+        const safeProgress = Math.max(0, Math.floor(Number(progress) || 0));
+        if (safeProgress > 0) {
+            this.localClaimedProgressRewards[difficulty].add(safeProgress);
+        }
+        GameManager.getInstance()?.claimBookProgressReward(this.toDifficultyMode(difficulty), progress, rewards);
+    }
+
+    private async refreshGiftReminderAnimation(): Promise<void> {
+        const refreshVersion = ++this.giftReminderVersion;
+        const nextReward = await this.getNextDisplayableProgressReward(this.currentDifficulty);
+        const shouldShowGiftEntry = !!nextReward;
+        const shouldAnimate = shouldShowGiftEntry && this.isProgressRewardReached(nextReward);
+        if (refreshVersion !== this.giftReminderVersion || !this.node.activeInHierarchy) {
+            return;
+        }
+
+        this.setGiftEntryVisible(shouldShowGiftEntry);
+        if (shouldAnimate) {
+            this.startGiftReminderAnimation();
+        } else {
+            this.stopGiftReminderAnimation();
+        }
+    }
+
+    private async refreshGiftEntryState(): Promise<void> {
+        await this.refreshGiftReminderAnimation();
+    }
+
+    private async getNextDisplayableProgressReward(difficulty: BookDifficulty): Promise<BookProgressRewardItem | null> {
         const rewards = this.bookProgressRewardConfig[difficulty] || [];
-        if (rewards.length <= 0 || totalCount <= 0) {
+        if (rewards.length <= 0) {
             return null;
         }
 
-        const currentPercent = collectedCount / totalCount * 100;
-        return rewards.find((reward) => currentPercent < reward.progress) ?? rewards[rewards.length - 1] ?? null;
+        const claimedProgresses = await this.getClaimedBookProgressRewards(difficulty);
+        const claimedProgressSet = new Set(claimedProgresses);
+        return rewards.find((reward) => !claimedProgressSet.has(reward.progress)) ?? null;
     }
 
-    private getRewardTargetCount(progress: number, totalCount: number): number {
-        if (totalCount <= 0) {
-            return 0;
+    private isProgressRewardReached(reward: BookProgressRewardItem): boolean {
+        return this.getUnlockedBookCount(this.currentDifficulty) >= reward.progress && !this.isRewardPopupOpen();
+    }
+
+    private setGiftEntryVisible(visible: boolean): void {
+        if (this.tu_gift) {
+            this.tu_gift.active = visible;
         }
-        return Math.min(totalCount, Math.max(1, Math.ceil(totalCount * progress / 100)));
-    }
-
-    private refreshGiftItems(rewards: BookRewardItem[]): void {
-        const renderVersion = ++this.giftRenderVersion;
-        for (let i = 0; i < this.gift_items.length; i++) {
-            const giftItem = this.gift_items[i];
-            const reward = rewards[i] ?? null;
-            giftItem.gift_sp.node.active = !!reward;
-            giftItem.gift_label.node.active = !!reward;
-
-            if (!reward) {
-                giftItem.gift_sp.spriteFrame = null;
-                giftItem.gift_label.string = '';
-                this.resetGiftSpriteSize(giftItem);
-                continue;
-            }
-
-            giftItem.gift_label.string = `x${Math.max(0, Math.floor(Number(reward.count) || 0))}`;
-            this.resetGiftSpriteSize(giftItem);
-            this.loadGiftSprite(giftItem, reward.imagePath, renderVersion);
+        if (this.tu_gift_label_node) {
+            this.tu_gift_label_node.active = visible;
         }
     }
 
-    private loadGiftSprite(giftItem: GiftItem, imagePath: string, renderVersion: number): void {
-        const safeImagePath = (imagePath || '').trim();
-        const sprite = giftItem.gift_sp;
-        sprite.spriteFrame = null;
-        if (!safeImagePath) {
+    private startGiftReminderAnimation(): void {
+        if (!this.tu_gift || this.isGiftReminderAnimating) {
             return;
         }
 
-        resources.load(`${safeImagePath}/spriteFrame`, SpriteFrame, (err, spriteFrame) => {
-            if (renderVersion !== this.giftRenderVersion) {
-                return;
-            }
+        this.captureGiftBaseScale();
+        const baseScale = this.giftBaseScale ?? this.tu_gift.scale.clone();
+        const targetScale = new Vec3(
+            baseScale.x * GIFT_REMINDER_SCALE,
+            baseScale.y * GIFT_REMINDER_SCALE,
+            baseScale.z
+        );
 
-            if (err || !spriteFrame) {
-                console.warn(`BookController: failed to load gift spriteFrame ${safeImagePath}`, err);
-                sprite.spriteFrame = null;
-                return;
-            }
-
-            sprite.spriteFrame = spriteFrame;
-            this.applyGiftSpriteAspectRatio(giftItem, spriteFrame);
-        });
+        this.isGiftReminderAnimating = true;
+        Tween.stopAllByTarget(this.tu_gift);
+        this.tu_gift.setScale(baseScale);
+        tween(this.tu_gift)
+            .to(0.45, { scale: targetScale })
+            .to(0.45, { scale: baseScale })
+            .union()
+            .repeatForever()
+            .start();
     }
 
-    private applyGiftSpriteAspectRatio(giftItem: GiftItem, spriteFrame: SpriteFrame): void {
-        const transform = giftItem.gift_sp.node.getComponent(UITransform);
-        if (!transform) {
+    private stopGiftReminderAnimation(): void {
+        if (!this.tu_gift) {
             return;
         }
 
-        const sourceWidth = spriteFrame.originalSize.width;
-        const sourceHeight = spriteFrame.originalSize.height;
-        if (sourceWidth <= 0 || sourceHeight <= 0) {
-            return;
+        Tween.stopAllByTarget(this.tu_gift);
+        if (this.giftBaseScale) {
+            this.tu_gift.setScale(this.giftBaseScale);
         }
-
-        const baseWidth = giftItem.baseWidth > 0 ? giftItem.baseWidth : transform.width;
-        const baseHeight = giftItem.baseHeight > 0 ? giftItem.baseHeight : transform.height;
-        const sourceRatio = sourceWidth / sourceHeight;
-        const baseRatio = baseWidth / baseHeight;
-        let targetWidth = baseWidth;
-        let targetHeight = baseHeight;
-
-        giftItem.gift_sp.sizeMode = Sprite.SizeMode.CUSTOM;
-        if (baseWidth > 0 && baseHeight > 0) {
-            if (baseRatio > sourceRatio) {
-                targetWidth = baseHeight * sourceRatio;
-            } else {
-                targetHeight = baseWidth / sourceRatio;
-            }
-        } else if (baseHeight > 0) {
-            targetWidth = baseHeight * sourceRatio;
-        } else if (baseWidth > 0) {
-            targetHeight = baseWidth / sourceRatio;
-        } else {
-            targetWidth = sourceWidth;
-            targetHeight = sourceHeight;
-        }
-
-        transform.setContentSize(targetWidth, targetHeight);
+        this.isGiftReminderAnimating = false;
     }
 
-    private resetGiftSpriteSize(giftItem: GiftItem): void {
-        const transform = giftItem.gift_sp.node.getComponent(UITransform);
-        if (!transform || giftItem.baseWidth <= 0 || giftItem.baseHeight <= 0) {
+    private captureGiftBaseScale(): void {
+        if (!this.tu_gift || this.giftBaseScale) {
             return;
         }
 
-        transform.setContentSize(giftItem.baseWidth, giftItem.baseHeight);
+        this.giftBaseScale = this.tu_gift.scale.clone();
+    }
+
+    private isRewardPopupOpen(): boolean {
+        return !!this.reward_controller?.node?.activeInHierarchy;
     }
 
     private normalizeProgressRewards(rewards: BookProgressRewardItem[] | undefined): BookProgressRewardItem[] {
@@ -754,7 +760,7 @@ export class BookController extends Component {
         return rewards
             .filter((reward) => Number.isFinite(Number(reward.progress)) && Array.isArray(reward.rewards))
             .map((reward) => ({
-                progress: Math.min(100, Math.max(0, Math.floor(Number(reward.progress) || 0))),
+                progress: Math.max(0, Math.floor(Number(reward.progress) || 0)),
                 rewards: reward.rewards
                     .filter((item) => !!item && typeof item.imagePath === 'string')
                     .map((item) => ({
@@ -763,6 +769,7 @@ export class BookController extends Component {
                         type: String(item.type || '')
                     }))
             }))
+            .filter((reward) => reward.progress > 0)
             .sort((a, b) => a.progress - b.progress);
     }
 
@@ -771,7 +778,7 @@ export class BookController extends Component {
     }
 
     private onBookItemVideoUnlock(difficulty: BookDifficulty, levelId: number): void {
-        if (this.unlockedBookIds[difficulty].has(levelId) || this.isShowingBookVideoAd) {
+        if (this.isRewardPopupOpen() || this.unlockedBookIds[difficulty].has(levelId) || this.isShowingBookVideoAd) {
             return;
         }
 
