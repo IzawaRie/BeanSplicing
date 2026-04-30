@@ -567,8 +567,8 @@ export class ResultPanel extends Component {
      * 点击拍照按钮
      */
     /**
-     * 结果页打开后，通关时优先尝试插屏广告；
-     * 只有没有打开插屏广告时，才尝试展示游戏评价。
+     * 结果页打开后，通关时仅尝试展示游戏评价。
+     * 不再在结果页触发插屏广告。
      */
     private async handleResultPageOpenAbility(): Promise<void> {
         if (!this._isSuccess) {
@@ -577,11 +577,6 @@ export class ResultPanel extends Component {
 
         const wxManager = WXManager.instance;
         if (!wxManager) {
-            return;
-        }
-
-        const interstitialShown = await wxManager.showInterstitialAd();
-        if (interstitialShown) {
             return;
         }
 

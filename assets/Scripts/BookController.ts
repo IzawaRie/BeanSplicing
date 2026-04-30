@@ -1,6 +1,6 @@
 import { _decorator, Color, Component, EventTouch, input, Input, instantiate, JsonAsset, Label, Layout, Node, Prefab, resources, Sprite, SpriteFrame, tween, Tween, UITransform, Vec2, Vec3 } from 'cc';
 import { BookItem } from './BookItem';
-import { DifficultyMode, GameManager } from './GameManager';
+import { DifficultyMode, GameManager, GameState } from './GameManager';
 import { WXManager } from './WXManager';
 import { AudioManager } from './AudioManager';
 import { RewardController } from './RewardController';
@@ -356,6 +356,11 @@ export class BookController extends Component {
             this.reward_controller.node.active = false;
         }
         this.node.active = false;
+
+        const gameManager = GameManager.getInstance();
+        if (gameManager?.gameState === GameState.WAITING && !gameManager.isWindowBlocking()) {
+            WXManager.instance?.showNativeAd();
+        }
     }
 
     private async loadBookConfig(): Promise<void> {

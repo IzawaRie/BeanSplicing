@@ -119,6 +119,9 @@ export class LevelMode extends GameMode {
     private _isPaletteActive: boolean = false; // palette 技能是否激活
     private _paletteTimer: number = 0;     // palette 技能剩余时间
     private readonly _PALETTE_DURATION: number = 10; // palette 技能持续时间（秒）
+    private readonly _MEMORY_DURATION_SIMPLE: number = 10;
+    private readonly _MEMORY_DURATION_MEDIUM: number = 15;
+    private readonly _MEMORY_DURATION_HARD: number = 20;
 
     // 进度相关
     private _totalBlockCount: number = 0;    // 有效 block 总数
@@ -945,11 +948,13 @@ export class LevelMode extends GameMode {
             this.start_btn.active = true;
         }
 
+        const memoryDuration = this.getMemoryDurationByDifficulty();
+
         // 开始读秒
-        this._daojiTime = 10;
+        this._daojiTime = memoryDuration;
         this._isDaojiCounting = true;
         if (this.daojishi_label) {
-            this.daojishi_label.string = '10';
+            this.daojishi_label.string = `${memoryDuration}`;
         }
 
         // 立即初始化游戏倒计时，避免显示上一关残留的数值
@@ -1573,9 +1578,9 @@ export class LevelMode extends GameMode {
 
     /**
      * 调色板技能（palette_skill）
-     * 显示所有 block 的颜色和序号文字
-     * - 已熨烫且颜色正确的 block：全不透明显示
-     * - 已熨烫但颜色错误 / 未熨烫的 block：半透明显示正确颜色
+     * 显示所有未熨烫 block 的颜色和序号文字
+     * 只作用于 NO_CIRCLE / HAS_CIRCLE 状态的格子
+     * IRONING / IRONED 状态保持玩家当前熨烫显示，不做覆盖
      */
     public activatePaletteSkill(): void {
         if (!this.gridDrawer) return;
@@ -1597,6 +1602,10 @@ export class LevelMode extends GameMode {
                 const sprite = blockSpNode.getComponent(Sprite);
                 if (!sprite) continue;
 
+                if (controller.state === BlockState.IRONING || controller.state === BlockState.IRONED) {
+                    continue;
+                }
+
                 let uiOpacity = blockSpNode.getComponent(UIOpacity);
                 if (!uiOpacity) {
                     uiOpacity = blockSpNode.addComponent(UIOpacity);
@@ -1605,29 +1614,7 @@ export class LevelMode extends GameMode {
                 let targetOpacity = 120;
                 let displayColor: Color | null = null;
 
-                if (controller.state === BlockState.IRONED) {
-                    if (controller.isColorMatch()) {
-                        // 已熨烫且颜色正确：全不透明
-                        targetOpacity = 255;
-                    } else {
-                        // 已熨烫但颜色错误：显示正确颜色，全不透明
-                        displayColor = new Color(
-                            controller.targetColorR,
-                            controller.targetColorG,
-                            controller.targetColorB,
-                            controller.targetColorA
-                        );
-                        targetOpacity = 255;
-                    }
-                } else if (controller.state === BlockState.IRONING) {
-                    displayColor = new Color(
-                        controller.currentColorR,
-                        controller.currentColorG,
-                        controller.currentColorB,
-                        controller.currentColorA
-                    );
-                    targetOpacity = controller.getIronOpacity255();
-                } else if (controller.state === BlockState.HAS_CIRCLE) {
+                if (controller.state === BlockState.HAS_CIRCLE) {
                     // 有 circle：显示目标正确颜色，半透明
                     if (controller.targetColorA > 0) {
                         displayColor = new Color(
@@ -1662,7 +1649,7 @@ export class LevelMode extends GameMode {
         // 显示所有 number 节点
         this.gridDrawer.showAllNumberNodes();
 
-        // 启动 10 秒倒计时
+        // 启动技能倒计时
         this._isPaletteActive = true;
         this._paletteTimer = this._PALETTE_DURATION;
 
@@ -1672,7 +1659,7 @@ export class LevelMode extends GameMode {
         }
         this._warningSecondColor = new Color(0, 255, 100, 255);
 
-        console.log('palette_skill 激活：显示拼豆颜色预览，10秒后自动隐藏');
+        console.log(`palette_skill 激活：显示拼豆颜色预览，${this._PALETTE_DURATION}秒后自动隐藏`);
     }
 
     /**
@@ -1680,8 +1667,47 @@ export class LevelMode extends GameMode {
      */
     public hidePalettePreview(): void {
         if (!this.gridDrawer) return;
-        this.gridDrawer.hideAllBlockSpritesInstant();
+        const blocks = this.gridDrawer.getAllBlocks();
+        if (blocks) {
+            for (let row = 0; row < blocks.length; row++) {
+                for (let col = 0; col < blocks[row].length; col++) {
+                    const block = blocks[row][col];
+                    if (!block) continue;
+
+                    const controller = block.getComponent(BlockController);
+                    if (!controller) continue;
+
+                    if (controller.state !== BlockState.NO_CIRCLE && controller.state !== BlockState.HAS_CIRCLE) {
+                        continue;
+                    }
+
+                    const blockSpNode = block.getChildByName('block_sp');
+                    const sprite = blockSpNode?.getComponent(Sprite) ?? null;
+                    if (sprite) {
+                        sprite.enabled = false;
+                    }
+
+                    const uiOpacity = blockSpNode?.getComponent(UIOpacity) ?? null;
+                    if (uiOpacity) {
+                        uiOpacity.opacity = 255;
+                    }
+                }
+            }
+        }
         this.gridDrawer.hideAllNumberNodes();
+    }
+
+    private getMemoryDurationByDifficulty(): number {
+        const difficulty = GameManager.getInstance()?.currentDifficulty ?? DifficultyMode.SIMPLE;
+        switch (difficulty) {
+            case DifficultyMode.MEDIUM:
+                return this._MEMORY_DURATION_MEDIUM;
+            case DifficultyMode.HARD:
+                return this._MEMORY_DURATION_HARD;
+            case DifficultyMode.SIMPLE:
+            default:
+                return this._MEMORY_DURATION_SIMPLE;
+        }
     }
 
 
