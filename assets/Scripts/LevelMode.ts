@@ -43,9 +43,6 @@ export class LevelMode extends GameMode {
     @property({ type: CircleListController })
     circleList: CircleListController = null;
 
-    @property({ type: PaletteGenerator })
-    paletteGenerator: PaletteGenerator = null;
-
     @property({ type: PixelPatternApplier })
     patternApplier: PixelPatternApplier = null;
 
@@ -113,11 +110,14 @@ export class LevelMode extends GameMode {
     private _is30SecondWarning: boolean = false; // 是否已触发 30 秒警告
     private _isFlashingRed: boolean = false;  // 是否正在红色闪烁
     private _warningTimerId: any = null;    // 闪烁定时器 ID
-    private _warningSecondColor: Color = new Color(255, 255, 255, 255); // 30 秒警告闪烁的第二种颜色（默认白色）
+    private readonly _normalTimeColor: Color = new Color(82, 49, 20, 255);
+    private readonly _paletteTimeColor: Color = new Color(0, 255, 100, 255);
+    private _warningSecondColor: Color = new Color(82, 49, 20, 255); // 30 秒警告闪烁的第二种颜色
 
     // palette 技能相关
     private _isPaletteActive: boolean = false; // palette 技能是否激活
     private _paletteTimer: number = 0;     // palette 技能剩余时间
+    private _palettePreviousWarningSecondColor: Color | null = null;
     private readonly _PALETTE_DURATION: number = 10; // palette 技能持续时间（秒）
     private readonly _MEMORY_DURATION_SIMPLE: number = 10;
     private readonly _MEMORY_DURATION_MEDIUM: number = 15;
@@ -164,6 +164,30 @@ export class LevelMode extends GameMode {
     get modeType(): GameModeType { return GameModeType.LEVEL; }
     public get highlightCoinSpawnProbability(): number { return this._HIGHLIGHT_COIN_SPAWN_PROBABILITY; }
 
+    private formatCountdownTime(seconds: number): string {
+        const displaySec = Math.max(0, Math.ceil(seconds));
+        const mins = Math.floor(displaySec / 60);
+        const secs = displaySec % 60;
+        const minText = mins < 10 ? `0${mins}` : `${mins}`;
+        const secText = secs < 10 ? `0${secs}` : `${secs}`;
+        return `${minText}:${secText}`;
+    }
+
+    private cloneColor(color: Color): Color {
+        return new Color(color.r, color.g, color.b, color.a);
+    }
+
+    private restorePaletteTimeColor(): void {
+        this._warningSecondColor = this._palettePreviousWarningSecondColor
+            ? this.cloneColor(this._palettePreviousWarningSecondColor)
+            : this.cloneColor(this._normalTimeColor);
+        this._palettePreviousWarningSecondColor = null;
+
+        if (this.time_label) {
+            this.time_label.color = this.cloneColor(this._warningSecondColor);
+        }
+    }
+
     update(_deltaTime: number): void {
         const gameManager = GameManager.getInstance();
 
@@ -190,12 +214,7 @@ export class LevelMode extends GameMode {
                 this._paletteTimer = 0;
                 this._isPaletteActive = false;
                 this.hidePalettePreview();
-                // 恢复时间标签颜色
-                if (this.time_label) {
-                    this.time_label.color = new Color(255, 255, 255, 255);
-                }
-                // 更新警告闪烁颜色为白色
-                this._warningSecondColor = new Color(255, 255, 255, 255);
+                this.restorePaletteTimeColor();
             }
         }
 
@@ -207,7 +226,7 @@ export class LevelMode extends GameMode {
                 this._timeFreezeTimer = 0;
                 // 恢复时间标签颜色
                 if (this.time_label) {
-                    this.time_label.color = new Color(255, 255, 255, 255);
+                    this.time_label.color = this._warningSecondColor;
                 }
             }
             return;
@@ -223,10 +242,7 @@ export class LevelMode extends GameMode {
 
         // 更新 time_label
         if (this.time_label) {
-            const displaySec = Math.max(0, Math.ceil(this._remainingTime));
-            const mins = Math.floor(displaySec / 60);
-            const secs = displaySec % 60;
-            this.time_label.string = mins > 0 ? `${mins}:${secs < 10 ? '0' + secs : secs}` : `${secs}`;
+            this.time_label.string = this.formatCountdownTime(this._remainingTime);
         }
 
         // 倒计时结束
@@ -521,7 +537,7 @@ export class LevelMode extends GameMode {
             this._warningTimerId = null;
         }
         if (this.time_label) {
-            this.time_label.color = new Color(255, 255, 255, 255);
+            this.time_label.color = this._warningSecondColor;
         }
     }
 
@@ -886,9 +902,11 @@ export class LevelMode extends GameMode {
         // 重置 30 秒警告状态
         this._is30SecondWarning = false;
         this._isFlashingRed = false;
+        this._warningSecondColor = this.cloneColor(this._normalTimeColor);
+        this._palettePreviousWarningSecondColor = null;
         if (this.time_label) {
             tween(this.time_label).stop();
-            this.time_label.color = new Color(255, 255, 255, 255);
+            this.time_label.color = this.cloneColor(this._warningSecondColor);
         }
         // 重置 palette 技能状态
         this._isPaletteActive = false;
@@ -1047,10 +1065,7 @@ export class LevelMode extends GameMode {
 
         // 立即更新一次 label
         if (this.time_label) {
-            const displaySec = Math.ceil(this._remainingTime);
-            const mins = Math.floor(displaySec / 60);
-            const secs = displaySec % 60;
-            this.time_label.string = mins > 0 ? `${mins}:${secs < 10 ? '0' + secs : secs}` : `${secs}`;
+            this.time_label.string = this.formatCountdownTime(this._remainingTime);
         }
     }
 
@@ -1291,25 +1306,8 @@ export class LevelMode extends GameMode {
      * 加载图案和调色板
      */
     public loadPatternAndPalette(patternPath: string, callback?: () => void): void {
-        let completed = 0;
-        const total = 2;
-        const checkDone = () => {
-            completed++;
-            if (completed >= total && callback) {
-                callback();
-            }
-        };
-
-        
         if (this.patternApplier) {
-            this.patternApplier.applyFromJson(patternPath, checkDone);
-        } else {
-            checkDone();
-        }
-        if (this.paletteGenerator) {
-            this.paletteGenerator.loadFromJson(patternPath, checkDone);
-        } else {
-            checkDone();
+            this.patternApplier.applyFromJson(patternPath, callback);
         }
     }
 
@@ -1649,15 +1647,19 @@ export class LevelMode extends GameMode {
         // 显示所有 number 节点
         this.gridDrawer.showAllNumberNodes();
 
+        if (!this._isPaletteActive) {
+            this._palettePreviousWarningSecondColor = this.cloneColor(this._warningSecondColor);
+        }
+
         // 启动技能倒计时
         this._isPaletteActive = true;
         this._paletteTimer = this._PALETTE_DURATION;
 
         // 改变时间标签颜色为绿色，并更新警告闪烁颜色
         if (this.time_label) {
-            this.time_label.color = new Color(0, 255, 100, 255);
+            this.time_label.color = this.cloneColor(this._paletteTimeColor);
         }
-        this._warningSecondColor = new Color(0, 255, 100, 255);
+        this._warningSecondColor = this.cloneColor(this._paletteTimeColor);
 
         console.log(`palette_skill 激活：显示拼豆颜色预览，${this._PALETTE_DURATION}秒后自动隐藏`);
     }
