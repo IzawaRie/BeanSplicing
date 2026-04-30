@@ -127,6 +127,8 @@ export class LevelMode extends GameMode {
     private _totalBlockCount: number = 0;    // 有效 block 总数
     private _highlightedCount: number = 0;   // 已高亮的 block 数
     private _ironedCount: number = 0;        // 已熨烫的 block 数
+    private _progressTween: any = null;
+    private readonly _PROGRESS_TWEEN_SECONDS: number = 0.1;
 
     // 空闲闪烁相关（进度达到 80% 后开始检测）
     private _isIdleFlashing: boolean = false;  // 是否正在空闲闪烁
@@ -744,7 +746,7 @@ export class LevelMode extends GameMode {
         }
 
         console.log(`有效 block 总数: ${this._totalBlockCount}`);
-        this.updateProgressUI();
+        this.updateProgressUI(false);
     }
 
     /**
@@ -825,16 +827,55 @@ export class LevelMode extends GameMode {
     /**
      * 更新进度 UI（progress_sp fillRange 和 progress_label 文字）
      */
-    private updateProgressUI(): void {
+    private updateProgressUI(animate: boolean = true): void {
         if (this._totalBlockCount <= 0) return;
 
         // 进度 = (高亮数 * 0.5 + 熨烫数 * 1) / 总数
-        const progress = (this._highlightedCount * 0.5 + this._ironedCount * 1) / this._totalBlockCount;
-        const percent = Math.min(100, Math.floor(progress * 100));
+        const progress = Math.max(0, Math.min(1, (this._highlightedCount * 0.5 + this._ironedCount * 1) / this._totalBlockCount));
+        this.setProgressDisplay(progress, animate);
+    }
+
+    private setProgressDisplay(progress: number, animate: boolean): void {
+        const targetProgress = Math.max(0, Math.min(1, progress));
+
+        if (this._progressTween) {
+            this._progressTween.stop();
+            this._progressTween = null;
+        }
+
+        if (!this.progress_sp || !animate) {
+            this.applyProgressDisplay(targetProgress);
+            return;
+        }
+
+        const currentProgress = Math.max(0, Math.min(1, Number((this.progress_sp as any).fillRange) || 0));
+        if (Math.abs(targetProgress - currentProgress) < 0.001) {
+            this.applyProgressDisplay(targetProgress);
+            return;
+        }
+
+        const progressState = { value: currentProgress };
+        this._progressTween = tween(progressState)
+            .to(this._PROGRESS_TWEEN_SECONDS, { value: targetProgress }, {
+                easing: 'sineOut',
+                onUpdate: (state: { value: number }) => {
+                    this.applyProgressDisplay(state.value);
+                },
+            } as any)
+            .call(() => {
+                this._progressTween = null;
+                this.applyProgressDisplay(targetProgress);
+            })
+            .start();
+    }
+
+    private applyProgressDisplay(progress: number): void {
+        const displayProgress = Math.max(0, Math.min(1, progress));
+        const percent = Math.min(100, Math.floor(displayProgress * 100));
 
         // 更新 progress_sp 的 fillRange（0 到 1）
         if (this.progress_sp) {
-            (this.progress_sp as any).fillRange = progress;
+            (this.progress_sp as any).fillRange = displayProgress;
         }
 
         // 更新 progress_label 文字

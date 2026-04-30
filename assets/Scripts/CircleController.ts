@@ -77,10 +77,7 @@ export class CircleController extends Component {
         const progress = actualElapsed / this.HOVER_DURATION;
         if (progress >= 1) {
             this.clearPreviewHighlight();
-            const count = this.highlightBlocksByIndex(this.targetBlockIndex, true);
-            if (count > 0) {
-                GameManager.getInstance().levelMode?.onBlocksHighlighted(count);
-            }
+            this.highlightBlocksByIndex(this.targetBlockIndex, true);
             this.resetHover();
             return;
         }
@@ -631,10 +628,13 @@ export class CircleController extends Component {
         const delayPerLevel = 0.06;
         const triggeredLevels = new Set<number>();
 
-        for (const { block, level } of levelMap) {
+        for (const { block, level, delta } of levelMap) {
             const delay = level * delayPerLevel;
             if (delay === 0) {
                 const applied = applyHighlight(block);
+                if (applied && delta > 0) {
+                    gameManager.levelMode?.onBlocksHighlighted(1);
+                }
                 if (applied && !triggeredLevels.has(0)) {
                     triggeredLevels.add(0);
                     AudioManager.instance.playEffect('boop', 1.5);
@@ -646,6 +646,9 @@ export class CircleController extends Component {
 
             setTimeout(() => {
                 const applied = applyHighlight(block);
+                if (applied && delta > 0) {
+                    gameManager.levelMode?.onBlocksHighlighted(1);
+                }
                 if (applied && !triggeredLevels.has(level)) {
                     triggeredLevels.add(level);
                     AudioManager.instance.playEffect('boop', 1.5);
