@@ -2,7 +2,7 @@
   "ver": "1.0.26",
   "importer": "image",
   "imported": true,
-  "uuid": "9dbe5958-8e1c-4e26-a52e-071211a0f007",
+  "uuid": "0c8ef942-aa6f-43f0-a533-4252ef00a542",
   "files": [
     ".json",
     ".png"
@@ -10,20 +10,20 @@
   "subMetas": {
     "6c48a": {
       "importer": "texture",
-      "uuid": "9dbe5958-8e1c-4e26-a52e-071211a0f007@6c48a",
-      "displayName": "power_bg_short_noshadow",
+      "uuid": "0c8ef942-aa6f-43f0-a533-4252ef00a542@6c48a",
+      "displayName": "result_fail_effect_2",
       "id": "6c48a",
       "name": "texture",
       "userData": {
         "wrapModeS": "clamp-to-edge",
         "wrapModeT": "clamp-to-edge",
+        "imageUuidOrDatabaseUri": "0c8ef942-aa6f-43f0-a533-4252ef00a542",
+        "isUuid": true,
+        "visible": false,
         "minfilter": "linear",
         "magfilter": "linear",
         "mipfilter": "none",
-        "anisotropy": 0,
-        "isUuid": true,
-        "imageUuidOrDatabaseUri": "9dbe5958-8e1c-4e26-a52e-071211a0f007",
-        "visible": false
+        "anisotropy": 0
       },
       "ver": "1.0.22",
       "imported": true,
@@ -34,26 +34,26 @@
     },
     "f9941": {
       "importer": "sprite-frame",
-      "uuid": "9dbe5958-8e1c-4e26-a52e-071211a0f007@f9941",
-      "displayName": "power_bg_short_noshadow",
+      "uuid": "0c8ef942-aa6f-43f0-a533-4252ef00a542@f9941",
+      "displayName": "result_fail_effect_2",
       "id": "f9941",
       "name": "spriteFrame",
       "userData": {
         "trimType": "auto",
         "trimThreshold": 1,
         "rotated": false,
-        "offsetX": -1,
-        "offsetY": 1,
+        "offsetX": 0,
+        "offsetY": 0,
         "trimX": 0,
         "trimY": 0,
-        "width": 185,
-        "height": 91,
-        "rawWidth": 187,
-        "rawHeight": 93,
+        "width": 232,
+        "height": 32,
+        "rawWidth": 232,
+        "rawHeight": 32,
         "borderTop": 0,
         "borderBottom": 0,
-        "borderLeft": 0,
-        "borderRight": 0,
+        "borderLeft": 55,
+        "borderRight": 64,
         "packable": true,
         "pixelsToUnit": 100,
         "pivotX": 0.5,
@@ -61,17 +61,17 @@
         "meshType": 0,
         "vertices": {
           "rawPosition": [
-            -92.5,
-            -45.5,
+            -116,
+            -16,
             0,
-            92.5,
-            -45.5,
+            116,
+            -16,
             0,
-            -92.5,
-            45.5,
+            -116,
+            16,
             0,
-            92.5,
-            45.5,
+            116,
+            16,
             0
           ],
           "indexes": [
@@ -84,37 +84,37 @@
           ],
           "uv": [
             0,
-            93,
-            185,
-            93,
+            32,
+            232,
+            32,
             0,
-            2,
-            185,
-            2
+            0,
+            232,
+            0
           ],
           "nuv": [
             0,
-            0.021505376344086023,
-            0.9893048128342246,
-            0.021505376344086023,
             0,
             1,
-            0.9893048128342246,
+            0,
+            0,
+            1,
+            1,
             1
           ],
           "minPos": [
-            -92.5,
-            -45.5,
+            -116,
+            -16,
             0
           ],
           "maxPos": [
-            92.5,
-            45.5,
+            116,
+            16,
             0
           ]
         },
         "isUuid": true,
-        "imageUuidOrDatabaseUri": "9dbe5958-8e1c-4e26-a52e-071211a0f007@6c48a",
+        "imageUuidOrDatabaseUri": "0c8ef942-aa6f-43f0-a533-4252ef00a542@6c48a",
         "atlasUuid": ""
       },
       "ver": "1.0.12",
@@ -126,10 +126,10 @@
     }
   },
   "userData": {
-    "hasAlpha": true,
     "type": "sprite-frame",
-    "fixAlphaTransparencyArtifacts": true,
-    "redirect": "9dbe5958-8e1c-4e26-a52e-071211a0f007@f9941",
+    "hasAlpha": true,
+    "fixAlphaTransparencyArtifacts": false,
+    "redirect": "0c8ef942-aa6f-43f0-a533-4252ef00a542@f9941",
     "compressSettings": {
       "useCompressTexture": true,
       "presetId": "f8EvLUCe1JwJIx0yIbW8bk"

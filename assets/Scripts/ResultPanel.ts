@@ -8,77 +8,83 @@ import { PlayerService } from './PlayerService';
 import { WXManager } from './WXManager';
 const { ccclass, property } = _decorator;
 
+type ResultLabelGroup = {
+    wrong: Label | null;
+    percent: Label | null;
+    time: Label | null;
+};
+
 @ccclass('ResultPanel')
 export class ResultPanel extends Component {
 
     @property(Node)
-    content: Node = null;
+    suc_page: Node = null;
 
     @property(Node)
-    successNode:Node = null;
+    fail_page: Node = null;
 
     @property(Node)
-    failNode:Node = null;
+    nextLevel_suc_btn: Node = null;
 
     @property(Node)
-    nextLevelBtn: Node = null;
+    restart_suc_btn: Node = null;
 
     @property(Node)
-    restartBtn: Node = null;
+    homel_suc_btn: Node = null;
 
     @property(Node)
-    restartBtn2: Node = null;
+    camera_suc_btn: Node = null;
 
     @property(Node)
-    homelBtn: Node = null;
+    share_suc_btn: Node = null;
 
     @property(Node)
-    homelBtn2: Node = null;
+    chart_suc_btn: Node = null;
 
     @property(Node)
-    camera_btn: Node = null;
+    restart_fail_btn: Node = null;
 
     @property(Node)
-    camera_btn2: Node = null;
+    continue_fail_btn: Node = null;
 
     @property(Node)
-    share_btn: Node = null;
+    homel_fail_btn: Node = null;
 
     @property(Node)
-    share_btn2: Node = null;
+    camera_fail_btn: Node = null;
+
+    @property(Node)
+    share_fail_btn: Node = null;
+
+    @property(Node)
+    chart_fail_btn: Node = null;
 
     @property(Node)
     flashNode: Node = null;
 
     @property(Node)
-    continue_btn: Node = null;
-
-    @property(Node)
-    chart_btn: Node = null;
-
-    @property(Node)
-    chart_btn2: Node = null;
+    stars: Node = null;
 
     @property(Sprite)
     result_img: Sprite = null;
 
     @property(Label)
-    right_number: Label = null;
+    suc_wrong_number: Label = null;
 
     @property(Label)
-    wrong_number: Label = null;
+    suc_percent_number: Label = null;
 
     @property(Label)
-    percent_number: Label = null;
+    suc_time_number: Label = null;
 
     @property(Label)
-    highlight_percent: Label = null;
+    fail_wrong_number: Label = null;
 
     @property(Label)
-    iron_percent: Label = null;
+    fail_percent_number: Label = null;
 
     @property(Label)
-    time_number: Label = null;
+    fail_time_number: Label = null;
 
     @property({ type: Label })
     coin_label: Label = null;
@@ -143,13 +149,12 @@ export class ResultPanel extends Component {
         }
 
         // 统计正确/错误/正确率
-        this.updateResultStats();
+        const resultLabels = this.getResultLabelGroup(isSuccess);
+        this.updateResultStats(resultLabels);
 
         // 隐藏六个数据 label 的父节点
-        this.hideResultLabelParents();
-
-        this.successNode.active = isSuccess ? true : false;
-        this.failNode.active = (!isSuccess) ? true : false;
+        this.hideResultLabelParents(resultLabels);
+        this.setResultPagesVisible(isSuccess);
 
         if (isSuccess) {
             AudioManager.instance.playEffect('victory', 0.4);
@@ -169,12 +174,12 @@ export class ResultPanel extends Component {
             const hasNextLevel = LevelConfig.getInstance().hasLevel(nextLevelNo, difficulty);
             if (hasNextLevel) {
                 // 有下一关，显示下一关按钮，隐藏返回按钮
-                this.nextLevelBtn.active = true;
-                this.homelBtn2.active = true;
+                this.nextLevel_suc_btn.active = true;
+                this.homel_fail_btn.active = true;
             } else {
                 // 没有下一关，隐藏下一关按钮，居中返回按钮
-                this.nextLevelBtn.active = false;
-                this.homelBtn2.active = true;
+                this.nextLevel_suc_btn.active = false;
+                this.homel_fail_btn.active = true;
             }
         } else {
             this._saveLevelDataTask = null;
@@ -187,7 +192,10 @@ export class ResultPanel extends Component {
         } else {
             this.setCoinLabelValue(baseCoinCount);
         }
-        this.playContentEnterAnimation();
+        const resultPage = isSuccess ? this.suc_page : this.fail_page;
+        const starsRoot = this.getStarsRoot(resultPage);
+        this.resetStars(starsRoot);
+        this.playContentEnterAnimation(resultPage, resultLabels, starsRoot);
         WXManager.instance?.setCaptureNone();
         WXManager.instance?.hideNativeGridAd();
     }
@@ -255,6 +263,89 @@ export class ResultPanel extends Component {
     /**
      * 记录游戏开始时间（在游戏开始时调用）
      */
+    private findLabelInPage(page: Node | null, name: string): Label | null {
+        if (!page) return null;
+        const stack: Node[] = [page];
+        while (stack.length > 0) {
+            const node = stack.pop();
+            if (!node) continue;
+            if (node.name === name) {
+                const label = node.getComponent(Label);
+                if (label) return label;
+            }
+            for (const child of node.children) {
+                stack.push(child);
+            }
+        }
+        return null;
+    }
+
+    private getResultLabelGroup(isSuccess: boolean): ResultLabelGroup {
+        const page = isSuccess ? this.suc_page : this.fail_page;
+        return {
+            wrong: isSuccess
+                ? (this.suc_wrong_number ?? this.findLabelInPage(page, 'wrong_number'))
+                : (this.fail_wrong_number ?? this.findLabelInPage(page, 'wrong_number')),
+            percent: isSuccess
+                ? (this.suc_percent_number ?? this.findLabelInPage(page, 'percent_number'))
+                : (this.fail_percent_number ?? this.findLabelInPage(page, 'percent_number')),
+            time: isSuccess
+                ? (this.suc_time_number ?? this.findLabelInPage(page, 'time_number'))
+                : (this.fail_time_number ?? this.findLabelInPage(page, 'time_number')),
+        };
+    }
+
+    private findChildByName(root: Node | null, name: string): Node | null {
+        if (!root) return null;
+        const stack: Node[] = [root];
+        while (stack.length > 0) {
+            const node = stack.pop();
+            if (!node) continue;
+            if (node.name === name) return node;
+            for (const child of node.children) {
+                stack.push(child);
+            }
+        }
+        return null;
+    }
+
+    private getStarsRoot(content: Node | null): Node | null {
+        return this.findChildByName(content, 'stars') ?? this.stars;
+    }
+
+    private setResultPagesVisible(isSuccess: boolean): void {
+        if (this.suc_page) {
+            this.suc_page.active = isSuccess;
+        }
+        if (this.fail_page) {
+            this.fail_page.active = !isSuccess;
+        }
+    }
+
+    private resetStars(starsRoot: Node | null): void {
+        if (!starsRoot) return;
+        for (const star of starsRoot.children) {
+            tween(star).stop();
+            star.active = false;
+            star.setScale(0, 0, 1);
+        }
+    }
+
+    private showStarsSequentially(starsRoot: Node | null): void {
+        if (!starsRoot) return;
+        const delay = 0.12;
+        starsRoot.children.forEach((star, index) => {
+            this.scheduleOnce(() => {
+                star.active = true;
+                star.setScale(0, 0, 1);
+                tween(star)
+                    .to(0.18, { scale: new Vec3(1.15, 1.15, 1) }, { easing: 'backOut' })
+                    .to(0.08, { scale: Vec3.ONE }, { easing: 'sineOut' })
+                    .start();
+            }, index * delay);
+        });
+    }
+
     public recordGameStartTime(): void {
         this._gameStartTime = Date.now();
         this._pausedTime = 0;
@@ -266,7 +357,7 @@ export class ResultPanel extends Component {
     /**
      * 统计正确/错误格子和正确率
      */
-    private updateResultStats(): void {
+    private updateResultStats(labels: ResultLabelGroup): void {
         const gameManager = GameManager.getInstance();
         const gridDrawer = gameManager.levelMode?.gridDrawer;
         if (!gridDrawer) return;
@@ -277,8 +368,6 @@ export class ResultPanel extends Component {
         let rightCount = 0;
         let wrongCount = 0;
         let totalCount = 0;
-        let highlightedCount = 0;  // 高亮数（HAS_CIRCLE状态）
-        let ironedCount = 0;       // 熨烫数（IRONED状态）
 
         for (let row = 0; row < blocks.length; row++) {
             for (let col = 0; col < blocks[row].length; col++) {
@@ -294,11 +383,7 @@ export class ResultPanel extends Component {
                 totalCount++;
 
                 // 统计高亮和熨烫状态
-                if (controller.state === BlockState.HAS_CIRCLE || controller.state === BlockState.IRONING) {
-                    highlightedCount++;
-                } else if (controller.state === BlockState.IRONED) {
-                    ironedCount++;
-                    highlightedCount++; // 已熨烫的也算入高亮数
+                if (controller.state === BlockState.IRONED) {
                     // 检查是否已熨烫且颜色正确
                     if (controller.isColorMatch()) {
                         rightCount++;
@@ -315,50 +400,32 @@ export class ResultPanel extends Component {
         // 计算正确率
         const percent = totalCount > 0 ? Math.floor((rightCount / totalCount) * 100) : 0;
 
-        // 计算高亮率
-        const highlightPercent = totalCount > 0 ? Math.floor((highlightedCount / totalCount) * 100) : 0;
-
-        // 计算熨烫率
-        const ironPercent = totalCount > 0 ? Math.floor((ironedCount / totalCount) * 100) : 0;
-
         // 使用已计算的通关时间
         const timeUsed = this._clearTime;
 
         // 更新 Label 显示
-        if (this.right_number) {
-            this.right_number.string = `${rightCount}/${totalCount}`;
+        if (labels.wrong) {
+            labels.wrong.string = `${wrongCount}/${totalCount}`;
         }
-        if (this.wrong_number) {
-            this.wrong_number.string = `${wrongCount}/${totalCount}`;
+        if (labels.percent) {
+            labels.percent.string = `${percent}%`;
         }
-        if (this.percent_number) {
-            this.percent_number.string = `${percent}%`;
-        }
-        if (this.highlight_percent) {
-            this.highlight_percent.string = `${highlightPercent}%`;
-        }
-        if (this.iron_percent) {
-            this.iron_percent.string = `${ironPercent}%`;
-        }
-        if (this.time_number) {
+        if (labels.time) {
             // 格式化为 "XXs"
-            this.time_number.string = `${timeUsed}s`;
+            labels.time.string = `${timeUsed}s`;
         }
 
-        console.log(`结果统计: 正确=${rightCount}, 错误=${wrongCount}, 正确率=${percent}%, 高亮率=${highlightPercent}%, 熨烫率=${ironPercent}%, 用时=${timeUsed}秒`);
+        console.log(`结果统计: 正确=${rightCount}, 错误=${wrongCount}, 正确率=${percent}%, 用时=${timeUsed}秒`);
     }
 
     /**
      * 隐藏六个数据 label 的父节点（将 opacity 设为 0）
      */
-    private hideResultLabelParents(): void {
+    private hideResultLabelParents(resultLabels: ResultLabelGroup): void {
         const labels = [
-            this.highlight_percent,
-            this.iron_percent,
-            this.time_number,
-            this.right_number,
-            this.wrong_number,
-            this.percent_number
+            resultLabels.time,
+            resultLabels.wrong,
+            resultLabels.percent
         ];
 
         for (const label of labels) {
@@ -374,16 +441,13 @@ export class ResultPanel extends Component {
 
     /**
      * 依次显示六个数据 Label（每个间隔 0.1 秒）
-     * 顺序：highlight_percent, iron_percent, time_number, right_number, wrong_number, percent_number
+     * 顺序：time_number, wrong_number, percent_number
      */
-    private showResultLabelsSequentially(): void {
-        const labels: { item: Node, index: number }[] = [
-            { item: this.highlight_percent.node.parent, index: 0 },
-            { item: this.iron_percent.node.parent, index: 1 },
-            { item: this.time_number.node.parent, index: 2 },
-            { item: this.right_number.node.parent, index: 0 },
-            { item: this.wrong_number.node.parent, index: 1 },
-            { item: this.percent_number.node.parent, index: 2 }
+    private showResultLabelsSequentially(resultLabels: ResultLabelGroup): void {
+        const labels: { item: Node | null, index: number }[] = [
+            { item: resultLabels.time?.node.parent ?? null, index: 0 },
+            { item: resultLabels.wrong?.node.parent ?? null, index: 1 },
+            { item: resultLabels.percent?.node.parent ?? null, index: 2 }
         ];
 
         const delay = 0.15; // 间隔 0.1 秒
@@ -406,8 +470,8 @@ export class ResultPanel extends Component {
     /**
      * content 缩放入场动画：从 0 到 1
      */
-    private playContentEnterAnimation(): void {
-        if (!this.content) return;
+    private playContentEnterAnimation(content: Node, resultLabels: ResultLabelGroup, starsRoot: Node | null): void {
+        if (!content) return;
 
         const gameManager = GameManager.getInstance();
         if (!gameManager?.levelMode?.gridDrawer) return;
@@ -415,15 +479,16 @@ export class ResultPanel extends Component {
         const drawerOpacity = gameManager.levelMode.drawer_opacity;
         drawerOpacity.opacity = 0;
         // 先设置为 0
-        this.content.setScale(0, 0, 1);
+        content.setScale(0, 0, 1);
 
         // 动画到 1，动画完成后生成结果图片，然后依次显示 Label
-        tween(this.content)
+        tween(content)
             .to(0.3, { scale: Vec3.ONE }, { easing: 'backOut' })
             .call(() => {
                 this.generateResultImage();
+                this.showStarsSequentially(starsRoot);
                 // tween 完成后，依次显示六个数据 Label
-                this.showResultLabelsSequentially();
+                this.showResultLabelsSequentially(resultLabels);
             })
             .start();
     }
@@ -464,10 +529,10 @@ export class ResultPanel extends Component {
 
         // 初始化为白色背景
         for (let i = 0; i < byteCount; i += 4) {
-            byteArray[i] = 255;     // R
-            byteArray[i + 1] = 255; // G
-            byteArray[i + 2] = 255; // B
-            byteArray[i + 3] = 255; // A
+            byteArray[i] = 0;       // R
+            byteArray[i + 1] = 0;   // G
+            byteArray[i + 2] = 0;   // B
+            byteArray[i + 3] = 0;   // A
         }
 
         // 填充像素数据
@@ -508,10 +573,10 @@ export class ResultPanel extends Component {
                             byteArray[pixelIndex + 3] = a;
                         } else {
                             // 默认填充白色背景
-                            byteArray[pixelIndex] = 255;
-                            byteArray[pixelIndex + 1] = 255;
-                            byteArray[pixelIndex + 2] = 255;
-                            byteArray[pixelIndex + 3] = 255;
+                            byteArray[pixelIndex] = 0;
+                            byteArray[pixelIndex + 1] = 0;
+                            byteArray[pixelIndex + 2] = 0;
+                            byteArray[pixelIndex + 3] = 0;
                         }
                     }
                 }
@@ -653,18 +718,18 @@ export class ResultPanel extends Component {
     }
 
     start() {
-        this.nextLevelBtn?.on(Node.EventType.TOUCH_END, this.onNextLevelBtnClick, this);
-        this.restartBtn?.on(Node.EventType.TOUCH_END, this.onRestartLevelBtnClick, this);
-        this.restartBtn2?.on(Node.EventType.TOUCH_END, this.onAgainLevelBtnClick, this);
-        this.homelBtn?.on(Node.EventType.TOUCH_END, this.onShowHomePanel, this);
-        this.homelBtn2?.on(Node.EventType.TOUCH_END, this.onShowHomePanel, this);
-        this.camera_btn?.on(Node.EventType.TOUCH_END, this.onCameraBtnClick, this);
-        this.camera_btn2?.on(Node.EventType.TOUCH_END, this.onCameraBtnClick, this);
-        this.share_btn?.on(Node.EventType.TOUCH_END, this.onShareBtnClick, this);
-        this.share_btn2?.on(Node.EventType.TOUCH_END, this.onShareBtnClick, this);
-        this.continue_btn?.on(Node.EventType.TOUCH_END, this.onContinueBtnClick, this);
-        this.chart_btn?.on(Node.EventType.TOUCH_END, this.onChartBtnClick, this);
-        this.chart_btn2?.on(Node.EventType.TOUCH_END, this.onChartBtnClick, this);
+        this.nextLevel_suc_btn?.on(Node.EventType.TOUCH_END, this.onNextLevelBtnClick, this);
+        this.restart_suc_btn?.on(Node.EventType.TOUCH_END, this.onRestartLevelBtnClick, this);
+        this.restart_fail_btn?.on(Node.EventType.TOUCH_END, this.onAgainLevelBtnClick, this);
+        this.homel_suc_btn?.on(Node.EventType.TOUCH_END, this.onShowHomePanel, this);
+        this.homel_fail_btn?.on(Node.EventType.TOUCH_END, this.onShowHomePanel, this);
+        this.camera_suc_btn?.on(Node.EventType.TOUCH_END, this.onCameraBtnClick, this);
+        this.camera_fail_btn?.on(Node.EventType.TOUCH_END, this.onCameraBtnClick, this);
+        this.share_suc_btn?.on(Node.EventType.TOUCH_END, this.onShareBtnClick, this);
+        this.share_fail_btn?.on(Node.EventType.TOUCH_END, this.onShareBtnClick, this);
+        this.continue_fail_btn?.on(Node.EventType.TOUCH_END, this.onContinueBtnClick, this);
+        this.chart_suc_btn?.on(Node.EventType.TOUCH_END, this.onChartBtnClick, this);
+        this.chart_fail_btn?.on(Node.EventType.TOUCH_END, this.onChartBtnClick, this);
     }
 
     onDestroy() {
@@ -672,17 +737,17 @@ export class ResultPanel extends Component {
             Tween.stopAllByTarget(this._coinTweenState);
             this._coinTweenState = null;
         }
-        this.nextLevelBtn?.off(Node.EventType.TOUCH_END, this.onNextLevelBtnClick, this);
-        this.restartBtn?.off(Node.EventType.TOUCH_END, this.onRestartLevelBtnClick, this);
-        this.restartBtn2?.off(Node.EventType.TOUCH_END, this.onAgainLevelBtnClick, this);
-        this.homelBtn2?.off(Node.EventType.TOUCH_END, this.onShowHomePanel, this);
-        this.camera_btn?.off(Node.EventType.TOUCH_END, this.onCameraBtnClick, this);
-        this.camera_btn2?.off(Node.EventType.TOUCH_END, this.onCameraBtnClick, this);
-        this.share_btn?.off(Node.EventType.TOUCH_END, this.onShareBtnClick, this);
-        this.share_btn2?.off(Node.EventType.TOUCH_END, this.onShareBtnClick, this);
-        this.continue_btn?.off(Node.EventType.TOUCH_END, this.onContinueBtnClick, this);
-        this.chart_btn?.off(Node.EventType.TOUCH_END, this.onChartBtnClick, this);
-        this.chart_btn2?.off(Node.EventType.TOUCH_END, this.onChartBtnClick, this);
+        this.nextLevel_suc_btn?.off(Node.EventType.TOUCH_END, this.onNextLevelBtnClick, this);
+        this.restart_suc_btn?.off(Node.EventType.TOUCH_END, this.onRestartLevelBtnClick, this);
+        this.restart_fail_btn?.off(Node.EventType.TOUCH_END, this.onAgainLevelBtnClick, this);
+        this.homel_fail_btn?.off(Node.EventType.TOUCH_END, this.onShowHomePanel, this);
+        this.camera_suc_btn?.off(Node.EventType.TOUCH_END, this.onCameraBtnClick, this);
+        this.camera_fail_btn?.off(Node.EventType.TOUCH_END, this.onCameraBtnClick, this);
+        this.share_suc_btn?.off(Node.EventType.TOUCH_END, this.onShareBtnClick, this);
+        this.share_fail_btn?.off(Node.EventType.TOUCH_END, this.onShareBtnClick, this);
+        this.continue_fail_btn?.off(Node.EventType.TOUCH_END, this.onContinueBtnClick, this);
+        this.chart_suc_btn?.off(Node.EventType.TOUCH_END, this.onChartBtnClick, this);
+        this.chart_fail_btn?.off(Node.EventType.TOUCH_END, this.onChartBtnClick, this);
     }
 
     /**

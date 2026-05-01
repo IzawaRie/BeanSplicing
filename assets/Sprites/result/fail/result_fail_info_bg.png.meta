@@ -2,7 +2,7 @@
   "ver": "1.0.26",
   "importer": "image",
   "imported": true,
-  "uuid": "9dbe5958-8e1c-4e26-a52e-071211a0f007",
+  "uuid": "b19e598e-9aee-442d-9c2b-314f543f1b13",
   "files": [
     ".json",
     ".png"
@@ -10,20 +10,20 @@
   "subMetas": {
     "6c48a": {
       "importer": "texture",
-      "uuid": "9dbe5958-8e1c-4e26-a52e-071211a0f007@6c48a",
-      "displayName": "power_bg_short_noshadow",
+      "uuid": "b19e598e-9aee-442d-9c2b-314f543f1b13@6c48a",
+      "displayName": "result_fail_info_bg",
       "id": "6c48a",
       "name": "texture",
       "userData": {
         "wrapModeS": "clamp-to-edge",
         "wrapModeT": "clamp-to-edge",
+        "imageUuidOrDatabaseUri": "b19e598e-9aee-442d-9c2b-314f543f1b13",
+        "isUuid": true,
+        "visible": false,
         "minfilter": "linear",
         "magfilter": "linear",
         "mipfilter": "none",
-        "anisotropy": 0,
-        "isUuid": true,
-        "imageUuidOrDatabaseUri": "9dbe5958-8e1c-4e26-a52e-071211a0f007",
-        "visible": false
+        "anisotropy": 0
       },
       "ver": "1.0.22",
       "imported": true,
@@ -34,24 +34,24 @@
     },
     "f9941": {
       "importer": "sprite-frame",
-      "uuid": "9dbe5958-8e1c-4e26-a52e-071211a0f007@f9941",
-      "displayName": "power_bg_short_noshadow",
+      "uuid": "b19e598e-9aee-442d-9c2b-314f543f1b13@f9941",
+      "displayName": "result_fail_info_bg",
       "id": "f9941",
       "name": "spriteFrame",
       "userData": {
         "trimType": "auto",
         "trimThreshold": 1,
         "rotated": false,
-        "offsetX": -1,
-        "offsetY": 1,
+        "offsetX": 0,
+        "offsetY": 0,
         "trimX": 0,
         "trimY": 0,
-        "width": 185,
-        "height": 91,
-        "rawWidth": 187,
-        "rawHeight": 93,
-        "borderTop": 0,
-        "borderBottom": 0,
+        "width": 398,
+        "height": 81,
+        "rawWidth": 398,
+        "rawHeight": 81,
+        "borderTop": 28,
+        "borderBottom": 47,
         "borderLeft": 0,
         "borderRight": 0,
         "packable": true,
@@ -61,17 +61,17 @@
         "meshType": 0,
         "vertices": {
           "rawPosition": [
-            -92.5,
-            -45.5,
+            -199,
+            -40.5,
             0,
-            92.5,
-            -45.5,
+            199,
+            -40.5,
             0,
-            -92.5,
-            45.5,
+            -199,
+            40.5,
             0,
-            92.5,
-            45.5,
+            199,
+            40.5,
             0
           ],
           "indexes": [
@@ -84,37 +84,37 @@
           ],
           "uv": [
             0,
-            93,
-            185,
-            93,
+            81,
+            398,
+            81,
             0,
-            2,
-            185,
-            2
+            0,
+            398,
+            0
           ],
           "nuv": [
             0,
-            0.021505376344086023,
-            0.9893048128342246,
-            0.021505376344086023,
             0,
             1,
-            0.9893048128342246,
+            0,
+            0,
+            1,
+            1,
             1
           ],
           "minPos": [
-            -92.5,
-            -45.5,
+            -199,
+            -40.5,
             0
           ],
           "maxPos": [
-            92.5,
-            45.5,
+            199,
+            40.5,
             0
           ]
         },
         "isUuid": true,
-        "imageUuidOrDatabaseUri": "9dbe5958-8e1c-4e26-a52e-071211a0f007@6c48a",
+        "imageUuidOrDatabaseUri": "b19e598e-9aee-442d-9c2b-314f543f1b13@6c48a",
         "atlasUuid": ""
       },
       "ver": "1.0.12",
@@ -126,10 +126,10 @@
     }
   },
   "userData": {
-    "hasAlpha": true,
     "type": "sprite-frame",
-    "fixAlphaTransparencyArtifacts": true,
-    "redirect": "9dbe5958-8e1c-4e26-a52e-071211a0f007@f9941",
+    "hasAlpha": true,
+    "fixAlphaTransparencyArtifacts": false,
+    "redirect": "b19e598e-9aee-442d-9c2b-314f543f1b13@f9941",
     "compressSettings": {
       "useCompressTexture": true,
       "presetId": "f8EvLUCe1JwJIx0yIbW8bk"
