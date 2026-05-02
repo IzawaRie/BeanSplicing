@@ -33,13 +33,25 @@ export class MenuManager extends Component {
     chart_btn: Node = null;
 
     @property({ type: Node })
-    shop_btn: Node = null;
-
-    @property({ type: Node })
     userinfo_btn: Node = null;
 
     @property({ type: Node })
     book_btn: Node = null;
+
+    @property({ type: Node })
+    more_btn: Node = null;
+
+    @property({ type: Node })
+    extend_area: Node = null;
+
+    @property({ type: Node })
+    road_tag: Node = null;
+
+    @property({ type: Node })
+    home_tag: Node = null;
+
+    @property({ type: Node })
+    shop_tag: Node = null;
 
     @property({ type: Label })
     power_label: Label = null;
@@ -57,6 +69,7 @@ export class MenuManager extends Component {
     private minStarSpacing: number = 150;  // 星星最小间隔
     private btn_color1: Color = new Color(255, 230, 166);
     private btn_color2: Color = new Color(255, 183, 197);
+    private readonly _EXTEND_AREA_TWEEN_DURATION: number = 0.2;
 
     public levelConfig: LevelConfig | null = null;
     /**
@@ -173,15 +186,18 @@ export class MenuManager extends Component {
         if (this.chart_btn) {
             this.chart_btn.on(Node.EventType.TOUCH_END, this.onChartBtnClick, this);
         }
-        if (this.shop_btn) {
-            this.shop_btn.on(Node.EventType.TOUCH_END, this.onShopBtnClick, this);
-        }
         if (this.userinfo_btn) {
             this.userinfo_btn.on(Node.EventType.TOUCH_END, this.onUserInfoBtnClick, this);
         }
         if (this.book_btn) {
             this.book_btn.on(Node.EventType.TOUCH_END, this.onBookBtnClick, this);
         }
+        if (this.more_btn) {
+            this.more_btn.on(Node.EventType.TOUCH_END, this.onMoreBtnClick, this);
+        }
+        this.road_tag?.on(Node.EventType.TOUCH_END, () => this.selectTagPage('road'), this);
+        this.home_tag?.on(Node.EventType.TOUCH_END, () => this.selectTagPage('home'), this);
+        this.shop_tag?.on(Node.EventType.TOUCH_END, () => this.selectTagPage('shop'), this);
 
         // 加载星星预制体
         resources.load('prefab/star_light', Prefab, (err, prefab) => {
@@ -199,9 +215,6 @@ export class MenuManager extends Component {
 
     start() {
         AudioManager.instance.playMenuBgm();
-
-        // 在主页面显示原生模板广告
-        WXManager.instance?.showNativeAd();
     }
 
     /**
@@ -433,19 +446,7 @@ export class MenuManager extends Component {
             await gameManager.ensureChartProfileReady();
         }
 
-        WXManager.instance?.hideNativeAd();
         gameManager.chart.openDifficultyRanking(gameManager.currentDifficulty, false, true);
-    }
-
-    private onShopBtnClick(): void {
-        const gameManager = GameManager.getInstance();
-        if (!gameManager?.shop || (gameManager.gameState != GameState.WAITING)) return;
-        if (gameManager.isWindowBlocking()) return;
-
-        gameManager.vibrateShort();
-        AudioManager.instance.playEffect('click_btn');
-        WXManager.instance?.hideNativeAd();
-        gameManager.shop.node.active = true;
     }
 
     private async onUserInfoBtnClick(): Promise<void> {
@@ -461,7 +462,6 @@ export class MenuManager extends Component {
                 await gameManager.wxManager?.getUserInfo();
             }
         }
-        WXManager.instance?.hideNativeAd();
         gameManager.userInfo.node.active = true;
     }
 
@@ -472,13 +472,81 @@ export class MenuManager extends Component {
 
         gameManager.vibrateShort();
         AudioManager.instance.playEffect('click_btn');
-        WXManager.instance?.hideNativeAd();
         gameManager.book.active = true;
     }
 
     /**
      * 显示进度面板
      */
+    private onMoreBtnClick(): void {
+        const gameManager = GameManager.getInstance();
+        if (gameManager?.isWindowBlocking()) return;
+        if (!this.extend_area) return;
+
+        AudioManager.instance.playEffect('click_btn');
+        tween(this.extend_area).stop();
+
+        const currentScale = this.extend_area.scale.clone();
+        if (this.extend_area.active) {
+            tween(this.extend_area)
+                .to(this._EXTEND_AREA_TWEEN_DURATION, {
+                    scale: new Vec3(currentScale.x, 0, currentScale.z)
+                }, { easing: 'sineInOut' })
+                .call(() => {
+                    this.extend_area.active = false;
+                    this.extend_area.setScale(currentScale.x, 1, currentScale.z);
+                })
+                .start();
+            return;
+        }
+
+        this.extend_area.active = true;
+        this.extend_area.setScale(currentScale.x, 0, currentScale.z);
+        tween(this.extend_area)
+            .to(this._EXTEND_AREA_TWEEN_DURATION, {
+                scale: new Vec3(currentScale.x, 1, currentScale.z)
+            }, { easing: 'sineInOut' })
+            .start();
+    }
+
+    private selectTagPage(page: 'home' | 'road' | 'shop', playFeedback: boolean = true): void {
+        const gameManager = GameManager.getInstance();
+        if (!gameManager || gameManager.gameState != GameState.WAITING) return;
+        if (gameManager.isWindowBlocking([gameManager.shop?.node, gameManager.road?.node])) return;
+
+        if (playFeedback) {
+            gameManager.vibrateShort();
+            AudioManager.instance.playEffect('click_btn');
+        }
+
+        gameManager.road && (gameManager.road.node.active = page === 'road');
+        gameManager.shop && (gameManager.shop.node.active = page === 'shop');
+        this.updateTagSelection(page);
+    }
+
+    private updateSingleTagState(tag: Node | null, isSelected: boolean): void {
+        if (!tag) return;
+        const normalLabel = tag.getChildByName('normal_label');
+        const selectedLabel = tag.getChildByName('selected_label');
+        if (normalLabel) {
+            normalLabel.active = !isSelected;
+        }
+        if (selectedLabel) {
+            selectedLabel.active = isSelected;
+        }
+    }
+
+    private updateTagSelection(selectedPage: 'home' | 'road' | 'shop'): void {
+        const tagMap = {
+            road: this.road_tag,
+            home: this.home_tag,
+            shop: this.shop_tag,
+        };
+        for (const page of Object.keys(tagMap) as Array<keyof typeof tagMap>) {
+            this.updateSingleTagState(tagMap[page], page === selectedPage);
+        }
+    }
+
     public showProgressPanel(): void {
         const gameManager = GameManager.getInstance();
         if (!gameManager) return;
@@ -565,7 +633,6 @@ export class MenuManager extends Component {
             this.node.active = true;
         }
         WXManager.instance?.setCaptureNone();
-        WXManager.instance?.showNativeAd();
     }
 
     update(): void {
@@ -601,14 +668,23 @@ export class MenuManager extends Component {
         if (this.chart_btn) {
             this.chart_btn.off(Node.EventType.TOUCH_END, this.onChartBtnClick, this);
         }
-        if (this.shop_btn) {
-            this.shop_btn.off(Node.EventType.TOUCH_END, this.onShopBtnClick, this);
-        }
         if (this.userinfo_btn) {
             this.userinfo_btn.off(Node.EventType.TOUCH_END, this.onUserInfoBtnClick, this);
         }
         if (this.book_btn) {
             this.book_btn.off(Node.EventType.TOUCH_END, this.onBookBtnClick, this);
+        }
+        if (this.more_btn) {
+            this.more_btn.off(Node.EventType.TOUCH_END, this.onMoreBtnClick, this);
+        }
+        if (this.road_tag) {
+            this.road_tag.off(Node.EventType.TOUCH_END);
+        }
+        if (this.home_tag) {
+            this.home_tag.off(Node.EventType.TOUCH_END);
+        }
+        if (this.shop_tag) {
+            this.shop_tag.off(Node.EventType.TOUCH_END);
         }
     }
 }

@@ -69,7 +69,6 @@ export class ShopController extends Component {
     private onCloseBtnClick(): void {
         AudioManager.instance.playEffect('click_btn');
         this.node.active = false;
-        WXManager.instance?.showNativeAd();
     }
 
     private onSupplyTagClick(): void {

@@ -339,9 +339,6 @@ export class ChartController extends Component {
     // 关闭排行榜节点。
     private closeChart(): void {
         this.node.active = false;
-        if (this.shouldRestoreNativeAdOnClose) {
-            GameManager.getInstance()?.wxManager?.showNativeAd();
-        }
     }
 
     // 播放排行榜打开时的缩放动画。

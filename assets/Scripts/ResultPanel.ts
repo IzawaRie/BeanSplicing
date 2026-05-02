@@ -793,7 +793,6 @@ export class ResultPanel extends Component {
         gameManager.gameState = GameState.WAITING;
         gameManager.levelMode.node.active = false;
         gameManager.menuManager.node.active = true;
-        WXManager.instance?.showNativeAd();
         WXManager.instance?.showNativeGridAd(0.14);
         AudioManager.instance.playMenuBgm();
     }

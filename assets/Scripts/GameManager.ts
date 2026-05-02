@@ -14,6 +14,7 @@ import { PlayerService } from './PlayerService';
 import { ChartController } from './ChartController';
 import { ShopController } from './ShopController';
 import { UserInfo } from './UserInfo';
+import { RoadController } from './RoadController';
 const { ccclass, property } = _decorator;
 
 /**
@@ -88,6 +89,9 @@ export class GameManager extends Component {
 
     @property({ type: UserInfo })
     userInfo: UserInfo = null;
+
+    @property({ type: RoadController })
+    road: RoadController = null;
 
     @property({ type: Node })
     book: Node = null;
@@ -300,14 +304,21 @@ export class GameManager extends Component {
     /**
      * 检查是否有窗口阻挡按钮点击
      */
-    public isWindowBlocking(): boolean {
-        return this.isWindowOpen ||
-               (this.setting?.node?.active ?? false) ||
-               (this.window?.node?.active ?? false) ||
-               (this.chart?.node?.active ?? false) ||
-               (this.userInfo?.node?.active ?? false) ||
-               (this.shop?.node?.active ?? false) ||
-               (this.book?.active ?? false)
+    public isWindowBlocking(ignoreNodes: Array<Node | null | undefined> = []): boolean {
+        if (this.isWindowOpen) return true;
+
+        const ignoreSet = new Set(ignoreNodes.filter(Boolean));
+        const blockingNodes = [
+            this.setting?.node,
+            this.window?.node,
+            this.chart?.node,
+            this.userInfo?.node,
+            this.shop?.node,
+            this.road?.node,
+            this.book,
+        ];
+
+        return blockingNodes.some(node => !!node && !ignoreSet.has(node) && node.active);
     }
 
     onLoad() {

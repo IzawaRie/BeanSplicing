@@ -1085,9 +1085,6 @@ export class UserInfo extends Component {
         this.saveSelectedAppearanceToStorage();
         this.node.active = false;
         const gameManager = GameManager.getInstance();
-        if (gameManager?.gameState === GameState.WAITING) {
-            WXManager.instance?.showNativeAd();
-        }
     }
 
     private isTouchInContentPanel(touchPos: Vec2): boolean {

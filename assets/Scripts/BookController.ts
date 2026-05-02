@@ -356,11 +356,6 @@ export class BookController extends Component {
             this.reward_controller.node.active = false;
         }
         this.node.active = false;
-
-        const gameManager = GameManager.getInstance();
-        if (gameManager?.gameState === GameState.WAITING && !gameManager.isWindowBlocking()) {
-            WXManager.instance?.showNativeAd();
-        }
     }
 
     private async loadBookConfig(): Promise<void> {
