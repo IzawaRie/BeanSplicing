@@ -62,9 +62,6 @@ export class ResultPanel extends Component {
     @property(Node)
     flashNode: Node = null;
 
-    @property(Node)
-    stars: Node = null;
-
     @property(Sprite)
     result_img: Sprite = null;
 
@@ -193,9 +190,7 @@ export class ResultPanel extends Component {
             this.setCoinLabelValue(baseCoinCount);
         }
         const resultPage = isSuccess ? this.suc_page : this.fail_page;
-        const starsRoot = this.getStarsRoot(resultPage);
-        this.resetStars(starsRoot);
-        this.playContentEnterAnimation(resultPage, resultLabels, starsRoot);
+        this.playContentEnterAnimation(resultPage, resultLabels);
         WXManager.instance?.setCaptureNone();
         WXManager.instance?.hideNativeGridAd();
     }
@@ -309,10 +304,6 @@ export class ResultPanel extends Component {
         return null;
     }
 
-    private getStarsRoot(content: Node | null): Node | null {
-        return this.findChildByName(content, 'stars') ?? this.stars;
-    }
-
     private setResultPagesVisible(isSuccess: boolean): void {
         if (this.suc_page) {
             this.suc_page.active = isSuccess;
@@ -320,30 +311,6 @@ export class ResultPanel extends Component {
         if (this.fail_page) {
             this.fail_page.active = !isSuccess;
         }
-    }
-
-    private resetStars(starsRoot: Node | null): void {
-        if (!starsRoot) return;
-        for (const star of starsRoot.children) {
-            tween(star).stop();
-            star.active = false;
-            star.setScale(0, 0, 1);
-        }
-    }
-
-    private showStarsSequentially(starsRoot: Node | null): void {
-        if (!starsRoot) return;
-        const delay = 0.12;
-        starsRoot.children.forEach((star, index) => {
-            this.scheduleOnce(() => {
-                star.active = true;
-                star.setScale(0, 0, 1);
-                tween(star)
-                    .to(0.18, { scale: new Vec3(1.15, 1.15, 1) }, { easing: 'backOut' })
-                    .to(0.08, { scale: Vec3.ONE }, { easing: 'sineOut' })
-                    .start();
-            }, index * delay);
-        });
     }
 
     public recordGameStartTime(): void {
@@ -440,29 +407,26 @@ export class ResultPanel extends Component {
     }
 
     /**
-     * 依次显示六个数据 Label（每个间隔 0.1 秒）
+     * 依次显示三个数据 Label（每个间隔 0.1 秒）
      * 顺序：time_number, wrong_number, percent_number
      */
     private showResultLabelsSequentially(resultLabels: ResultLabelGroup): void {
-        const labels: { item: Node | null, index: number }[] = [
-            { item: resultLabels.time?.node.parent ?? null, index: 0 },
-            { item: resultLabels.wrong?.node.parent ?? null, index: 1 },
-            { item: resultLabels.percent?.node.parent ?? null, index: 2 }
+        const labels: { item: Node | null}[] = [
+            { item: resultLabels.time?.node.parent ?? null},
+            { item: resultLabels.wrong?.node.parent ?? null},
+            { item: resultLabels.percent?.node.parent ?? null}
         ];
 
-        const delay = 0.15; // 间隔 0.1 秒
+        const delay = 1;
         
         for (const item of labels) {
             if (item.item) {
                 // 获取或添加 UIOpacity 组件
                 let uiOpacity = item.item.getComponent(UIOpacity);
                 
-                // 延迟显示
-                this.scheduleOnce(() => {
-                    tween(uiOpacity)
-                        .to(0.3, { opacity: 255 })
-                        .start();
-                }, item.index * delay);
+                tween(uiOpacity)
+                    .to(delay, { opacity: 255 })
+                    .start();
             }
         }
     }
@@ -470,7 +434,7 @@ export class ResultPanel extends Component {
     /**
      * content 缩放入场动画：从 0 到 1
      */
-    private playContentEnterAnimation(content: Node, resultLabels: ResultLabelGroup, starsRoot: Node | null): void {
+    private playContentEnterAnimation(content: Node, resultLabels: ResultLabelGroup): void {
         if (!content) return;
 
         const gameManager = GameManager.getInstance();
@@ -486,7 +450,6 @@ export class ResultPanel extends Component {
             .to(0.3, { scale: Vec3.ONE }, { easing: 'backOut' })
             .call(() => {
                 this.generateResultImage();
-                this.showStarsSequentially(starsRoot);
                 // tween 完成后，依次显示六个数据 Label
                 this.showResultLabelsSequentially(resultLabels);
             })
