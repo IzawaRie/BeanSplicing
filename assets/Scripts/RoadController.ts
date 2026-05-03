@@ -12,6 +12,7 @@ const ROAD_REWARD_SNAP_EPSILON = 0.5;
 const ROAD_REWARD_SNAP_INDEX_EPSILON = 2;
 const ROAD_SEASON_END_TIME = new Date(2026, 5, 1, 0, 0, 0).getTime();
 const ROAD_PASS_VIDEO_UNLOCK_REQUIRED_COUNT = 10;
+const ROAD_PROGRESS_FILL_STEP = 0.143;
 
 type RoadPassConfigFile = {
     levels?: RoadRewardLevelData[];
@@ -224,6 +225,10 @@ export class RoadController extends Component {
         void this.loadRewardItems();
     }
 
+    onEnable() {
+        this.refreshRoadPassView();
+    }
+
     onDestroy() {
         this.unschedule(this.updateSeasonRemainingTime);
         this.unbindButtonEvents();
@@ -235,15 +240,50 @@ export class RoadController extends Component {
     }
 
     private updateExperienceLabel(): void {
+        this.updateExperienceProgress();
         if (this.exp) {
             this.exp.string = `${this._experience}/${this.getCurrentRequiredExp()}`;
         }
     }
 
+    private updateExperienceProgress(): void {
+        if (!this.exp_sp) {
+            return;
+        }
+
+        const requiredExp = Math.max(0, this.getCurrentRequiredExp());
+        const fillRange = requiredExp > 0
+            ? Math.max(0, Math.min(1, this._experience / requiredExp))
+            : 0;
+
+        (this.exp_sp as any).fillRange = fillRange;
+    }
+
+    private refreshRoadPassView(): void {
+        this.refreshPassLevelByExperience();
+        this.updateExperienceLabel();
+        this.updatePassLevelLabel();
+        this.updateRoadLevelItems();
+        this.updateRewardClaimReminder();
+        this.rewardItemNodeDataIndices.clear();
+        this.updateRewardVirtualList(true);
+    }
+
     private updatePassLevelLabel(): void {
+        this.updatePassProgress();
         if (this.level) {
             this.level.string = `Lv.${this._passLevel}`;
         }
+    }
+
+    private updatePassProgress(): void {
+        if (!this.progress_sp) {
+            return;
+        }
+
+        const currentLevel = Math.max(1, Math.floor(Number(this._passLevel) || 1));
+        const progressIndex = Math.min(currentLevel, 4);
+        (this.progress_sp as any).fillRange = progressIndex * ROAD_PROGRESS_FILL_STEP;
     }
 
     private updateSeasonRemainingTime(): void {
@@ -636,7 +676,7 @@ export class RoadController extends Component {
 
             itemNode.active = true;
             itemNode.setPosition(0, -paddingTop - (startIndex + slotIndex) * itemSpan - itemHeight * 0.5, 0);
-            if (this.rewardItemNodeDataIndices.get(itemNode) !== dataIndex) {
+            if (force || this.rewardItemNodeDataIndices.get(itemNode) !== dataIndex) {
                 itemNode.getComponent(RoadReward)?.setData(this.applyClaimStateToRewardData(this.rewardItems[dataIndex]));
                 this.rewardItemNodeDataIndices.set(itemNode, dataIndex);
             }

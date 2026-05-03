@@ -200,15 +200,11 @@ export class SkillController extends Component {
             return;
         }
 
-        // 暂停 BGM 和游戏
-        AudioManager.instance.pauseBgm();
         const prevState = gameManager.gameState;
         gameManager.gameState = GameState.PAUSED;
 
         // 播放激励视频广告，看完后才激活技能
         WXManager.instance.showRewardedVideoAd((success) => {
-            // 恢复 BGM 和游戏状态
-            AudioManager.instance.resumeBgm();
             gameManager.gameState = prevState;
             if (!success) return; // 中途退出，不执行技能
             this.activateSkillWithCooldown(
@@ -248,15 +244,11 @@ export class SkillController extends Component {
             return;
         }
 
-        // 暂停 BGM 和游戏
-        AudioManager.instance.pauseBgm();
         const prevState = gameManager.gameState;
         gameManager.gameState = GameState.PAUSED;
 
         // 播放激励视频广告，看完后才激活技能
         WXManager.instance.showRewardedVideoAd((success) => {
-            // 恢复 BGM 和游戏状态
-            AudioManager.instance.resumeBgm();
             gameManager.gameState = prevState;
             if (!success) return; // 中途退出，不执行技能
             this.activateSkillWithCooldown(
@@ -296,15 +288,11 @@ export class SkillController extends Component {
             return;
         }
 
-        // 暂停 BGM 和游戏
-        AudioManager.instance.pauseBgm();
         const prevState = gameManager.gameState;
         gameManager.gameState = GameState.PAUSED;
 
         // 播放激励视频广告，看完后才激活技能
         WXManager.instance.showRewardedVideoAd((success) => {
-            // 恢复 BGM 和游戏状态
-            AudioManager.instance.resumeBgm();
             gameManager.gameState = prevState;
             if (!success) return; // 中途退出，不执行技能
             this.activateSkillWithCooldown(

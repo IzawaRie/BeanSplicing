@@ -4,6 +4,7 @@ import { callFunction } from './CloudbaseService';
 import { ShopRuntimeData } from './ShopConfig';
 import { UserInfo } from './UserInfo';
 import type { RoadPassRewardClaimState } from './RoadController';
+import { AudioManager } from './AudioManager';
 const { ccclass, property} = _decorator;
 
 // 微信小游戏全局对象类型声明
@@ -165,6 +166,9 @@ export class WXManager extends Component {
                     this.skillRewardedVideoClosed?.(false);
                 }
                 this.skillRewardedVideoClosed = null;
+                this.scheduleOnce(() => {
+                    AudioManager.instance.resumeBgm();
+                }, 0.5);
             });
         } catch (e) {
             console.warn('创建激励视频广告失败:', e);
@@ -192,6 +196,7 @@ export class WXManager extends Component {
             return;
         }
 
+        AudioManager.instance.pauseBgm();
         this.skillRewardedVideoClosed = callback;
 
         this.rewardedVideoAd.show().then(() => {
