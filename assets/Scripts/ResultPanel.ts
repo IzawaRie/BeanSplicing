@@ -86,6 +86,9 @@ export class ResultPanel extends Component {
     @property({ type: Label })
     coin_label: Label = null;
 
+    @property({ type: Label })
+    road_exp_label: Label = null;
+
     /** 标记当前结果是否为成功 */
     private _isSuccess: boolean = false;
 
@@ -110,7 +113,9 @@ export class ResultPanel extends Component {
 
     private _saveLevelDataTask: Promise<void> | null = null;
     private _coinTweenState: { value: number } | null = null;
+    private _roadExpTweenState: { value: number } | null = null;
     private readonly _COIN_COUNT_ANIM_DURATION: number = 2;
+    private readonly _ROAD_EXP_COUNT_ANIM_DURATION: number = 1;
     private _lastCoinBoopTime: number = 0;
     private readonly _COIN_COUNT_BOOP_INTERVAL_MS: number = 100;
 
@@ -126,6 +131,8 @@ export class ResultPanel extends Component {
         const playedLevelNo = gameManager.levelMode?.currentLevelId ?? gameManager.currentLevel;
         this._resultDifficulty = difficulty;
         this._resultLevelNo = playedLevelNo;
+        const roadPassExperience = this.grantRoadPassExperience(gameManager, difficulty);
+        this.updateRoadExpLabel(roadPassExperience);
         gameManager.levelMode.stop30SecondWarning();
         // 结束可能正在进行的新手引导
         const tutorialController = gameManager.levelMode?.tutorialController;
@@ -193,6 +200,66 @@ export class ResultPanel extends Component {
         this.playContentEnterAnimation(resultPage, resultLabels);
         WXManager.instance?.setCaptureNone();
         WXManager.instance?.hideNativeGridAd();
+    }
+
+    private grantRoadPassExperience(gameManager: GameManager, difficulty: DifficultyMode): number {
+        const range = this.getRoadPassExperienceRange(difficulty);
+        const experience = this.getRandomInteger(range.min, range.max);
+        gameManager.addExperience(experience);
+        return experience;
+    }
+
+    private getRoadPassExperienceRange(difficulty: DifficultyMode): { min: number; max: number } {
+        switch (difficulty) {
+            case DifficultyMode.MEDIUM:
+                return { min: 400, max: 600 };
+            case DifficultyMode.HARD:
+                return { min: 800, max: 1000 };
+            case DifficultyMode.SIMPLE:
+            default:
+                return { min: 200, max: 400 };
+        }
+    }
+
+    private updateRoadExpLabel(experience: number): void {
+        if (!this.road_exp_label) {
+            return;
+        }
+
+        if (this._roadExpTweenState) {
+            Tween.stopAllByTarget(this._roadExpTweenState);
+            this._roadExpTweenState = null;
+        }
+
+        const targetExperience = Math.max(0, Math.floor(Number(experience) || 0));
+        this.road_exp_label.node.active = true;
+        this.road_exp_label.string = '+0';
+        if (targetExperience <= 0) {
+            return;
+        }
+
+        const tweenState = { value: 0 };
+        this._roadExpTweenState = tweenState;
+        tween(tweenState)
+            .to(this._ROAD_EXP_COUNT_ANIM_DURATION, { value: targetExperience }, {
+                easing: 'quadOut',
+                onUpdate: (target: { value: number }) => {
+                    this.road_exp_label.string = `+${Math.max(0, Math.floor(target.value))}`;
+                }
+            })
+            .call(() => {
+                this.road_exp_label.string = `+${targetExperience}`;
+                if (this._roadExpTweenState === tweenState) {
+                    this._roadExpTweenState = null;
+                }
+            })
+            .start();
+    }
+
+    private getRandomInteger(min: number, max: number): number {
+        const safeMin = Math.ceil(Math.min(min, max));
+        const safeMax = Math.floor(Math.max(min, max));
+        return Math.floor(Math.random() * (safeMax - safeMin + 1)) + safeMin;
     }
 
     private setCoinLabelValue(value: number): void {
@@ -699,6 +766,10 @@ export class ResultPanel extends Component {
         if (this._coinTweenState) {
             Tween.stopAllByTarget(this._coinTweenState);
             this._coinTweenState = null;
+        }
+        if (this._roadExpTweenState) {
+            Tween.stopAllByTarget(this._roadExpTweenState);
+            this._roadExpTweenState = null;
         }
         this.nextLevel_suc_btn?.off(Node.EventType.TOUCH_END, this.onNextLevelBtnClick, this);
         this.restart_suc_btn?.off(Node.EventType.TOUCH_END, this.onRestartLevelBtnClick, this);

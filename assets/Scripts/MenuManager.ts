@@ -522,6 +522,16 @@ export class MenuManager extends Component {
         gameManager.road && (gameManager.road.node.active = page === 'road');
         gameManager.shop && (gameManager.shop.node.active = page === 'shop');
         this.updateTagSelection(page);
+        this.updateNativeGridAdForTagPage(page);
+    }
+
+    private updateNativeGridAdForTagPage(page: 'home' | 'road' | 'shop'): void {
+        if (page === 'home') {
+            WXManager.instance?.showNativeGridAd(0.14);
+            return;
+        }
+
+        WXManager.instance?.hideNativeGridAd();
     }
 
     private updateSingleTagState(tag: Node | null, isSelected: boolean): void {

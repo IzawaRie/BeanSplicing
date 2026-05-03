@@ -42,6 +42,8 @@ type BookProgressRewardItem = {
     type: string;
 };
 
+export type RewardItemData = BookProgressRewardItem;
+
 type BookProgressRewardConfigItem = {
     progress: number;
     rewards: BookProgressRewardItem[];
@@ -145,6 +147,7 @@ export class GameManager extends Component {
         if (this.shop?.coin_label) {
             this.shop.coin_label.string = `${this._coinCount}`;
         }
+        this.road?.setCoinCount(this._coinCount);
         this.saveCoinImmediately();
     }
 
@@ -173,6 +176,27 @@ export class GameManager extends Component {
         }
 
         this.experience = this.experience + amount;
+    }
+
+    public setRoadPassFreeRewardClaimed(level: number, claimed: boolean = true): void {
+        this.road?.setFreeRewardClaimed(level, claimed);
+        this.wxManager?.setRoadPassFreeRewardClaimed(level, claimed);
+    }
+
+    public setRoadPassPremiumRewardClaimed(level: number, claimed: boolean = true): void {
+        this.road?.setPremiumRewardClaimed(level, claimed);
+        this.wxManager?.setRoadPassPremiumRewardClaimed(level, claimed);
+    }
+
+    public setRoadPassPremiumUnlocked(unlocked: boolean): void {
+        this.road?.setPremiumPassUnlocked(unlocked);
+        this.wxManager?.setRoadPassPremiumUnlocked(unlocked);
+    }
+
+    public setRoadPassVideoWatchCount(count: number): void {
+        const safeCount = Math.max(0, Math.floor(Number(count) || 0));
+        this.road?.setRewardAdWatchCount(safeCount);
+        this.wxManager?.setRoadPassVideoWatchCount(safeCount);
     }
 
     private saveCoinImmediately(): void {
@@ -529,6 +553,17 @@ export class GameManager extends Component {
         this._coinCount = Math.max(0, Math.floor((await this.wxManager.getCoins()) ?? 0));
         if (this.road) {
             this.road.experience = Math.max(0, Math.floor((await this.wxManager.getExperience()) ?? 0));
+            const roadPassVideoWatchCount = Math.max(0, Math.floor((await this.wxManager.getRoadPassVideoWatchCount()) ?? 0));
+            const roadPassPremiumUnlocked = ((await this.wxManager.getRoadPassPremiumUnlocked()) ?? false) || roadPassVideoWatchCount >= 10;
+            this.road.setRewardAdWatchCount(roadPassVideoWatchCount);
+            this.road.setPremiumPassUnlocked(roadPassPremiumUnlocked);
+            if (roadPassPremiumUnlocked) {
+                this.wxManager.setRoadPassPremiumUnlocked(true);
+            }
+            this.road.setRewardClaimState((await this.wxManager.getRoadPassRewardClaimState()) ?? {
+                freeClaimedLevels: [],
+                premiumClaimedLevels: []
+            });
         }
         if (this.menuManager?.coin_label) {
             this.menuManager.coin_label.string = `${this._coinCount}`;
@@ -536,6 +571,7 @@ export class GameManager extends Component {
         if (this.shop?.coin_label) {
             this.shop.coin_label.string = `${this._coinCount}`;
         }
+        this.road?.setCoinCount(this._coinCount);
         if (this.userInfo) {
             this.userInfo.authorizedAvatarUrl = (await this.wxManager.getAuthorizedAvatarUrl()) ?? '';
             this.userInfo.avatarUrl = (await this.wxManager.getCurrentAvatarSource()) ?? '';
@@ -777,6 +813,10 @@ export class GameManager extends Component {
             this.applyBookProgressReward(reward);
         }
         this.wxManager?.setBookProgressRewardClaimedByDifficulty(difficulty, safeProgress, true);
+    }
+
+    public applyRewardItem(reward: RewardItemData): void {
+        this.applyBookProgressReward(reward);
     }
 
     private applyBookProgressReward(reward: BookProgressRewardItem): void {

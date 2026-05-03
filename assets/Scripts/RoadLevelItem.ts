@@ -12,14 +12,6 @@ export class RoadLevelItem extends Component {
 
     @property({ type: Label })
     item_level: Label = null;
-
-    start() {
-
-    }
-
-    update(deltaTime: number) {
-        
-    }
 }
 
 

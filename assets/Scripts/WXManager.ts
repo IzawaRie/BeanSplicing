@@ -3,6 +3,7 @@ import { GameManager, DifficultyMode } from './GameManager';
 import { callFunction } from './CloudbaseService';
 import { ShopRuntimeData } from './ShopConfig';
 import { UserInfo } from './UserInfo';
+import type { RoadPassRewardClaimState } from './RoadController';
 const { ccclass, property} = _decorator;
 
 // 微信小游戏全局对象类型声明
@@ -67,6 +68,10 @@ export class WXManager extends Component {
     private static readonly USER_OWNED_ACHIEVEMENT_ICON_IDS_STORAGE_KEY = 'user_owned_achievement_icon_ids';
     private static readonly BOOK_UNLOCKED_IDS_STORAGE_PREFIX = 'book_unlocked_ids';
     private static readonly BOOK_PROGRESS_REWARD_STORAGE_PREFIX = 'book_progress_reward';
+    private static readonly ROAD_PASS_FREE_CLAIMED_LEVELS_STORAGE_KEY = 'road_pass_free_claimed_levels';
+    private static readonly ROAD_PASS_PREMIUM_CLAIMED_LEVELS_STORAGE_KEY = 'road_pass_premium_claimed_levels';
+    private static readonly ROAD_PASS_PREMIUM_UNLOCKED_STORAGE_KEY = 'road_pass_premium_unlocked';
+    private static readonly ROAD_PASS_VIDEO_WATCH_COUNT_STORAGE_KEY = 'road_pass_video_watch_count';
 
     @property({ type: Node })
     testBtn: Node = null;
@@ -1000,6 +1005,89 @@ export class WXManager extends Component {
         wx.setStorageSync('palette_skill_count', count);
     }
 
+    public setRoadPassRewardClaimState(state: RoadPassRewardClaimState): void {
+        if (typeof (wx) === 'undefined') return;
+        wx.setStorageSync(
+            WXManager.ROAD_PASS_FREE_CLAIMED_LEVELS_STORAGE_KEY,
+            this.normalizeClaimedLevels(state?.freeClaimedLevels)
+        );
+        wx.setStorageSync(
+            WXManager.ROAD_PASS_PREMIUM_CLAIMED_LEVELS_STORAGE_KEY,
+            this.normalizeClaimedLevels(state?.premiumClaimedLevels)
+        );
+    }
+
+    public async getRoadPassRewardClaimState(): Promise<RoadPassRewardClaimState | null> {
+        if (typeof (wx) === 'undefined') return Promise.resolve(null);
+
+        const [freeClaimedLevels, premiumClaimedLevels] = await Promise.all([
+            this.getClaimedLevelsFromStorage(WXManager.ROAD_PASS_FREE_CLAIMED_LEVELS_STORAGE_KEY),
+            this.getClaimedLevelsFromStorage(WXManager.ROAD_PASS_PREMIUM_CLAIMED_LEVELS_STORAGE_KEY)
+        ]);
+
+        if (!freeClaimedLevels && !premiumClaimedLevels) {
+            return null;
+        }
+
+        return {
+            freeClaimedLevels: freeClaimedLevels ?? [],
+            premiumClaimedLevels: premiumClaimedLevels ?? []
+        };
+    }
+
+    public setRoadPassFreeRewardClaimed(level: number, claimed: boolean = true): void {
+        if (typeof (wx) === 'undefined') return;
+        this.setClaimedLevel(WXManager.ROAD_PASS_FREE_CLAIMED_LEVELS_STORAGE_KEY, level, claimed);
+    }
+
+    public setRoadPassPremiumRewardClaimed(level: number, claimed: boolean = true): void {
+        if (typeof (wx) === 'undefined') return;
+        this.setClaimedLevel(WXManager.ROAD_PASS_PREMIUM_CLAIMED_LEVELS_STORAGE_KEY, level, claimed);
+    }
+
+    public setRoadPassPremiumUnlocked(unlocked: boolean): void {
+        if (typeof (wx) === 'undefined') return;
+        wx.setStorageSync(WXManager.ROAD_PASS_PREMIUM_UNLOCKED_STORAGE_KEY, unlocked ? 1 : 0);
+    }
+
+    public getRoadPassPremiumUnlocked(): Promise<boolean | null> {
+        if (typeof (wx) === 'undefined') return Promise.resolve(null);
+        return new Promise((resolve) => {
+            wx.getStorage({
+                key: WXManager.ROAD_PASS_PREMIUM_UNLOCKED_STORAGE_KEY,
+                success(res) {
+                    resolve(Number(res.data) === 1 || res.data === true);
+                },
+                fail() {
+                    resolve(null);
+                }
+            });
+        });
+    }
+
+    public setRoadPassVideoWatchCount(count: number): void {
+        if (typeof (wx) === 'undefined') return;
+        wx.setStorageSync(
+            WXManager.ROAD_PASS_VIDEO_WATCH_COUNT_STORAGE_KEY,
+            Math.max(0, Math.floor(Number(count) || 0))
+        );
+    }
+
+    public getRoadPassVideoWatchCount(): Promise<number | null> {
+        if (typeof (wx) === 'undefined') return Promise.resolve(null);
+        return new Promise((resolve) => {
+            wx.getStorage({
+                key: WXManager.ROAD_PASS_VIDEO_WATCH_COUNT_STORAGE_KEY,
+                success(res) {
+                    resolve(Math.max(0, Math.floor(Number(res.data) || 0)));
+                },
+                fail() {
+                    resolve(null);
+                }
+            });
+        });
+    }
+
     public getUserSex(): string {
         if (typeof (wx) === 'undefined') {
             return 'male';
@@ -1210,6 +1298,39 @@ export class WXManager extends Component {
         });
     }
 
+    private getClaimedLevelsFromStorage(key: string): Promise<number[] | null> {
+        if (typeof (wx) === 'undefined') return Promise.resolve(null);
+        return new Promise((resolve) => {
+            wx.getStorage({
+                key,
+                success: (res) => {
+                    const normalizedLevels = this.normalizeClaimedLevels(res.data);
+                    resolve(normalizedLevels.length > 0 ? normalizedLevels : null);
+                },
+                fail: () => {
+                    resolve(null);
+                }
+            });
+        });
+    }
+
+    private setClaimedLevel(key: string, level: number, claimed: boolean): void {
+        if (typeof (wx) === 'undefined') return;
+        const safeLevel = Math.max(0, Math.floor(Number(level) || 0));
+        if (safeLevel <= 0) {
+            return;
+        }
+
+        const levels = new Set(this.normalizeClaimedLevels(wx.getStorageSync(key)));
+        if (claimed) {
+            levels.add(safeLevel);
+        } else {
+            levels.delete(safeLevel);
+        }
+
+        wx.setStorageSync(key, this.normalizeClaimedLevels(Array.from(levels)));
+    }
+
     private normalizeOwnedIds(ids: unknown): number[] {
         if (!Array.isArray(ids)) {
             return [];
@@ -1222,6 +1343,20 @@ export class WXManager extends Component {
         ));
         normalizedIds.sort((a, b) => a - b);
         return normalizedIds;
+    }
+
+    private normalizeClaimedLevels(levels: unknown): number[] {
+        if (!Array.isArray(levels)) {
+            return [];
+        }
+
+        const normalizedLevels = Array.from(new Set(
+            levels
+                .map((level) => Math.max(0, Math.floor(Number(level) || 0)))
+                .filter((level) => level > 0)
+        ));
+        normalizedLevels.sort((a, b) => a - b);
+        return normalizedLevels;
     }
 
     private normalizeBookProgressRewardStates(states: unknown): { progress: number; claimed: boolean }[] {
