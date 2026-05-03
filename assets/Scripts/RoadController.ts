@@ -441,7 +441,7 @@ export class RoadController extends Component {
 
     private updateRewardActionButtonLayout(showRewardBtn: boolean): void {
         if (this.reward_btn?.active) {
-            const rewardBtnX = this.premiumPassUnlocked ? 0 : -240;
+            const rewardBtnX = this.premiumPassUnlocked ? 0 : -230;
             this.reward_btn.setPosition(rewardBtnX, -800, this.reward_btn.position.z);
         }
 
