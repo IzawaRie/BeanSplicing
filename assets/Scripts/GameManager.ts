@@ -156,11 +156,37 @@ export class GameManager extends Component {
         this.coinCount = this._coinCount + amount;
     }
 
+    public get experience(): number {
+        return this.road?.experience ?? 0;
+    }
+
+    public set experience(value: number) {
+        if (this.road) {
+            this.road.experience = value;
+        }
+        this.saveExperienceImmediately();
+    }
+
+    public addExperience(amount: number): void {
+        if (amount <= 0) {
+            return;
+        }
+
+        this.experience = this.experience + amount;
+    }
+
     private saveCoinImmediately(): void {
         if (!this._storageLoaded) {
             return;
         }
         this.wxManager?.setCoins(this._coinCount);
+    }
+
+    private saveExperienceImmediately(): void {
+        if (!this._storageLoaded) {
+            return;
+        }
+        this.wxManager?.setExperience(this.experience);
     }
 
     /**
@@ -501,6 +527,9 @@ export class GameManager extends Component {
         this._mediumLevel = await this.wxManager.getStorageLevelByDifficulty(DifficultyMode.MEDIUM) ?? 1;
         this._hardLevel   = await this.wxManager.getStorageLevelByDifficulty(DifficultyMode.HARD)   ?? 1;
         this._coinCount = Math.max(0, Math.floor((await this.wxManager.getCoins()) ?? 0));
+        if (this.road) {
+            this.road.experience = Math.max(0, Math.floor((await this.wxManager.getExperience()) ?? 0));
+        }
         if (this.menuManager?.coin_label) {
             this.menuManager.coin_label.string = `${this._coinCount}`;
         }

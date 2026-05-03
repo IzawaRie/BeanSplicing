@@ -929,6 +929,32 @@ export class WXManager extends Component {
         });
     }
 
+    /**
+     * 保存经验值到本地缓存
+     */
+    public setExperience(experience: number): void {
+        if (typeof (wx) === 'undefined') return;
+        wx.setStorageSync('experience', Math.max(0, Math.floor(Number(experience) || 0)));
+    }
+
+    /**
+     * 获取本地缓存的经验值
+     */
+    public getExperience(): Promise<number | null> {
+        if (typeof (wx) === 'undefined') return Promise.resolve(null);
+        return new Promise((resolve) => {
+            wx.getStorage({
+                key: 'experience',
+                success(res) {
+                    resolve(res.data);
+                },
+                fail() {
+                    resolve(null);
+                }
+            });
+        });
+    }
+
     public setFixSkillCount(count: number): void {
         if (typeof (wx) === 'undefined') return;
         wx.setStorageSync('fix_skill_count', count);
