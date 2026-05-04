@@ -23,6 +23,8 @@ export class SettingController extends Component {
     restart_btn: Node = null;
     @property({ type: Node })
     home_btn: Node = null;
+    @property({ type: Node })
+    close_btn: Node = null;
 
     public lastState: GameState = null;
 
@@ -34,6 +36,7 @@ export class SettingController extends Component {
         this.audio_toggle?.node.on(Toggle.EventType.TOGGLE, this.onAudioToggleChanged, this);
         this.restart_btn?.on(Node.EventType.TOUCH_END, this.onRestartBtnClick, this);
         this.home_btn?.on(Node.EventType.TOUCH_END, this.onHomeBtnClick, this);
+        this.close_btn?.on(Node.EventType.TOUCH_END, this.onCloseBtnClick, this);
     }
 
     onEnable() {
@@ -48,6 +51,11 @@ export class SettingController extends Component {
         this.hand_toggle_left?.node.off(Toggle.EventType.TOGGLE, this.onLeftToggleChanged, this);
         this.hand_toggle_right?.node.off(Toggle.EventType.TOGGLE, this.onRightToggleChanged, this);
         this.shake_toggle?.node.off(Toggle.EventType.TOGGLE, this.onShakeToggleChanged, this);
+        this.music_toggle?.node.off(Toggle.EventType.TOGGLE, this.onMusicToggleChanged, this);
+        this.audio_toggle?.node.off(Toggle.EventType.TOGGLE, this.onAudioToggleChanged, this);
+        this.restart_btn?.off(Node.EventType.TOUCH_END, this.onRestartBtnClick, this);
+        this.home_btn?.off(Node.EventType.TOUCH_END, this.onHomeBtnClick, this);
+        this.close_btn?.off(Node.EventType.TOUCH_END, this.onCloseBtnClick, this);
     }
 
     /**
@@ -105,6 +113,17 @@ export class SettingController extends Component {
     /**
      * 检查点击位置是否在内容面板内
      */
+    private onCloseBtnClick(): void {
+        const gameManager = GameManager.getInstance();
+        if (gameManager) {
+            AudioManager.instance.playEffect('click_btn');
+            gameManager.vibrateShort();
+            gameManager.levelMode?.resumeFromPause();
+            gameManager.gameState = this.lastState;
+        }
+        this.node.active = false;
+    }
+
     private isTouchInContentPanel(touchPos: Vec2): boolean {
         if (!this.border_bg) return false;
 

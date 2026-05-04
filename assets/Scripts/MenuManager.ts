@@ -396,7 +396,7 @@ export class MenuManager extends Component {
         gameManager.gameState = GameState.PAUSED;
         gameManager.setting.lastState = GameState.WAITING;
         const borderBg = gameManager.setting.border_bg;
-        borderBg.getComponent(UITransform).setContentSize(600, 750);
+        borderBg.getComponent(UITransform).setContentSize(600, 650);
         for (const child of borderBg.children) {
             child.getComponent(Widget)?.updateAlignment();
         }

@@ -50,9 +50,9 @@ export class SkillController extends Component {
         }
 
         // 注册 wenhao 按钮触摸事件
-        this.registerWenhaoEvent(this.palette_skill, ' 图案显示技能：显示所有拼豆格\n\n 子上的颜色（半透明状态）和对\n\n 应颜色序号，持续十秒');
-        this.registerWenhaoEvent(this.time_skill, ' 时间冻结技能：冻结游戏倒计时\n\n 30秒，冻结结束后继续倒计时');
-        this.registerWenhaoEvent(this.fix_skill, ' 超级修复技能：修复最大数量同\n\n 一颜色不匹配的拼豆（格子上没\n\n 有拼豆除外）');
+        this.registerWenhaoEvent(this.palette_skill, ' 图案显示技能：显示所有拼豆格子\n\n 上的颜色（半透明状态）和对应颜\n\n 色序号，持续十秒');
+        this.registerWenhaoEvent(this.time_skill, ' 时间冻结技能：冻结游戏倒计时30\n\n 秒，冻结结束后继续倒计时');
+        this.registerWenhaoEvent(this.fix_skill, ' 超级修复技能：修复最大数量同一颜\n\n 色不匹配的拼豆（格子上没有拼豆除\n\n 外）');
     }
 
     /**

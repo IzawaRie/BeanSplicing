@@ -9,6 +9,8 @@ export class WindowController extends Component {
 
     @property(Node)
     ad_btn: Node = null;
+    @property(Node)
+    close_btn: Node = null;
     @property(Label)
     content: Label = null;
     @property(Node)
@@ -17,6 +19,9 @@ export class WindowController extends Component {
     start() {
         if (this.ad_btn) {
             this.ad_btn.on(Node.EventType.TOUCH_END, this.onAdBtnClick, this);
+        }
+        if (this.close_btn) {
+            this.close_btn.on(Node.EventType.TOUCH_END, this.onCloseBtnClick, this);
         }
     }
 
@@ -40,6 +45,9 @@ export class WindowController extends Component {
         if (this.ad_btn) {
             this.ad_btn.off(Node.EventType.TOUCH_END, this.onAdBtnClick, this);
         }
+        if (this.close_btn) {
+            this.close_btn.off(Node.EventType.TOUCH_END, this.onCloseBtnClick, this);
+        }
     }
 
     /**
@@ -59,6 +67,13 @@ export class WindowController extends Component {
                 this.closeWindow();
             }
         });
+    }
+
+    private onCloseBtnClick(): void {
+        const gameManager = GameManager.getInstance();
+        gameManager?.vibrateShort();
+        AudioManager.instance.playEffect('click_btn');
+        this.closeWindow();
     }
 
     /**
@@ -92,6 +107,7 @@ export class WindowController extends Component {
     public showWithMessage(message: string, showAdBtn: boolean = true): void {
         if (this.content) {
             this.content.string = message;
+            this.content.node.setPosition(75, showAdBtn ? 22 : -15);
         }
         if (this.ad_btn) {
             this.ad_btn.active = showAdBtn;
