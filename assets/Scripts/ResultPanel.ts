@@ -1,4 +1,4 @@
-import { _decorator, Component, Label, Node, Sprite, SpriteFrame, Texture2D, ImageAsset, UITransform, tween, Tween, Vec3, UIOpacity } from 'cc';
+import { _decorator, Component, Label, Node, Sprite, SpriteFrame, Texture2D, ImageAsset, UITransform, tween, Tween, Vec3, UIOpacity, resources } from 'cc';
 import { GameManager, GameState, DifficultyMode } from './GameManager';
 import { BlockController, BlockState } from './BlockController';
 import { AudioManager } from './AudioManager';
@@ -89,11 +89,13 @@ export class ResultPanel extends Component {
     @property({ type: Label })
     road_exp_label: Label = null;
 
+    private screenshot_bg_path: string = 'items/screenshot_bg';
+
     /** 标记当前结果是否为成功 */
     private _isSuccess: boolean = false;
 
     /** 保存的截图数据 */
-    private _screenshotData: { width: number; height: number; byteArray: Uint8Array } | null = null;
+    private _screenshotData: { width: number; height: number; byteArray: Uint8Array; background?: any } | null = null;
 
     /** 游戏开始时间（毫秒） */
     private _gameStartTime: number = 0;
@@ -118,6 +120,12 @@ export class ResultPanel extends Component {
     private readonly _ROAD_EXP_COUNT_ANIM_DURATION: number = 1;
     private _lastCoinBoopTime: number = 0;
     private readonly _COIN_COUNT_BOOP_INTERVAL_MS: number = 100;
+    private _screenshotBgImage: ImageAsset | null = null;
+    private _screenshotBgLoadingTask: Promise<ImageAsset | null> | null = null;
+    private readonly _SCREENSHOT_CONTENT_RECT = { x: 170, y: 370, width: 684, height: 680 };
+    private readonly _SCREENSHOT_CONTENT_SCALE = 0.7;
+    private readonly _SCREENSHOT_CONTENT_OFFSET_X = -2;
+    private readonly _SCREENSHOT_CONTENT_OFFSET_Y = 0;
 
     /**
      * 设置成功状态，并更新界面文字
@@ -653,7 +661,15 @@ export class ResultPanel extends Component {
             .start();
 
         // 保存截图数据，供拍照按钮使用
-        this._screenshotData = { width: textureWidth, height: textureHeight, byteArray };
+        this._screenshotData = {
+            width: textureWidth,
+            height: textureHeight,
+            byteArray: new Uint8Array(byteArray),
+            background: {
+                imageAsset: this._screenshotBgImage,
+                resourcePath: this.screenshot_bg_path
+            }
+        };
 
         console.log(`结果图片已生成: ${textureWidth}x${textureHeight}`);
     }
@@ -678,6 +694,65 @@ export class ResultPanel extends Component {
         wxManager.tryShowGameEvaluation();
     }
 
+    private loadScreenshotBackground(): Promise<ImageAsset | null> {
+        if (this._screenshotBgImage) {
+            return Promise.resolve(this._screenshotBgImage);
+        }
+        if (this._screenshotBgLoadingTask) {
+            return this._screenshotBgLoadingTask;
+        }
+
+        this._screenshotBgLoadingTask = new Promise((resolve) => {
+            resources.load(this.screenshot_bg_path, ImageAsset, (err, imageAsset) => {
+                this._screenshotBgLoadingTask = null;
+                if (!err && imageAsset) {
+                    this._screenshotBgImage = imageAsset;
+                    resolve(imageAsset);
+                    return;
+                }
+
+                console.warn('加载截图背景失败:', this.screenshot_bg_path, err);
+                resolve(null);
+            });
+        });
+
+        return this._screenshotBgLoadingTask;
+    }
+
+    private async saveScreenshotToPhotosAlbum(): Promise<void> {
+        if (!this._screenshotData) {
+            return;
+        }
+
+        const imageAsset = this._screenshotBgImage ?? await this.loadScreenshotBackground();
+        const background = this._screenshotData.background ?? {};
+        background.imageAsset = imageAsset;
+        background.resourcePath = background.resourcePath ?? this.screenshot_bg_path;
+
+        const outputWidth = Math.floor(imageAsset?.width ?? this._screenshotData.width);
+        const outputHeight = Math.floor(imageAsset?.height ?? this._screenshotData.height);
+        const contentRect = this._SCREENSHOT_CONTENT_RECT;
+        const scale = Math.min(
+            contentRect.width / this._screenshotData.width,
+            contentRect.height / this._screenshotData.height
+        ) * this._SCREENSHOT_CONTENT_SCALE;
+        const layerWidth = Math.floor(this._screenshotData.width * scale);
+        const layerHeight = Math.floor(this._screenshotData.height * scale);
+        background.outputWidth = outputWidth;
+        background.outputHeight = outputHeight;
+        background.layerX = Math.floor(contentRect.x + (contentRect.width - layerWidth) / 2 + this._SCREENSHOT_CONTENT_OFFSET_X);
+        background.layerY = Math.floor(contentRect.y + (contentRect.height - layerHeight) / 2 + this._SCREENSHOT_CONTENT_OFFSET_Y);
+        background.layerWidth = layerWidth;
+        background.layerHeight = layerHeight;
+
+        WXManager.instance?.saveImageToPhotosAlbum(
+            this._screenshotData.width,
+            this._screenshotData.height,
+            this._screenshotData.byteArray,
+            background
+        );
+    }
+
     private onCameraBtnClick(): void {
         // 播放音效
         AudioManager.instance.playEffect('camera_shutter');
@@ -685,13 +760,7 @@ export class ResultPanel extends Component {
         // 闪白效果
         this.playFlashEffect(() => {
             // 闪白结束后，保存图片
-            if (this._screenshotData) {
-                WXManager.instance?.saveImageToPhotosAlbum(
-                    this._screenshotData.width,
-                    this._screenshotData.height,
-                    this._screenshotData.byteArray
-                );
-            }
+            void this.saveScreenshotToPhotosAlbum();
         });
     }
 
@@ -748,6 +817,7 @@ export class ResultPanel extends Component {
     }
 
     start() {
+        void this.loadScreenshotBackground();
         this.nextLevel_suc_btn?.on(Node.EventType.TOUCH_END, this.onNextLevelBtnClick, this);
         this.restart_suc_btn?.on(Node.EventType.TOUCH_END, this.onRestartLevelBtnClick, this);
         this.restart_fail_btn?.on(Node.EventType.TOUCH_END, this.onAgainLevelBtnClick, this);

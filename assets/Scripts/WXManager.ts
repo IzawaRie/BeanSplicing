@@ -827,7 +827,8 @@ export class WXManager extends Component {
     public saveImageToPhotosAlbum(
         width: number,
         height: number,
-        byteArray: Uint8Array
+        byteArray: Uint8Array,
+        background?: any
     ): void {
         if (typeof (wx) === 'undefined') {
             console.warn('不在微信小游戏环境中');
@@ -836,8 +837,10 @@ export class WXManager extends Component {
 
         // 创建离屏 canvas
         const canvas = wx.createCanvas();
-        canvas.width = width;
-        canvas.height = height;
+        const outputWidth = Math.max(1, Math.floor(background?.outputWidth ?? width));
+        const outputHeight = Math.max(1, Math.floor(background?.outputHeight ?? height));
+        canvas.width = outputWidth;
+        canvas.height = outputHeight;
 
         const ctx = canvas.getContext('2d') as any;
         if (!ctx) {
@@ -845,10 +848,107 @@ export class WXManager extends Component {
             return;
         }
 
-        // 创建 ImageData 并填充像素数据
-        const imageData = ctx.createImageData(width, height);
-        imageData.data.set(byteArray);
-        ctx.putImageData(imageData, 0, 0);
+        const drawResultLayer = () => {
+            const layerCanvas = wx.createCanvas();
+            layerCanvas.width = width;
+            layerCanvas.height = height;
+            const layerCtx = layerCanvas.getContext('2d') as any;
+            if (!layerCtx) {
+                console.warn('获取截图图层 canvas 2d context 失败');
+                return;
+            }
+
+            const imageData = layerCtx.createImageData(width, height);
+            imageData.data.set(byteArray);
+            layerCtx.putImageData(imageData, 0, 0);
+            const layerX = Math.floor(background?.layerX ?? 0);
+            const layerY = Math.floor(background?.layerY ?? 0);
+            const layerWidth = Math.max(1, Math.floor(background?.layerWidth ?? width));
+            const layerHeight = Math.max(1, Math.floor(background?.layerHeight ?? height));
+            ctx.drawImage(layerCanvas, 0, 0, width, height, layerX, layerY, layerWidth, layerHeight);
+            this.exportCanvasToPhotosAlbum(canvas, outputWidth, outputHeight);
+        };
+
+        const backgroundSources = this.getCanvasImageSources(background);
+        if (backgroundSources.length > 0) {
+            this.drawBackgroundFromSources(canvas, ctx, backgroundSources, outputWidth, outputHeight, drawResultLayer);
+            return;
+        }
+
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, outputWidth, outputHeight);
+        drawResultLayer();
+    }
+
+    private getCanvasImageSources(background: any): any[] {
+        const sources: any[] = [];
+        const addSource = (source: any) => {
+            if (!source || source === '[object Object]') {
+                return;
+            }
+            if (typeof source === 'string' && source.trim().length <= 0) {
+                return;
+            }
+            if (sources.indexOf(source) < 0) {
+                sources.push(source);
+            }
+        };
+
+        const imageAsset = background?.imageAsset ?? null;
+
+        addSource(imageAsset?.data);
+        addSource(imageAsset?.nativeUrl);
+        addSource(imageAsset?._nativeUrl);
+        addSource(background?.resourcePath);
+
+        return sources;
+    }
+
+    private drawBackgroundFromSources(
+        canvas: any,
+        ctx: any,
+        sources: any[],
+        width: number,
+        height: number,
+        onComplete: () => void
+    ): void {
+        let index = 0;
+        const tryNext = () => {
+            const source = sources[index++];
+            if (!source) {
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, width, height);
+                onComplete();
+                return;
+            }
+
+            if (typeof source !== 'string') {
+                try {
+                    ctx.drawImage(source, 0, 0, width, height);
+                    onComplete();
+                } catch (err) {
+                    console.warn('绘制截图背景失败:', err);
+                    tryNext();
+                }
+                return;
+            }
+
+            const image = canvas.createImage?.() ?? wx.createImage();
+            image.onload = () => {
+                ctx.drawImage(image, 0, 0, width, height);
+                onComplete();
+            };
+            image.onerror = (err: any) => {
+                console.warn('加载截图背景失败:', source, err);
+                tryNext();
+            };
+            image.src = source;
+        };
+
+        tryNext();
+    }
+
+    private exportCanvasToPhotosAlbum(canvas: any, width: number, height: number): void {
 
         // 将 canvas 导出为临时文件路径
         canvas.toTempFilePath({
@@ -1466,6 +1566,7 @@ export class WXManager extends Component {
     // ========== 原生模板广告 ==========
     private customAd: any = null;
     private nativeAdStyle = { left: 0, top: 0, width: 0 };
+    private nativeAdVisibleRequested: boolean = false;
     // 原生模板广告位 id
     private readonly NATIVE_AD_UNIT_ID: string = 'adunit-e0eab827ac9fbb10';
 
@@ -1479,6 +1580,7 @@ export class WXManager extends Component {
 
     private showNativeAdInternal(): void {
         if (!this.customAd) return;
+        if (!this.nativeAdVisibleRequested) return;
         this.customAd.show().catch((err: any) => {
             console.warn('原生广告显示失败:', err);
         });
@@ -1521,7 +1623,9 @@ export class WXManager extends Component {
                 this.customAd.onLoad(() => {
                     console.log('原生广告加载成功', this.nativeAdStyle);
                     this.applyNativeAdStyle();
-                    this.showNativeAdInternal();
+                    if (this.nativeAdVisibleRequested) {
+                        this.showNativeAdInternal();
+                    }
                 });
 
                 this.customAd.onError((err: any) => {
@@ -1557,6 +1661,7 @@ export class WXManager extends Component {
      * 隐藏原生广告
      */
     public hideNativeAd(): void {
+        this.nativeAdVisibleRequested = false;
         if (!this.customAd) return;
         this.customAd.hide?.();
     }
@@ -1567,6 +1672,7 @@ export class WXManager extends Component {
      * @param estimatedHeight 预估广告高度，默认 120
      */
     public showNativeAd(bottomMargin: number = 0, estimatedHeight: number = 120): void {
+        this.nativeAdVisibleRequested = true;
         if (!this.customAd) {
             this.createNativeAdAtBottom(bottomMargin, estimatedHeight);
             return;
@@ -1578,6 +1684,7 @@ export class WXManager extends Component {
      * 销毁原生广告
      */
     public destroyNativeAd(): void {
+        this.nativeAdVisibleRequested = false;
         if (this.customAd) {
             this.customAd.destroy();
             this.customAd = null;
@@ -1587,10 +1694,12 @@ export class WXManager extends Component {
     // ========== 原生格子广告 ==========
     private nativeGridAd: any = null;
     private nativeGridAdStyle = { left: 0, top: 0 };
+    private nativeGridAdVisibleRequested: boolean = false;
     private readonly NATIVE_GRID_AD_UNIT_ID: string = 'adunit-4873c091df5fa489';
 
     private showNativeGridAdInternal(): void {
         if (!this.nativeGridAd) return;
+        if (!this.nativeGridAdVisibleRequested) return;
         this.nativeGridAd.show().catch((err: any) => {
             console.warn('原生格子广告显示失败:', err);
         });
@@ -1628,7 +1737,9 @@ export class WXManager extends Component {
 
                 this.nativeGridAd.onLoad(() => {
                     console.log('原生格子广告加载成功');
-                    this.showNativeGridAdInternal();
+                    if (this.nativeGridAdVisibleRequested) {
+                        this.showNativeGridAdInternal();
+                    }
                 });
 
                 this.nativeGridAd.onError((err: any) => {
@@ -1660,6 +1771,7 @@ export class WXManager extends Component {
      * 销毁原生格子广告
      */
     public destroyNativeGridAd(): void {
+        this.nativeGridAdVisibleRequested = false;
         if (this.nativeGridAd) {
             this.nativeGridAd.destroy();
             this.nativeGridAd = null;
@@ -1671,6 +1783,7 @@ export class WXManager extends Component {
      * @param topPercent 距离屏幕顶部的百分比
      */
     public showNativeGridAd(topPercent: number): void {
+        this.nativeGridAdVisibleRequested = true;
         if (!this.nativeGridAd) {
             this.createNativeGridAdAtBottom(topPercent);
             return;
@@ -1682,6 +1795,7 @@ export class WXManager extends Component {
      * 隐藏原生格子广告
      */
     public hideNativeGridAd(): void {
+        this.nativeGridAdVisibleRequested = false;
         if (!this.nativeGridAd) return;
         this.nativeGridAd.hide?.();
     }
