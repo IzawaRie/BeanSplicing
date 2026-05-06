@@ -39,6 +39,12 @@ export class MenuManager extends Component {
     book_btn: Node = null;
 
     @property({ type: Node })
+    mail_btn: Node = null;
+
+    @property({ type: Node })
+    mail_point: Node = null;
+
+    @property({ type: Node })
     more_btn: Node = null;
 
     @property({ type: Node })
@@ -62,6 +68,9 @@ export class MenuManager extends Component {
     @property({ type: Label })
     coin_label: Label = null;
 
+    @property({ type: Label })
+    mail_number: Label = null;
+
     private starPrefab: Prefab = null;
     private spawnedStars: Node[] = [];
     private spawnInterval: number = 12;  // 每秒刷新
@@ -72,6 +81,16 @@ export class MenuManager extends Component {
     private readonly _EXTEND_AREA_TWEEN_DURATION: number = 0.2;
 
     public levelConfig: LevelConfig | null = null;
+
+    public setMailUnreadCount(count: number): void {
+        const safeCount = Math.max(0, Math.floor(Number(count) || 0));
+        if (this.mail_point) {
+            this.mail_point.active = safeCount > 0;
+        }
+        if (this.mail_number) {
+            this.mail_number.string = safeCount > 99 ? '99+' : `${safeCount}`;
+        }
+    }
     /**
      * 数字转中文
      */
@@ -192,12 +211,16 @@ export class MenuManager extends Component {
         if (this.book_btn) {
             this.book_btn.on(Node.EventType.TOUCH_END, this.onBookBtnClick, this);
         }
+        if (this.mail_btn) {
+            this.mail_btn.on(Node.EventType.TOUCH_END, this.onMailBtnClick, this);
+        }
         if (this.more_btn) {
             this.more_btn.on(Node.EventType.TOUCH_END, this.onMoreBtnClick, this);
         }
         this.road_tag?.on(Node.EventType.TOUCH_END, () => this.selectTagPage('road'), this);
         this.home_tag?.on(Node.EventType.TOUCH_END, () => this.selectTagPage('home'), this);
         this.shop_tag?.on(Node.EventType.TOUCH_END, () => this.selectTagPage('shop'), this);
+        this.setMailUnreadCount(0);
 
         // 加载星星预制体
         resources.load('prefab/star_light', Prefab, (err, prefab) => {
@@ -475,6 +498,16 @@ export class MenuManager extends Component {
         gameManager.book.active = true;
     }
 
+    private onMailBtnClick(): void {
+        const gameManager = GameManager.getInstance();
+        if (!gameManager?.mail || (gameManager.gameState != GameState.WAITING)) return;
+        if (gameManager.isWindowBlocking([gameManager.mail.node])) return;
+
+        gameManager.vibrateShort();
+        AudioManager.instance.playEffect('click_btn');
+        gameManager.mail.openPanel();
+    }
+
     /**
      * 显示进度面板
      */
@@ -683,6 +716,9 @@ export class MenuManager extends Component {
         }
         if (this.book_btn) {
             this.book_btn.off(Node.EventType.TOUCH_END, this.onBookBtnClick, this);
+        }
+        if (this.mail_btn) {
+            this.mail_btn.off(Node.EventType.TOUCH_END, this.onMailBtnClick, this);
         }
         if (this.more_btn) {
             this.more_btn.off(Node.EventType.TOUCH_END, this.onMoreBtnClick, this);

@@ -15,6 +15,7 @@ import { ChartController } from './ChartController';
 import { ShopController } from './ShopController';
 import { UserInfo } from './UserInfo';
 import { RoadController } from './RoadController';
+import { MailController } from './MailController';
 const { ccclass, property } = _decorator;
 
 /**
@@ -94,6 +95,9 @@ export class GameManager extends Component {
 
     @property({ type: RoadController })
     road: RoadController = null;
+
+    @property({ type: MailController })
+    mail: MailController = null;
 
     @property({ type: Node })
     book: Node = null;
@@ -385,6 +389,7 @@ export class GameManager extends Component {
             console.log('GameManager openid:', this.openid);
 
             await this.ensureChartProfileReady(true);
+            await this.initializeMailController();
             PlayerService.instance?.syncProgressWithCloud();
             PlayerService.instance?.updateLastLoginTime();
             this.scheduleOnce(() => {
@@ -421,6 +426,14 @@ export class GameManager extends Component {
         if (GameManager._instance === this) {
             GameManager._instance = null;
         }
+    }
+
+    private async initializeMailController(): Promise<void> {
+        if (!this.openid) {
+            return;
+        }
+
+        await this.mail.initialize(this.openid);
     }
 
     /**
@@ -846,6 +859,34 @@ export class GameManager extends Component {
                 break;
             case 'coin':
                 this.addCoins(count);
+                break;
+            case 'avatar':
+                if (this.userInfo) {
+                    this.userInfo.addOwnedAvatarId((reward as any).itemId ?? count);
+                }
+                break;
+            case 'avatar_frame':
+                if (this.userInfo) {
+                    this.userInfo.addOwnedAvatarFrameId((reward as any).itemId ?? count);
+                }
+                break;
+            case 'tweezer':
+                if (this.userInfo) {
+                    this.userInfo.addOwnedTweezerId((reward as any).itemId ?? count);
+                }
+                break;
+            case 'iron':
+                if (this.userInfo) {
+                    this.userInfo.addOwnedIronId((reward as any).itemId ?? count);
+                }
+                break;
+            case 'achievement_icon':
+                if (this.userInfo) {
+                    this.userInfo.ownedAchievementIconIds = [
+                        ...this.userInfo.ownedAchievementIconIds,
+                        (reward as any).itemId ?? count
+                    ];
+                }
                 break;
             default:
                 console.warn(`GameManager: unknown book progress reward type ${reward?.type}`);

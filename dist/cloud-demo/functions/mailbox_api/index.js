@@ -105,6 +105,28 @@ async function syncMeta(openid, event) {
   };
 }
 
+async function rebuildInboxMeta(openid, updatedAt) {
+  const listResult = await db
+    .collection(mailboxCollection)
+    .where({ playerOpenId: openid })
+    .get();
+  const mails = listResult.data || [];
+  const sortedMails = mails.slice().sort((left, right) => String(right.createdAt || '').localeCompare(String(left.createdAt || '')));
+  const data = {
+    playerOpenId: openid,
+    unclaimedCount: mails.filter((item) => String(item.status || '') === 'unclaimed').length,
+    latestMailAt: sortedMails[0] ? sortedMails[0].createdAt : null,
+    lastMailId: sortedMails[0] ? String(sortedMails[0]._id || '') : '',
+    updatedAt: updatedAt || new Date().toISOString()
+  };
+
+  await db.collection(inboxMetaCollection).doc(openid).set({
+    data
+  });
+
+  return data;
+}
+
 async function claimMail(openid, mailId) {
   const mailResult = await db.collection(mailboxCollection).doc(mailId).get();
   const mail = mailResult.data;
@@ -132,23 +154,7 @@ async function claimMail(openid, mailId) {
     }
   });
 
-  const listResult = await db
-    .collection(mailboxCollection)
-    .where({ playerOpenId: openid })
-    .get();
-  const mails = listResult.data || [];
-  const unclaimedCount = mails.filter((item) => String(item.status || '') === 'unclaimed').length;
-  const sortedMails = mails.slice().sort((left, right) => String(right.createdAt || '').localeCompare(String(left.createdAt || '')));
-
-  await db.collection(inboxMetaCollection).doc(openid).set({
-    data: {
-      playerOpenId: openid,
-      unclaimedCount,
-      latestMailAt: sortedMails[0] ? sortedMails[0].createdAt : null,
-      lastMailId: sortedMails[0] ? String(sortedMails[0]._id || '') : '',
-      updatedAt: claimedAt
-    }
-  });
+  await rebuildInboxMeta(openid, claimedAt);
 
   return {
     success: true,
@@ -158,6 +164,69 @@ async function claimMail(openid, mailId) {
       claimedAt,
       updatedAt: claimedAt
     })
+  };
+}
+
+async function claimAllMails(openid) {
+  const result = await db
+    .collection(mailboxCollection)
+    .where({
+      playerOpenId: openid,
+      status: 'unclaimed'
+    })
+    .get();
+  const mails = Array.isArray(result.data) ? result.data : [];
+  if (mails.length <= 0) {
+    return {
+      success: true,
+      data: []
+    };
+  }
+
+  const claimedAt = new Date().toISOString();
+  await Promise.all(mails.map((mail) => db.collection(mailboxCollection).doc(String(mail._id || '')).update({
+    data: {
+      status: 'claimed',
+      claimedAt,
+      updatedAt: claimedAt
+    }
+  })));
+  await rebuildInboxMeta(openid, claimedAt);
+
+  return {
+    success: true,
+    data: mails.map((mail) => normalizeMail({
+      ...mail,
+      status: 'claimed',
+      claimedAt,
+      updatedAt: claimedAt
+    })).filter(Boolean)
+  };
+}
+
+async function deleteClaimedMails(openid) {
+  const result = await db
+    .collection(mailboxCollection)
+    .where({
+      playerOpenId: openid,
+      status: 'claimed'
+    })
+    .get();
+  const mails = Array.isArray(result.data) ? result.data : [];
+  const deletedIds = mails
+    .map((mail) => String(mail._id || ''))
+    .filter(Boolean);
+
+  if (deletedIds.length > 0) {
+    await Promise.all(deletedIds.map((mailId) => db.collection(mailboxCollection).doc(mailId).remove()));
+  }
+
+  await rebuildInboxMeta(openid, new Date().toISOString());
+  return {
+    success: true,
+    data: {
+      deletedIds
+    }
   };
 }
 
@@ -187,6 +256,16 @@ exports.main = async (event) => {
           return { success: false, error: 'openid and mailId are required' };
         }
         return await claimMail(openid, String(event.mailId));
+      case 'claim_all_mails':
+        if (!openid) {
+          return { success: false, error: 'openid is required' };
+        }
+        return await claimAllMails(openid);
+      case 'delete_claimed_mails':
+        if (!openid) {
+          return { success: false, error: 'openid is required' };
+        }
+        return await deleteClaimedMails(openid);
       default:
         return {
           success: false,
