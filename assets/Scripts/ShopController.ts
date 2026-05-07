@@ -8,8 +8,8 @@ const { ccclass, property } = _decorator;
 
 enum ShopCategoryTab {
     SUPPLY = 0,
-    PROP = 1,
-    DECORATION = 2,
+    DECORATION = 1,
+    PROP = 2,
 }
 
 @ccclass('ShopController')
@@ -78,12 +78,12 @@ export class ShopController extends Component {
 
     private onPropTagClick(): void {
         AudioManager.instance.playEffect('click_btn');
-        this.selectTab(ShopCategoryTab.PROP);
+        this.selectTab(ShopCategoryTab.DECORATION);
     }
 
     private onDecorationTagClick(): void {
         AudioManager.instance.playEffect('click_btn');
-        this.selectTab(ShopCategoryTab.DECORATION);
+        this.selectTab(ShopCategoryTab.PROP);
     }
 
     private selectTab(tab: ShopCategoryTab): void {
@@ -94,8 +94,8 @@ export class ShopController extends Component {
 
     private refreshTagStates(): void {
         this.setTagColor(this.shop_tag1, this._currentTab === ShopCategoryTab.SUPPLY ? this._activeTagColor : this._inactiveTagColor);
-        this.setTagColor(this.shop_tag2, this._currentTab === ShopCategoryTab.PROP ? this._activeTagColor : this._inactiveTagColor);
-        this.setTagColor(this.shop_tag3, this._currentTab === ShopCategoryTab.DECORATION ? this._activeTagColor : this._inactiveTagColor);
+        this.setTagColor(this.shop_tag2, this._currentTab === ShopCategoryTab.DECORATION ? this._activeTagColor : this._inactiveTagColor);
+        this.setTagColor(this.shop_tag3, this._currentTab === ShopCategoryTab.PROP ? this._activeTagColor : this._inactiveTagColor);
     }
 
     private setTagColor(tagNode: Node | null, color: Color): void {
@@ -135,9 +135,9 @@ export class ShopController extends Component {
             return null;
         }
 
-        const supply = this.normalizeShopItemArray(shopData.supply);
-        const prop = this.normalizeShopItemArray(shopData.prop);
-        const decoration = this.normalizeShopItemArray(shopData.decoration);
+        const supply = this.normalizeShopItemArray(shopData.supply, 'supply');
+        const prop = this.normalizeShopItemArray(shopData.prop, 'prop');
+        const decoration = this.normalizeShopItemArray(shopData.decoration, 'decoration');
         if (!supply || !prop || !decoration) {
             return null;
         }
@@ -147,9 +147,11 @@ export class ShopController extends Component {
 
     public async generateRandomShopData(): Promise<ShopRuntimeData | null> {
         const slotCount = this.shop_items.length;
-        const supply = await this.buildCategoryShopItems('supply', slotCount);
-        const prop: ShopDisplayItem[] = [];
-        const decoration: ShopDisplayItem[] = [];
+        const [supply, prop, decoration] = await Promise.all([
+            this.buildCategoryShopItems('supply', slotCount),
+            this.buildCategoryShopItems('prop', slotCount),
+            this.buildCategoryShopItems('decoration', slotCount),
+        ]);
         const shopData: ShopRuntimeData = { supply, prop, decoration };
         return this.isShopDataValid(shopData) ? shopData : null;
     }
@@ -169,10 +171,10 @@ export class ShopController extends Component {
         switch (this._currentTab) {
             case ShopCategoryTab.SUPPLY:
                 return this._shopData.supply;
-            case ShopCategoryTab.PROP:
-                return this._shopData.prop;
             case ShopCategoryTab.DECORATION:
                 return this._shopData.decoration;
+            case ShopCategoryTab.PROP:
+                return this._shopData.prop;
             default:
                 return [];
         }
@@ -180,11 +182,12 @@ export class ShopController extends Component {
 
     private async buildCategoryShopItems(categoryId: ShopCategoryId, slotCount: number): Promise<ShopDisplayItem[]> {
         const sourceItems = await ShopConfig.getInstance().getCategoryItems(categoryId);
-        if (slotCount <= 0 || sourceItems.length <= 0) {
+        const availableItems = sourceItems.filter((item) => !this.shouldHideShopConfigItem(categoryId, item.effectType, item.effectValue));
+        if (slotCount <= 0 || availableItems.length <= 0) {
             return [];
         }
 
-        const shuffledItems = [...sourceItems];
+        const shuffledItems = [...availableItems];
         for (let i = shuffledItems.length - 1; i > 0; i--) {
             const randomIndex = Math.floor(Math.random() * (i + 1));
             const currentItem = shuffledItems[i];
@@ -198,7 +201,7 @@ export class ShopController extends Component {
             price: this.randomInt(item.priceRange.min, item.priceRange.max),
             imagePath: item.imagePath,
             categoryId,
-            isPurchased: false,
+            isPurchased: this.isShopItemAlreadyOwned(categoryId, item.effectType, item.effectValue),
             effectType: item.effectType,
             effectKey: item.effectKey,
             effectValue: item.effectValue,
@@ -241,6 +244,20 @@ export class ShopController extends Component {
             }
 
             gameManager.power += powerValue;
+        } else if (targetItem.effectType === 'avatar_frame') {
+            const avatarFrameId = Math.max(0, Math.floor(targetItem.effectValue ?? 0));
+            if (avatarFrameId <= 0 || !gameManager.userInfo) {
+                return;
+            }
+
+            if (gameManager.userInfo.hasOwnedAvatarFrameId(avatarFrameId)) {
+                targetItem.isPurchased = true;
+                this.refreshShopItems();
+                gameManager.wxManager?.setShopData(this.getShopDataSnapshot());
+                return;
+            }
+
+            gameManager.userInfo.addOwnedAvatarFrameId(avatarFrameId);
         } else {
             return;
         }
@@ -251,7 +268,7 @@ export class ShopController extends Component {
         gameManager.wxManager?.setShopData(this.getShopDataSnapshot());
     }
 
-    private normalizeShopItemArray(items: ShopDisplayItem[] | null | undefined): ShopDisplayItem[] | null {
+    private normalizeShopItemArray(items: ShopDisplayItem[] | null | undefined, categoryId: ShopCategoryId): ShopDisplayItem[] | null {
         if (!Array.isArray(items)) {
             return null;
         }
@@ -267,20 +284,72 @@ export class ShopController extends Component {
                 return null;
             }
 
+            const migratedItem = this.migrateLegacyShopItem(item, categoryId);
             normalizedItems.push({
                 id: item.id,
                 name: item.name,
                 price: item.price,
-                imagePath: item.imagePath,
+                imagePath: migratedItem.imagePath,
                 categoryId: item.categoryId,
-                isPurchased: item.isPurchased === true,
-                effectType: item.effectType,
+                isPurchased: item.isPurchased === true || this.isShopItemAlreadyOwned(categoryId, migratedItem.effectType, migratedItem.effectValue),
+                effectType: migratedItem.effectType,
                 effectKey: item.effectKey,
-                effectValue: typeof item.effectValue === 'number' ? item.effectValue : undefined,
+                effectValue: migratedItem.effectValue,
             });
         }
 
         return normalizedItems;
+    }
+
+    private isShopItemAlreadyOwned(
+        categoryId: ShopCategoryId,
+        effectType?: ShopDisplayItem['effectType'],
+        effectValue?: number
+    ): boolean {
+        if (categoryId !== 'decoration' || effectType !== 'avatar_frame') {
+            return false;
+        }
+
+        const avatarFrameId = Math.max(0, Math.floor(effectValue ?? 0));
+        if (avatarFrameId <= 0) {
+            return false;
+        }
+
+        return GameManager.getInstance()?.userInfo?.hasOwnedAvatarFrameId(avatarFrameId) ?? false;
+    }
+
+    private shouldHideShopConfigItem(
+        categoryId: ShopCategoryId,
+        effectType?: ShopDisplayItem['effectType'],
+        effectValue?: number
+    ): boolean {
+        return this.isShopItemAlreadyOwned(categoryId, effectType, effectValue);
+    }
+
+    private migrateLegacyShopItem(
+        item: ShopDisplayItem,
+        categoryId: ShopCategoryId
+    ): Pick<ShopDisplayItem, 'imagePath' | 'effectType' | 'effectValue'> {
+        const migratedItem = {
+            imagePath: item.imagePath,
+            effectType: item.effectType,
+            effectValue: typeof item.effectValue === 'number' ? item.effectValue : undefined,
+        };
+
+        if (categoryId !== 'decoration') {
+            return migratedItem;
+        }
+
+        const avatarFrameMatch = /^avatar_border_(\d+)$/.exec(item.id);
+        if (!avatarFrameMatch) {
+            return migratedItem;
+        }
+
+        const avatarFrameId = Math.max(1, Math.floor(Number(avatarFrameMatch[1]) || 0));
+        migratedItem.effectType = 'avatar_frame';
+        migratedItem.effectValue = avatarFrameId;
+        migratedItem.imagePath = `items/avatar_frame/avatar_border_${avatarFrameId}`;
+        return migratedItem;
     }
 
     private getShopDataSnapshot(): ShopRuntimeData {

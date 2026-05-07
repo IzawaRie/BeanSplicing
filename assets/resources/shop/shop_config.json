@@ -79,6 +79,56 @@
       ]
     },
     {
+      "id": "decoration",
+      "name": "装饰",
+      "items": [
+        {
+          "id": "avatar_border_2",
+          "name": "星星头像框",
+          "effectType": "avatar_frame",
+          "effectValue": 2,
+          "priceRange": {
+            "min": 1500,
+            "max": 2000
+          },
+          "imagePath": "items/avatar_frame/avatar_border_2"
+        },
+        {
+          "id": "avatar_border_3",
+          "name": "花朵头像框",
+          "effectType": "avatar_frame",
+          "effectValue": 3,
+          "priceRange": {
+            "min": 1500,
+            "max": 2000
+          },
+          "imagePath": "items/avatar_frame/avatar_border_3"
+        },
+        {
+          "id": "avatar_border_5",
+          "name": "爱心头像框",
+          "effectType": "avatar_frame",
+          "effectValue": 5,
+          "priceRange": {
+            "min": 1500,
+            "max": 2000
+          },
+          "imagePath": "items/avatar_frame/avatar_border_5"
+        },
+        {
+          "id": "avatar_border_6",
+          "name": "小草头像框",
+          "effectType": "avatar_frame",
+          "effectValue": 6,
+          "priceRange": {
+            "min": 1500,
+            "max": 2000
+          },
+          "imagePath": "items/avatar_frame/avatar_border_6"
+        }
+      ]
+    },
+    {
       "id": "prop",
       "name": "道具",
       "items": [
@@ -108,39 +158,6 @@
             "max": 280
           },
           "imagePath": "items/shop/hint_card"
-        }
-      ]
-    },
-    {
-      "id": "decoration",
-      "name": "装饰",
-      "items": [
-        {
-          "id": "iron_skin_sakura",
-          "name": "樱花熨斗皮肤",
-          "priceRange": {
-            "min": 600,
-            "max": 900
-          },
-          "imagePath": "items/shop/iron_skin_sakura"
-        },
-        {
-          "id": "coin_trail_star",
-          "name": "星光金币特效",
-          "priceRange": {
-            "min": 700,
-            "max": 980
-          },
-          "imagePath": "items/shop/coin_trail_star"
-        },
-        {
-          "id": "frame_cloud",
-          "name": "云朵头像框",
-          "priceRange": {
-            "min": 260,
-            "max": 420
-          },
-          "imagePath": "items/shop/frame_cloud"
         }
       ]
     }

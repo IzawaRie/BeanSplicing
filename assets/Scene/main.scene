@@ -90424,7 +90424,7 @@
         "__id__": 2473
       }
     ],
-    "_active": false,
+    "_active": true,
     "_components": [
       {
         "__id__": 2476
@@ -90665,7 +90665,7 @@
       "b": 16,
       "a": 255
     },
-    "_string": "头像",
+    "_string": "装饰",
     "_horizontalAlign": 1,
     "_verticalAlign": 1,
     "_actualFontSize": 61,

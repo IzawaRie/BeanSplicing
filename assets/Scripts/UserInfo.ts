@@ -107,6 +107,7 @@ export class UserInfo extends Component {
     private _paletteSkillCount: number = 0;
     private _sex: UserSex = 'male';
     private avatarRenderVersion = 0;
+    private avatarFrameRenderVersion = 0;
     private _itemPrefab: Prefab | null = null;
     private _itemPrefabTask: Promise<Prefab | null> | null = null;
     private readonly _resourcePathCache = new Map<UserInfoOwnedCategory, Map<number, string>>();
@@ -207,6 +208,7 @@ export class UserInfo extends Component {
     public set avatarFrameId(value: number) {
         this._avatarFrameId = this.normalizeOwnedConfigId(value);
         this.addOwnedAvatarFrameId(this._avatarFrameId);
+        this.refreshAvatarFrameSprite();
         WXManager.instance?.setAvatarFrameId(this._avatarFrameId);
     }
 
@@ -245,6 +247,10 @@ export class UserInfo extends Component {
 
     public set ownedAvatarFrameIds(value: number[]) {
         this._ownedAvatarFrameIds = this.normalizeOwnedIds(value);
+        if (this._ownedAvatarFrameIds.indexOf(this._avatarFrameId) < 0) {
+            this._avatarFrameId = this._ownedAvatarFrameIds[0] ?? 1;
+        }
+        this.refreshAvatarFrameSprite();
         WXManager.instance?.setOwnedAvatarFrameIds(this._ownedAvatarFrameIds);
     }
 
@@ -983,6 +989,7 @@ export class UserInfo extends Component {
         this._sex = cachedSex === 'female' ? 'female' : 'male';
         this.refreshSexDisplay();
         this.refreshAvatarSprite();
+        this.refreshAvatarFrameSprite();
     }
 
     private refreshDefaultAvatarIfNeeded(): void {
@@ -1017,6 +1024,34 @@ export class UserInfo extends Component {
             }
 
             this.avatar_sprite.spriteFrame = spriteFrame;
+        });
+    }
+
+    private refreshAvatarFrameSprite(): void {
+        if (!this.avatar_kuang) {
+            return;
+        }
+
+        const avatarFrameId = this.normalizeOwnedConfigId(this._avatarFrameId);
+        const renderVersion = ++this.avatarFrameRenderVersion;
+        void this.loadResourcePathMap('avatarFrame').then((resourcePathMap) => {
+            if (renderVersion !== this.avatarFrameRenderVersion || !this.avatar_kuang) {
+                return;
+            }
+
+            const resourcePath = resourcePathMap.get(avatarFrameId) || '';
+            if (!resourcePath) {
+                this.avatar_kuang.spriteFrame = null;
+                return;
+            }
+
+            void this.loadLocalSpriteFrame(resourcePath).then((spriteFrame) => {
+                if (renderVersion !== this.avatarFrameRenderVersion || !this.avatar_kuang) {
+                    return;
+                }
+
+                this.avatar_kuang.spriteFrame = spriteFrame;
+            });
         });
     }
 

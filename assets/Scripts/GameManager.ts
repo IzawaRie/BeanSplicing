@@ -41,6 +41,7 @@ type BookProgressRewardItem = {
     imagePath: string;
     count: number;
     type: string;
+    itemId?: number;
 };
 
 export type RewardItemData = BookProgressRewardItem;
@@ -771,7 +772,10 @@ export class GameManager extends Component {
                     .map((item) => ({
                         imagePath: item.imagePath,
                         count: Math.max(0, Math.floor(Number(item.count) || 0)),
-                        type: String(item.type || '')
+                        type: String(item.type || ''),
+                        itemId: item.itemId === undefined
+                            ? undefined
+                            : Math.max(0, Math.floor(Number(item.itemId) || 0))
                     }))
             }))
             .filter((reward) => reward.progress > 0)
@@ -862,29 +866,29 @@ export class GameManager extends Component {
                 break;
             case 'avatar':
                 if (this.userInfo) {
-                    this.userInfo.addOwnedAvatarId((reward as any).itemId ?? count);
+                    this.userInfo.addOwnedAvatarId(this.resolveRewardItemId(reward, count));
                 }
                 break;
             case 'avatar_frame':
                 if (this.userInfo) {
-                    this.userInfo.addOwnedAvatarFrameId((reward as any).itemId ?? count);
+                    this.userInfo.addOwnedAvatarFrameId(this.resolveRewardItemId(reward, count));
                 }
                 break;
             case 'tweezer':
                 if (this.userInfo) {
-                    this.userInfo.addOwnedTweezerId((reward as any).itemId ?? count);
+                    this.userInfo.addOwnedTweezerId(this.resolveRewardItemId(reward, count));
                 }
                 break;
             case 'iron':
                 if (this.userInfo) {
-                    this.userInfo.addOwnedIronId((reward as any).itemId ?? count);
+                    this.userInfo.addOwnedIronId(this.resolveRewardItemId(reward, count));
                 }
                 break;
             case 'achievement_icon':
                 if (this.userInfo) {
                     this.userInfo.ownedAchievementIconIds = [
                         ...this.userInfo.ownedAchievementIconIds,
-                        (reward as any).itemId ?? count
+                        this.resolveRewardItemId(reward, count)
                     ];
                 }
                 break;
@@ -892,6 +896,15 @@ export class GameManager extends Component {
                 console.warn(`GameManager: unknown book progress reward type ${reward?.type}`);
                 break;
         }
+    }
+
+    private resolveRewardItemId(reward: BookProgressRewardItem, fallbackCount: number): number {
+        const itemId = Math.max(0, Math.floor(Number(reward?.itemId) || 0));
+        if (itemId > 0) {
+            return itemId;
+        }
+
+        return Math.max(1, fallbackCount);
     }
 
     private getBookIdsBeforeLevel(difficulty: DifficultyMode, level: number): number[] {

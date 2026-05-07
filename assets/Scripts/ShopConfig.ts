@@ -12,7 +12,7 @@ export interface ShopConfigItem {
     name: string;
     priceRange: ShopPriceRange;
     imagePath: string;
-    effectType?: 'skill' | 'power';
+    effectType?: 'skill' | 'power' | 'avatar_frame';
     effectKey?: string;
     effectValue?: number;
 }
@@ -34,7 +34,7 @@ export interface ShopDisplayItem {
     imagePath: string;
     categoryId: ShopCategoryId;
     isPurchased: boolean;
-    effectType?: 'skill' | 'power';
+    effectType?: 'skill' | 'power' | 'avatar_frame';
     effectKey?: string;
     effectValue?: number;
 }

@@ -6,6 +6,7 @@ type RewardPopupItem = {
     imagePath: string;
     count: number;
     type: string;
+    itemId?: number;
 };
 
 type RewardPopupProgressItem = {
@@ -387,7 +388,10 @@ export class RewardController extends Component {
                     .map((item) => ({
                         imagePath: item.imagePath,
                         count: Math.max(0, Math.floor(Number(item.count) || 0)),
-                        type: String(item.type || '')
+                        type: String(item.type || ''),
+                        itemId: item.itemId === undefined
+                            ? undefined
+                            : Math.max(0, Math.floor(Number(item.itemId) || 0))
                     }))
             }))
             .filter((reward) => reward.progress > 0)
