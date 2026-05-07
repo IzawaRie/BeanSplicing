@@ -49,6 +49,6 @@
     { "level": 47, "requiredExp": 65750, "freeReward": { "imagePath": "items/shop/power", "count": 11, "type": "power" }, "premiumReward": { "imagePath": "items/shop/skill_fix", "count": 5, "type": "fix_skill" } },
     { "level": 48, "requiredExp": 68350, "freeReward": { "imagePath": "items/coin", "count": 600, "type": "coin" }, "premiumReward": { "imagePath": "items/shop/skill_time_freeze", "count": 5, "type": "time_skill" } },
     { "level": 49, "requiredExp": 71000, "freeReward": { "imagePath": "items/shop/power", "count": 11, "type": "power" }, "premiumReward": { "imagePath": "items/coin", "count": 1500, "type": "coin" } },
-    { "level": 50, "requiredExp": 73700, "freeReward": { "imagePath": "items/shop/skill_palette", "count": 3, "type": "palette_skill" }, "premiumReward": { "imagePath": "items/shop/skill_palette", "count": 6, "type": "palette_skill" } }
+    { "level": 50, "requiredExp": 73700, "freeReward": { "imagePath": "items/shop/skill_palette", "count": 3, "type": "palette_skill" }, "premiumReward": { "imagePath": "items/avatar_frame/avatar_border_4", "count": 1, "type": "avatar_frame", "itemId": 4 } }
   ]
 }

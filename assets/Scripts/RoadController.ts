@@ -939,12 +939,18 @@ export class RoadController extends Component {
                 freeReward: {
                     imagePath: String(item.freeReward.imagePath || '').trim(),
                     count: Math.max(0, Math.floor(Number(item.freeReward.count) || 0)),
-                    type: String(item.freeReward.type || '').trim()
+                    type: String(item.freeReward.type || '').trim(),
+                    itemId: item.freeReward.itemId === undefined
+                        ? undefined
+                        : Math.max(0, Math.floor(Number(item.freeReward.itemId) || 0))
                 },
                 premiumReward: {
                     imagePath: String(item.premiumReward.imagePath || '').trim(),
                     count: Math.max(0, Math.floor(Number(item.premiumReward.count) || 0)),
-                    type: String(item.premiumReward.type || '').trim()
+                    type: String(item.premiumReward.type || '').trim(),
+                    itemId: item.premiumReward.itemId === undefined
+                        ? undefined
+                        : Math.max(0, Math.floor(Number(item.premiumReward.itemId) || 0))
                 }
             }))
             .sort((a, b) => a.level - b.level);

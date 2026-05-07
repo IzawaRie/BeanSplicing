@@ -5,6 +5,7 @@ export type RoadRewardItemData = {
     imagePath: string;
     count: number;
     type: string;
+    itemId?: number;
 };
 
 export type RoadRewardLevelData = {
